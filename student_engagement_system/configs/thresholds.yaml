@@ -1,0 +1,16 @@
+engagement_score:
+  low:
+  - 0
+  - 40
+  medium:
+  - 41
+  - 70
+  high:
+  - 71
+  - 100
+engagement_weights:
+  eye_focus: 0.3
+  emotion: 0.2
+  head_pose: 0.25
+  object_detection: 0.15
+  multiple_person: 0.1

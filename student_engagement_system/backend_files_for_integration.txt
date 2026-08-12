@@ -1,0 +1,1299 @@
+====================================================================================================
+STUDENT ENGAGEMENT PROJECT - BACKEND SOURCE CODE
+====================================================================================================
+
+
+
+####################################################################################################
+# FILE: backend/app.py
+####################################################################################################
+
+from config import DATABASE_PATH
+from flask_cors import CORS
+print("=" * 50)
+print("DATABASE:", DATABASE_PATH)
+print("=" * 50)
+
+from flask import Flask
+
+from routes.student import student_bp
+from routes.teacher import teacher_bp
+
+app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+app.register_blueprint(student_bp)
+app.register_blueprint(teacher_bp)
+
+@app.route("/")
+def home():
+    return {
+        "message": "Predictive Multimodal Student Engagement Backend",
+        "status": "Running Successfully"
+    }
+
+print("\n========== ROUTES ==========")
+for rule in app.url_map.iter_rules():
+    print(rule)
+print("============================\n")
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+####################################################################################################
+# FILE: backend/routes/auth.py
+####################################################################################################
+
+
+
+####################################################################################################
+# FILE: backend/routes/student.py
+####################################################################################################
+
+from flask import Blueprint, request, jsonify
+from services.monitoring_service import MonitoringService
+from database.database import SessionLocal
+from schemas.student_schema import StudentRegister
+from schemas.login_schema import StudentLogin
+from services.student_service import StudentService
+from schemas.join_class_schema import JoinClass
+from services.enrollment_service import EnrollmentService
+from services.jwt_service import JWTService
+
+student_bp = Blueprint("student", __name__)
+
+
+@student_bp.route("/register", methods=["POST"])
+def register_student():
+
+    db = SessionLocal()
+
+    try:
+        data = StudentRegister(**request.json)
+
+        student = StudentService.register_student(
+            db,
+            data
+        )
+
+        return jsonify({
+            "success": True,
+            "student_id": student.student_id,
+            "message": "Student Registered Successfully"
+        }), 201
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+@student_bp.route("/login", methods=["POST"])
+def login_student():
+
+    db = SessionLocal()
+
+    try:
+
+        data = StudentLogin(**request.json)
+
+        result = StudentService.login_student(
+            db,
+            data
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "Login Successful",
+            "student_id": result["student"].student_id,
+            "name": result["student"].name,
+            "token": result["token"]
+        }), 200
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+@student_bp.route("/join-class", methods=["POST"])
+def join_class():
+
+    db = SessionLocal()
+
+    try:
+        auth = request.headers.get("Authorization")
+
+        if not auth:
+            raise Exception("Authorization token missing.")
+
+        token = auth.split(" ")[1]
+
+        payload = JWTService.verify_token(token)
+
+        data = JoinClass(**request.json)
+
+        EnrollmentService.join_class(
+            db,
+            payload["user_id"],
+            data.class_code
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "Joined Classroom Successfully"
+        }), 201
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+
+@student_bp.route("/my-classes", methods=["GET"])
+def my_classes():
+
+    db = SessionLocal()
+
+    try:
+        token = request.headers.get("Authorization")
+
+        classes = StudentService.get_my_classes(
+            db,
+            token
+        )
+
+        return jsonify({
+            "success": True,
+            "classes": classes
+        }), 200
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+@student_bp.route("/dashboard", methods=["GET"])
+def student_dashboard():
+
+    db = SessionLocal()
+
+    try:
+
+        auth = request.headers.get("Authorization")
+
+        if not auth:
+            raise Exception("Authorization token missing.")
+
+        token = auth.split(" ")[1]
+
+        payload = JWTService.verify_token(token)
+
+        dashboard = StudentService.get_dashboard(
+            db,
+            payload["user_id"]
+        )
+
+        return jsonify({
+            "success": True,
+            "dashboard": dashboard
+        }), 200
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+@student_bp.route("/live-monitor", methods=["GET"])
+def live_monitor():
+
+    try:
+
+        data = MonitoringService.get_live_data()
+
+        return jsonify({
+            "success": True,
+            "data": data
+        }), 200
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+####################################################################################################
+# FILE: backend/routes/teacher.py
+####################################################################################################
+
+from flask import Blueprint, request, jsonify
+import traceback
+from schemas.classroom_update_schema import ClassroomUpdate
+
+from database.database import SessionLocal
+
+from schemas.teacher_schema import TeacherRegister
+from schemas.teacher_login_schema import TeacherLogin
+from schemas.classroom_schema import ClassroomCreate
+
+from services.teacher_service import TeacherService
+from services.classroom_service import ClassroomService
+from services.jwt_service import JWTService
+from services.session_service import SessionService
+teacher_bp = Blueprint("teacher", __name__)
+
+
+@teacher_bp.route("/teacher/register", methods=["POST"])
+def register_teacher():
+
+    db = SessionLocal()
+
+    try:
+
+        data = TeacherRegister(**request.json)
+
+        teacher = TeacherService.register_teacher(db, data)
+
+        return jsonify({
+            "success": True,
+            "teacher_id": teacher.teacher_id,
+            "message": "Teacher Registered Successfully"
+        }), 201
+
+    except Exception as e:
+        traceback.print_exc()
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+
+
+@teacher_bp.route("/teacher/login", methods=["POST"])
+def login_teacher():
+
+    db = SessionLocal()
+
+    try:
+
+        data = TeacherLogin(**request.json)
+
+        result = TeacherService.login_teacher(db, data)
+
+        return jsonify({
+            "success": True,
+            "teacher_id": result["teacher"].teacher_id,
+            "name": result["teacher"].name,
+            "message": "Login Successful",
+            "token": result["token"]
+        })
+
+    except Exception as e:
+        traceback.print_exc()
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+
+
+@teacher_bp.route("/teacher/create-classroom", methods=["POST"])
+def create_classroom():
+
+    db = SessionLocal()
+
+    try:
+
+        auth = request.headers.get("Authorization")
+
+        if not auth:
+            raise Exception("Authorization token missing.")
+
+        token = auth.split(" ")[1]
+
+        payload = JWTService.verify_token(token)
+
+        data = ClassroomCreate(**request.json)
+
+        classroom = ClassroomService.create_classroom(
+            db,
+            payload["user_id"],
+            data
+        )
+
+        return jsonify({
+            "success": True,
+            "class_id": classroom.class_id,
+            "class_code": classroom.class_code,
+            "message": "Classroom Created Successfully"
+        }), 201
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+@teacher_bp.route("/teacher/classrooms", methods=["GET"])
+def get_teacher_classrooms():
+
+    db = SessionLocal()
+
+    try:
+
+        auth = request.headers.get("Authorization")
+
+        if not auth:
+            raise Exception("Authorization token missing.")
+
+        token = auth.split(" ")[1]
+
+        payload = JWTService.verify_token(token)
+
+        classrooms = ClassroomService.get_teacher_classrooms(
+            db,
+            payload["user_id"]
+        )
+
+        return jsonify({
+            "success": True,
+            "classrooms": [
+                {
+                    "class_id": classroom.class_id,
+                    "classroom_name": classroom.classroom_name,
+                    "subject": classroom.subject,
+                    "semester": classroom.semester,
+                    "section": classroom.section,
+                    "class_code": classroom.class_code,
+                    "meeting_link": classroom.meeting_link
+                }
+                for classroom in classrooms
+            ]
+        }), 200
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+@teacher_bp.route("/teacher/classroom/<int:class_id>", methods=["GET"])
+def get_classroom(class_id):
+
+    db = SessionLocal()
+
+    try:
+
+        auth = request.headers.get("Authorization")
+
+        if not auth:
+            raise Exception("Authorization token missing.")
+
+        token = auth.split(" ")[1]
+
+        JWTService.verify_token(token)
+
+        classroom = ClassroomService.get_classroom(
+            db,
+            class_id
+        )
+
+        return jsonify({
+            "success": True,
+            "classroom": {
+                "class_id": classroom.class_id,
+                "classroom_name": classroom.classroom_name,
+                "subject": classroom.subject,
+                "semester": classroom.semester,
+                "section": classroom.section,
+                "teacher_id": classroom.teacher_id,
+                "class_code": classroom.class_code,
+                "meeting_link": classroom.meeting_link
+            }
+        }), 200
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+@teacher_bp.route("/teacher/classroom/<int:class_id>", methods=["PUT"])
+def update_classroom(class_id):
+
+    db = SessionLocal()
+
+    try:
+
+        auth = request.headers.get("Authorization")
+
+        if not auth:
+            raise Exception("Authorization token missing.")
+
+        token = auth.split(" ")[1]
+
+        payload = JWTService.verify_token(token)
+
+        data = ClassroomUpdate(**request.json)
+
+        classroom = ClassroomService.update_classroom(
+            db,
+            class_id,
+            payload["user_id"],
+            data
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "Classroom Updated Successfully",
+            "classroom": {
+                "class_id": classroom.class_id,
+                "classroom_name": classroom.classroom_name,
+                "subject": classroom.subject,
+                "semester": classroom.semester,
+                "section": classroom.section,
+                "class_code": classroom.class_code
+            }
+        })
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+@teacher_bp.route("/teacher/classroom/<int:class_id>", methods=["DELETE"])
+def delete_classroom(class_id):
+
+    db = SessionLocal()
+
+    try:
+
+        auth = request.headers.get("Authorization")
+
+        if not auth:
+            raise Exception("Authorization token missing.")
+
+        token = auth.split(" ")[1]
+
+        JWTService.verify_token(token)
+
+        ClassroomService.delete_classroom(
+            db,
+            class_id
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "Classroom Deleted Successfully"
+        })
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+@teacher_bp.route("/dashboard", methods=["GET"])
+def teacher_dashboard():
+
+    db = SessionLocal()
+
+    try:
+
+        auth = request.headers.get("Authorization")
+
+        if not auth:
+            raise Exception("Authorization token missing.")
+
+        token = auth.split(" ")[1]
+
+        payload = JWTService.verify_token(token)
+
+        dashboard = TeacherService.get_dashboard(
+            db,
+            payload["user_id"]
+        )
+
+        return jsonify({
+            "success": True,
+            "dashboard": dashboard
+        }), 200
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+@teacher_bp.route("/teacher/start-session/<int:class_id>", methods=["POST"])
+def start_session(class_id):
+
+    db = SessionLocal()
+
+    try:
+
+        auth = request.headers.get("Authorization")
+
+        if not auth:
+            raise Exception("Authorization token missing.")
+
+        token = auth.split(" ")[1]
+
+        payload = JWTService.verify_token(token)
+
+        session = SessionService.start_session(
+            db,
+            payload["user_id"],
+            class_id
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "Session Started Successfully",
+            "session": {
+                "session_id": session.session_id,
+                "class_id": session.class_id,
+                "teacher_id": session.teacher_id,
+                "is_active": session.is_active
+            }
+        }), 201
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+
+####################################################################################################
+# FILE: backend/routes/monitoring.py
+####################################################################################################
+
+
+
+####################################################################################################
+# FILE: backend/services/ai_service.py
+####################################################################################################
+
+
+
+####################################################################################################
+# FILE: backend/services/monitoring_service.py
+####################################################################################################
+
+from ai.webcam import get_frame
+from ai.detector import detect
+
+
+class MonitoringService:
+
+    @staticmethod
+    def get_live_data():
+
+        frame = get_frame()
+
+        if frame is None:
+            return {
+                "error": "Camera not found"
+            }
+
+        results = detect(frame)
+
+        return {
+            "engagement": 92,
+            "emotion": "Happy",
+            "blink_count": 10,
+            "head_pose": "Forward",
+            "gaze": "Center",
+            "person_count": len(results.boxes),
+            "phone_detected": False
+        }
+
+####################################################################################################
+# FILE: backend/services/session_service.py
+####################################################################################################
+
+from models.session import Session
+from repositories.session_repository import SessionRepository
+from repositories.classroom_repository import ClassroomRepository
+
+
+class SessionService:
+
+    @staticmethod
+    def start_session(db, teacher_id, class_id):
+
+        classroom = ClassroomRepository.get_classroom_by_id(
+            db,
+            class_id
+        )
+
+        if not classroom:
+            raise Exception("Classroom not found.")
+
+        if classroom.teacher_id != teacher_id:
+            raise Exception("You are not authorized.")
+
+        active = SessionRepository.get_active_session(
+            db,
+            class_id
+        )
+
+        if active:
+            raise Exception("Session already active.")
+
+        session = Session(
+            class_id=class_id,
+            teacher_id=teacher_id
+        )
+
+        return SessionRepository.create_session(
+            db,
+            session
+        )
+
+####################################################################################################
+# FILE: backend/database/database.py
+####################################################################################################
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from config import DATABASE_PATH
+
+DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
+
+engine = create_engine(
+    DATABASE_URL,
+    echo=True,
+    future=True
+)
+
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,
+    autocommit=False
+)
+
+####################################################################################################
+# FILE: backend/models/student.py
+####################################################################################################
+
+from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy.sql import func
+
+from database.base import Base
+
+
+class Student(Base):
+    __tablename__ = "students"
+
+    student_id = Column(Integer, primary_key=True, index=True)
+
+    usn = Column(String(30), unique=True, nullable=False)
+
+    name = Column(String(100), nullable=False)
+
+    email = Column(String(100), unique=True, nullable=False)
+
+    password_hash = Column(String(255), nullable=False)
+
+    department = Column(String(100), nullable=False)
+
+    semester = Column(Integer, nullable=False)
+
+    section = Column(String(10), nullable=False)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    def __repr__(self):
+        return f"<Student {self.name}>"
+
+####################################################################################################
+# FILE: backend/models/teacher.py
+####################################################################################################
+
+from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy.sql import func
+
+from database.base import Base
+
+
+class Teacher(Base):
+    __tablename__ = "teachers"
+
+    teacher_id = Column(Integer, primary_key=True, index=True)
+
+    name = Column(String(100), nullable=False)
+
+    email = Column(String(100), unique=True, nullable=False)
+
+    password_hash = Column(String(255), nullable=False)
+
+    department = Column(String(100), nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    def __repr__(self):
+        return f"<Teacher {self.name}>"
+
+
+####################################################################################################
+# FILE: backend/models/session.py
+####################################################################################################
+
+from sqlalchemy import Column, Integer, ForeignKey, DateTime, Boolean
+from sqlalchemy.sql import func
+
+from database.base import Base
+
+
+class Session(Base):
+    __tablename__ = "sessions"
+
+    session_id = Column(Integer, primary_key=True, index=True)
+
+    class_id = Column(
+        Integer,
+        ForeignKey("classrooms.class_id"),
+        nullable=False
+    )
+
+    teacher_id = Column(
+        Integer,
+        ForeignKey("teachers.teacher_id"),
+        nullable=False
+    )
+
+    start_time = Column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
+
+    end_time = Column(
+        DateTime(timezone=True),
+        nullable=True
+    )
+
+    is_active = Column(
+        Boolean,
+        default=True
+    )
+
+####################################################################################################
+# FILE: backend/models/engagement.py
+####################################################################################################
+
+from sqlalchemy import Column, Integer, Float, String, Boolean, ForeignKey, DateTime, Text
+from sqlalchemy.sql import func
+
+from database.base import Base
+
+
+class EngagementRecord(Base):
+    __tablename__ = "engagement_records"
+
+    record_id = Column(Integer, primary_key=True, index=True)
+
+    session_id = Column(Integer, ForeignKey("sessions.session_id"))
+
+    student_id = Column(Integer, ForeignKey("students.student_id"))
+
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+
+    emotion = Column(String(50))
+
+    blink_count = Column(Integer)
+
+    head_pose = Column(String(50))
+
+    gaze = Column(String(50))
+
+    phone_detected = Column(Boolean)
+
+    multiple_person = Column(Boolean)
+
+    engagement_score = Column(Float)
+
+    engagement_status = Column(String(50))
+
+    fps = Column(Float)
+
+    extra_metrics = Column(Text)
+
+    camera_status = Column(String(30))
+
+    internet_status = Column(String(30))
+
+    device_type = Column(String(50))
+
+    def __repr__(self):
+        return f"<EngagementRecord {self.record_id}>"
+
+
+####################################################################################################
+# FILE: backend/schemas/login_schema.py
+####################################################################################################
+
+from pydantic import BaseModel
+
+
+class StudentLogin(BaseModel):
+
+    email: str
+
+    password: str
+
+
+####################################################################################################
+# FILE: backend/schemas/student_schema.py
+####################################################################################################
+
+from pydantic import BaseModel, EmailStr
+
+
+class StudentRegister(BaseModel):
+
+    usn: str
+
+    name: str
+
+    email: EmailStr
+
+    password: str
+
+    semester: int
+
+    section: str
+
+    department: str
+
+
+class StudentLogin(BaseModel):
+
+    email: EmailStr
+
+    password: str
+
+
+####################################################################################################
+# FILE: backend/schemas/teacher_schema.py
+####################################################################################################
+
+from pydantic import BaseModel, EmailStr
+
+
+class TeacherRegister(BaseModel):
+
+    name: str
+
+    email: EmailStr
+
+    password: str
+
+    department: str | None = None
+
+####################################################################################################
+# FILE: backend/schemas/join_class_schema.py
+####################################################################################################
+
+from pydantic import BaseModel
+
+
+class JoinClass(BaseModel):
+
+    class_code: str
+
+####################################################################################################
+# FILE: backend/services/student_service.py
+####################################################################################################
+
+from repositories.student_repository import StudentRepository
+from services.security_service import SecurityService
+from models.student import Student
+from services.jwt_service import JWTService
+from repositories.enrollment_repository import EnrollmentRepository
+
+
+class StudentService:
+
+    @staticmethod
+    def register_student(db, student_data):
+
+        # Check email
+        if StudentRepository.get_by_email(db, student_data.email):
+            raise Exception("Email already registered.")
+
+        # Check USN
+        if StudentRepository.get_by_usn(db, student_data.usn):
+            raise Exception("USN already registered.")
+
+        # Hash password
+        hashed_password = SecurityService.hash_password(
+            student_data.password
+        )
+
+        student = Student(
+            usn=student_data.usn,
+            name=student_data.name,
+            email=student_data.email,
+            password_hash=hashed_password,
+            department=student_data.department,
+            semester=student_data.semester,
+            section=student_data.section
+        )
+
+        return StudentRepository.create_student(db, student)
+
+    @staticmethod
+    def login_student(db, login_data):
+        student = StudentRepository.get_by_email(
+            db,
+            login_data.email
+        )
+
+        if not student:
+            raise Exception("Student not found.")
+
+        if not SecurityService.verify_password(
+            login_data.password,
+            student.password_hash
+        ):
+            raise Exception("Incorrect password.")
+
+        token = JWTService.generate_token(
+             user_id=student.student_id,
+            role="student"
+        )
+
+        return {
+            "student": student,
+            "token": token
+        }
+    
+    @staticmethod
+    def get_my_classes(db, token):
+
+        if token.startswith("Bearer "):
+            token = token.split(" ")[1]
+
+        payload = JWTService.verify_token(token)
+
+        student_id = payload["user_id"]
+
+        classes = EnrollmentRepository.get_student_classes(
+            db,
+            student_id
+        )
+
+        return [
+            {
+                "class_id": c.class_id,
+                "class_name": c.classroom_name,
+                "subject": c.subject,
+                "semester": c.semester,
+                "section": c.section,
+                "class_code": c.class_code
+            }
+            for c in classes
+        ]
+    @staticmethod
+    def get_dashboard(db, student_id):
+
+        classes = EnrollmentRepository.get_student_classes(
+            db,
+            student_id
+        )
+
+        return {
+            "my_classes": len(classes),
+            "upcoming_sessions": 0,
+            "attendance_percentage": 0
+        }
+
+####################################################################################################
+# FILE: backend/services/teacher_service.py
+####################################################################################################
+
+from repositories.teacher_repository import TeacherRepository
+from services.security_service import SecurityService
+from services.jwt_service import JWTService
+from models.teacher import Teacher
+from repositories.classroom_repository import ClassroomRepository
+from repositories.enrollment_repository import EnrollmentRepository
+
+class TeacherService:
+
+    @staticmethod
+    def register_teacher(db, teacher_data):
+
+        if TeacherRepository.get_by_email(db, teacher_data.email):
+            raise Exception("Email already registered.")
+
+        hashed_password = SecurityService.hash_password(
+            teacher_data.password
+        )
+
+        teacher = Teacher(
+            name=teacher_data.name,
+            email=teacher_data.email,
+            password_hash=hashed_password,
+            department=teacher_data.department
+        )
+
+        return TeacherRepository.create_teacher(
+            db,
+            teacher
+        )
+
+    @staticmethod
+    def login_teacher(db, login_data):
+
+        teacher = TeacherRepository.get_by_email(
+            db,
+            login_data.email
+        )
+
+        if not teacher:
+            raise Exception("Teacher not found.")
+
+        if not SecurityService.verify_password(
+            login_data.password,
+            teacher.password_hash
+        ):
+            raise Exception("Incorrect password.")
+
+        token = JWTService.generate_token(
+            user_id=teacher.teacher_id,
+            role="teacher"
+        )
+
+        return {
+            "teacher": teacher,
+            "token": token
+        }
+    @staticmethod
+    def get_dashboard(db, teacher_id):
+
+        total_classes = ClassroomRepository.count_teacher_classes(
+            db,
+            teacher_id
+        )
+
+        total_students = EnrollmentRepository.count_teacher_students(
+            db,
+            teacher_id
+        )
+
+        total_sessions = 0
+
+        return {
+            "total_classes": total_classes,
+            "total_students": total_students,
+            "total_sessions": total_sessions
+        }
+
+####################################################################################################
+# FILE: backend/services/classroom_service.py
+####################################################################################################
+
+import random
+import string
+
+from models.classroom import Classroom
+from repositories.classroom_repository import ClassroomRepository
+
+
+class ClassroomService:
+
+    @staticmethod
+    def generate_class_code():
+
+        return ''.join(
+            random.choices(
+                string.ascii_uppercase + string.digits,
+                k=6
+            )
+        )
+
+    @staticmethod
+    def create_classroom(db, teacher_id, classroom_data):
+
+        class_code = ClassroomService.generate_class_code()
+
+        while ClassroomRepository.get_by_code(db, class_code):
+            class_code = ClassroomService.generate_class_code()
+
+        classroom = Classroom(
+            teacher_id=teacher_id,
+            classroom_name=classroom_data.classroom_name,
+            subject=classroom_data.subject,
+            semester=classroom_data.semester,
+            section=classroom_data.section,
+            class_code=class_code
+        )
+
+        return ClassroomRepository.create_classroom(
+            db,
+            classroom
+        )
+    @staticmethod
+    def get_teacher_classrooms(db, teacher_id):
+
+        return ClassroomRepository.get_teacher_classrooms(
+            db,
+            teacher_id
+        )
+    @staticmethod
+    def get_classroom(db, class_id):
+
+        classroom = ClassroomRepository.get_by_id(
+            db,
+            class_id
+        )
+
+        if not classroom:
+            raise Exception("Classroom not found.")
+
+        return classroom
+    @staticmethod
+    def delete_classroom(db, class_id):
+
+        classroom = ClassroomRepository.get_classroom_by_id(
+            db,
+            class_id
+        )
+
+        if not classroom:
+            raise Exception("Classroom not found.")
+
+        ClassroomRepository.delete_classroom(
+            db,
+            classroom
+        )
+
+        return True
+    @staticmethod
+    def update_classroom(db, class_id, teacher_id, classroom_data):
+
+        classroom = ClassroomRepository.get_by_id(
+            db,
+            class_id
+        )
+
+        if not classroom:
+            raise Exception("Classroom not found.")
+
+        if classroom.teacher_id != teacher_id:
+            raise Exception("Unauthorized.")
+
+        classroom.classroom_name = classroom_data.classroom_name
+        classroom.subject = classroom_data.subject
+        classroom.semester = classroom_data.semester
+        classroom.section = classroom_data.section
+
+        return ClassroomRepository.update_classroom(
+            db,
+            classroom
+        )
+
+####################################################################################################
+# FILE: backend/services/enrollment_service.py
+####################################################################################################
+
+from models.enrollment import Enrollment
+
+from repositories.classroom_repository import ClassroomRepository
+from repositories.enrollment_repository import EnrollmentRepository
+
+
+class EnrollmentService:
+
+    @staticmethod
+    def join_class(db, student_id, class_code):
+
+        classroom = ClassroomRepository.get_by_code(
+            db,
+            class_code
+        )
+
+        if not classroom:
+            raise Exception("Invalid classroom code.")
+
+        if EnrollmentRepository.already_joined(
+            db,
+            student_id,
+            classroom.class_id
+        ):
+            raise Exception("You have already joined this classroom.")
+
+        enrollment = Enrollment(
+            student_id=student_id,
+            class_id=classroom.class_id
+        )
+
+        EnrollmentRepository.join_class(
+            db,
+            enrollment
+        )
+
+        return classroom
+
+    @staticmethod
+    def get_student_classes(db, student_id):
+
+        return EnrollmentRepository.get_student_classes(
+            db,
+            student_id
+        )
+
+####################################################################################################
+# FILE: backend/services/report_service.py
+####################################################################################################
+

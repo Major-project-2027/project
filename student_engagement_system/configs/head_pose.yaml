@@ -1,0 +1,39 @@
+head_pose:
+  yaw_threshold: 15.0
+  pitch_threshold: 15.0
+  min_detection_confidence: 0.5
+  min_tracking_confidence: 0.5
+  smoothing_alpha: 0.3
+  directions:
+  - Forward
+  - Left
+  - Right
+  - Up
+  - Down
+gaze:
+  ear_blink_threshold: 0.21
+  horizontal_thresholds:
+  - 0.35
+  - 0.65
+  vertical_thresholds:
+  - 0.35
+  - 0.65
+  min_detection_confidence: 0.5
+  min_tracking_confidence: 0.5
+  ratio_smoothing_alpha: 0.3
+  direction_smoothing_window: 5
+  directions:
+  - Left
+  - Right
+  - Up
+  - Down
+  - Center
+quality_thresholds:
+  min_blur_score: 60.0
+  brightness_range:
+  - 40.0
+  - 220.0
+  min_face_size:
+  - 60
+  - 60
+device: cpu

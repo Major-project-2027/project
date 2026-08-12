@@ -1,0 +1,32 @@
+face_authentication:
+  backbone: Facenet512
+  weights_path: weights/face_authentication/
+  similarity_metric: cosine
+  similarity_threshold: 0.68
+emotion_detection:
+  backbone: MobileNetV2
+  weights_path: weights/emotion_detection/model.h5
+  input_size:
+  - 64
+  - 64
+  classes:
+  - Happy
+  - Neutral
+  - Sad
+  - Angry
+  - Confused
+  - Tired
+gaze_head_pose:
+  landmark_backend: mediapipe_face_mesh
+  ear_blink_threshold: 0.21
+object_detection:
+  backbone: yolov8n
+  weights_path: weights/object_detection/yolov8n.pt
+  confidence_threshold: 0.45
+  classes_of_interest:
+  - cell phone
+  - person
+engagement_prediction:
+  architecture: LSTM
+  weights_path: weights/engagement_prediction/lstm_model.h5
+  sequence_length_seconds: 45

@@ -1,0 +1,26 @@
+model: Emotion
+labels:
+- angry
+- disgust
+- fear
+- happy
+- sad
+- surprise
+- neutral
+confidence_threshold: 0.4
+input_size:
+- 48
+- 48
+grayscale: true
+device: cpu
+smoothing:
+  enabled: true
+  alpha: 0.3
+quality_thresholds:
+  min_blur_score: 60.0
+  brightness_range:
+  - 40.0
+  - 220.0
+  min_face_size:
+  - 60
+  - 60

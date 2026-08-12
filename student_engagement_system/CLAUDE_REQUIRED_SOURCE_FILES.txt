@@ -1,0 +1,5209 @@
+====================================================================================================
+CLAUDE — REQUIRED PROJECT SOURCE FILES
+====================================================================================================
+
+This file contains the actual source code requested by Claude for implementing the class history, monitoring persistence and attendance requirements.
+
+PROJECT ROOT:
+C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system
+
+====================================================================================================
+FILES FOUND
+====================================================================================================
+
+[FOUND] app/main.py
+[FOUND] app/routers/monitoring.py
+[FOUND] models/session.py
+[FOUND] models/engagement.py
+[FOUND] models/student.py
+[FOUND] models/classroom.py
+[FOUND] services/ai_service.py
+[FOUND] services/monitoring_service.py
+[FOUND] services/session_service.py
+[FOUND] database/database.py
+[FOUND] services/api/client.ts
+[FOUND] services/api/endpoints.ts
+[FOUND] store/index.ts
+[FOUND] pages/live-classroom/TeacherLiveClassroomPage.tsx
+[FOUND] pages/live-classroom/StudentLiveClassroomPage.tsx
+[FOUND] pages/teacher/TeacherDashboardPage.tsx
+[FOUND] pages/student/StudentDashboardPage.tsx
+[FOUND] pages/shared/AttendancePage.tsx
+[FOUND] types/domain.ts
+[FOUND] components/monitoring/AIMonitoringPanel.tsx
+
+====================================================================================================
+FILES NOT FOUND
+====================================================================================================
+
+[MISSING] engagement_prediction.py
+[MISSING] face_authentication.py
+[MISSING] AnalyticsPage.tsx
+
+====================================================================================================
+REPOSITORY FILES
+====================================================================================================
+
+No repositories/*.py files were found.
+
+====================================================================================================
+ACTUAL SOURCE CODE
+====================================================================================================
+
+
+####################################################################################################
+# FILE: app/main.py
+####################################################################################################
+
+"""
+FastAPI application factory for the Student Engagement Monitoring System.
+"""
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from backend.app.core.config import get_settings
+from backend.app.routers import health
+from backend.app.routers import face_authentication
+from backend.app.routers import emotion
+from backend.app.routers import head_pose
+from backend.app.routers import object_detection
+from backend.app.routers import engagement_prediction
+from backend.app.routers import cognitive_monitoring
+from backend.app.routers import monitoring
+from backend.app.services.database import close_database_connection
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+
+def create_app() -> FastAPI:
+    """Build and configure the FastAPI application instance.
+
+    Future phases register additional routers here (authentication,
+    emotion, engagement, dashboard, ...) following the same pattern as
+    `health`.
+
+    Returns:
+        A fully configured FastAPI app.
+    """
+    settings = get_settings()
+    app = FastAPI(
+        title="Student Engagement Monitoring System",
+        description="Predictive Multimodal Student Engagement and Cognitive Monitoring System API",
+        version="0.1.0-phase1",
+        debug=settings.app_debug,
+    )
+    app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+    app.include_router(health.router)
+    app.include_router(face_authentication.router)
+    app.include_router(emotion.router)
+    app.include_router(head_pose.router)
+    app.include_router(object_detection.router)
+    app.include_router(engagement_prediction.router)
+    app.include_router(cognitive_monitoring.router)
+    app.include_router(monitoring.router)
+
+    @app.exception_handler(Exception)
+    async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+        """Catch-all handler so an unexpected error never leaks a raw traceback."""
+        logger.exception(f"Unhandled exception on {request.method} {request.url.path}: {exc}")
+        return JSONResponse(status_code=500, content={"detail": "Internal server error."})
+
+    @app.on_event("shutdown")
+    async def on_shutdown() -> None:
+        await close_database_connection()
+
+    @app.get("/")
+    async def root() -> dict:
+        """Root endpoint -- simple API identity confirmation."""
+        return {"service": app.title, "version": app.version, "phase": 1}
+
+    return app
+
+
+app = create_app()
+
+
+# --- Phase 8: Dashboard & Analytics (additive; appended by
+# Phase8_Dashboard_Analytics.ipynb) --------------------------------------
+from backend.app.routers import dashboard
+from fastapi.staticfiles import StaticFiles as _Phase8StaticFiles
+from pathlib import Path as _Phase8Path
+
+if "dashboard" not in [getattr(r, "name", "") for r in app.routes]:
+    app.include_router(dashboard.router)
+
+_phase8_frontend_dir = _Phase8Path(__file__).resolve().parents[2] / "frontend"
+if _phase8_frontend_dir.is_dir():
+    app.mount(
+        "/dashboard-ui",
+        _Phase8StaticFiles(directory=str(_phase8_frontend_dir), html=True),
+        name="dashboard-ui",
+    )
+
+
+
+####################################################################################################
+# FILE: app/routers/monitoring.py
+####################################################################################################
+
+import base64
+
+import cv2
+import numpy as np
+
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from pydantic import BaseModel
+
+from backend.services.monitoring_service import MonitoringService
+from backend.services.ai_service import process_frame
+
+
+router = APIRouter(
+    prefix="",
+    tags=["monitoring"]
+)
+
+
+@router.get("/live-monitor")
+def live_monitor():
+
+    data = MonitoringService.get_live_data()
+
+    if not data:
+        return {
+            "success": False,
+            "data": []
+        }
+
+    if "error" in data:
+        return {
+            "success": False,
+            "error": data["error"],
+            "data": []
+        }
+
+    # Convert the real AI result into the structure
+    # expected by the existing React monitoring dashboard.
+
+    emotion = str(
+        data.get("emotion", "neutral")
+    ).lower()
+
+    engagement = int(
+        data.get(
+            "engagement_score",
+            data.get("engagement", 0)
+        )
+    )
+
+    head_pose = str(
+        data.get("head_pose", "Forward")
+    )
+
+    gaze = str(
+        data.get("gaze", "Center")
+    )
+
+    phone_detected = bool(
+        data.get("phone_detected", False)
+    )
+
+    person_count = int(
+        data.get("person_count", 1)
+    )
+
+    # Determine alert
+    active_alert = None
+
+    if phone_detected:
+        active_alert = "phone_detected"
+
+    elif person_count > 1:
+        active_alert = "multiple_person"
+
+    elif gaze.lower() not in [
+        "center",
+        "forward"
+    ]:
+        active_alert = "looking_away"
+
+    elif head_pose.lower() not in [
+        "forward",
+        "looking forward"
+    ]:
+        active_alert = "looking_away"
+
+    elif engagement < 40:
+        active_alert = "attention_drop_predicted"
+
+    # Determine cognitive state
+    if engagement < 40:
+        cognitive_state = "drowsy"
+
+    elif (
+        gaze.lower() not in [
+            "center",
+            "forward"
+        ]
+        or head_pose.lower() not in [
+            "forward",
+            "looking forward"
+        ]
+    ):
+        cognitive_state = "distracted"
+
+    else:
+        cognitive_state = "focused"
+
+    student = {
+        "studentId": "Disha",
+
+        "studentName": data.get(
+            "name",
+            "Disha"
+        ),
+
+        "currentEmotion": emotion,
+
+        "currentEngagement": engagement,
+
+        "authenticated": (
+            data.get(
+                "name",
+                "Unknown"
+            ) != "Unknown"
+        ),
+
+        "cognitiveState": cognitive_state,
+
+        "activeAlert": active_alert,
+
+        "history": [
+            engagement
+        ],
+
+        "micOn": False,
+
+        # Extra real AI information
+        "blinkCount": data.get(
+            "blink_count",
+            0
+        ),
+
+        "headPose": head_pose,
+
+        "gaze": gaze,
+
+        "phoneDetected": phone_detected,
+
+        "personCount": person_count,
+    }
+
+    return {
+        "success": True,
+        "data": [
+            student
+        ]
+    }
+
+
+# ---------------------------------------------------------------------------
+# WebRTC signaling
+# ---------------------------------------------------------------------------
+
+_connections: dict[str, set[WebSocket]] = {}
+
+
+@router.websocket(
+    "/ws/classes/{class_id}/signaling"
+)
+async def classroom_signaling(
+    websocket: WebSocket,
+    class_id: str
+):
+
+    await websocket.accept()
+
+    if class_id not in _connections:
+        _connections[class_id] = set()
+
+    _connections[class_id].add(websocket)
+
+    try:
+
+        while True:
+
+            message = await websocket.receive_json()
+
+            # Forward signaling messages to the other participant(s)
+            # in the same classroom.
+
+            for connection in _connections[class_id]:
+
+                if connection is not websocket:
+
+                    await connection.send_json(
+                        message
+                    )
+
+    except WebSocketDisconnect:
+        pass
+
+    finally:
+
+        _connections.get(
+            class_id,
+            set()
+        ).discard(websocket)
+
+        if (
+            class_id in _connections
+            and not _connections[class_id]
+        ):
+            del _connections[class_id]
+
+
+# ---------------------------------------------------------------------------
+# Browser camera -> AI analysis
+# ---------------------------------------------------------------------------
+
+class AIFrameRequest(BaseModel):
+    frame: str
+
+
+@router.post("/ai/analyze-frame")
+def analyze_frame(
+    request: AIFrameRequest
+):
+
+    try:
+
+        # Remove data URL prefix if the browser sends:
+        # data:image/jpeg;base64,...
+
+        encoded = request.frame
+
+        if "," in encoded:
+
+            encoded = encoded.split(
+                ",",
+                1
+            )[1]
+
+        # Base64 -> bytes
+
+        image_bytes = base64.b64decode(
+            encoded
+        )
+
+        # Bytes -> numpy array
+
+        image_array = np.frombuffer(
+            image_bytes,
+            dtype=np.uint8,
+        )
+
+        # Numpy array -> OpenCV frame
+
+        frame = cv2.imdecode(
+            image_array,
+            cv2.IMREAD_COLOR,
+        )
+
+        if frame is None:
+
+            return {
+                "success": False,
+                "error": "Unable to decode camera frame",
+            }
+
+        # Run the existing AI pipeline.
+
+        (
+            result,
+            MonitoringService.blink_counter,
+            MonitoringService.blink_total,
+        ) = process_frame(
+            frame,
+            MonitoringService.blink_counter,
+            MonitoringService.blink_total,
+        )
+
+        # ------------------------------------------------------------
+        # Determine active alert from THIS student's camera frame
+        # ------------------------------------------------------------
+
+        active_alert = None
+
+        if result.get(
+            "phone_detected"
+        ):
+
+            active_alert = "phone_detected"
+
+        elif result.get(
+            "person_count",
+            1
+        ) > 1:
+
+            active_alert = "multiple_person"
+
+        elif result.get(
+            "head_pose"
+        ) not in (
+            None,
+            "Looking Forward",
+            "Forward",
+        ):
+
+            active_alert = "looking_away"
+
+        elif result.get(
+            "gaze"
+        ) not in (
+            None,
+            "Center",
+        ):
+
+            active_alert = "looking_away"
+
+        elif result.get(
+            "engagement_score",
+            100
+        ) < 40:
+
+            active_alert = "attention_drop_predicted"
+
+        return {
+
+            "success": True,
+
+            "data": {
+
+                "name": result.get(
+                    "name",
+                    "Unknown"
+                ),
+
+                "emotion": result.get(
+                    "emotion",
+                    "Unknown"
+                ),
+
+                "blink_count": result.get(
+                    "blink_count",
+                    0
+                ),
+
+                "head_pose": result.get(
+                    "head_pose",
+                    "Unknown"
+                ),
+
+                "gaze": result.get(
+                    "gaze",
+                    "Center"
+                ),
+
+                "phone_detected": result.get(
+                    "phone_detected",
+                    False
+                ),
+
+                "person_count": result.get(
+                    "person_count",
+                    1
+                ),
+
+                "engagement_score": result.get(
+                    "engagement_score",
+                    0
+                ),
+
+                "engagement_status": result.get(
+                    "engagement_status",
+                    "unknown"
+                ),
+
+                "active_alert": active_alert,
+            },
+        }
+
+    except Exception as exc:
+
+        return {
+            "success": False,
+            "error": str(exc),
+        }
+
+
+####################################################################################################
+# FILE: models/session.py
+####################################################################################################
+
+from sqlalchemy import Column, Integer, ForeignKey, DateTime, Boolean
+from sqlalchemy.sql import func
+
+from database.base import Base
+
+
+class Session(Base):
+    __tablename__ = "sessions"
+
+    session_id = Column(Integer, primary_key=True, index=True)
+
+    class_id = Column(
+        Integer,
+        ForeignKey("classrooms.class_id"),
+        nullable=False
+    )
+
+    teacher_id = Column(
+        Integer,
+        ForeignKey("teachers.teacher_id"),
+        nullable=False
+    )
+
+    start_time = Column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
+
+    end_time = Column(
+        DateTime(timezone=True),
+        nullable=True
+    )
+
+    is_active = Column(
+        Boolean,
+        default=True
+    )
+
+
+####################################################################################################
+# FILE: models/engagement.py
+####################################################################################################
+
+from sqlalchemy import Column, Integer, Float, String, Boolean, ForeignKey, DateTime, Text
+from sqlalchemy.sql import func
+
+from database.base import Base
+
+
+class EngagementRecord(Base):
+    __tablename__ = "engagement_records"
+
+    record_id = Column(Integer, primary_key=True, index=True)
+
+    session_id = Column(Integer, ForeignKey("sessions.session_id"))
+
+    student_id = Column(Integer, ForeignKey("students.student_id"))
+
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+
+    emotion = Column(String(50))
+
+    blink_count = Column(Integer)
+
+    head_pose = Column(String(50))
+
+    gaze = Column(String(50))
+
+    phone_detected = Column(Boolean)
+
+    multiple_person = Column(Boolean)
+
+    engagement_score = Column(Float)
+
+    engagement_status = Column(String(50))
+
+    fps = Column(Float)
+
+    extra_metrics = Column(Text)
+
+    camera_status = Column(String(30))
+
+    internet_status = Column(String(30))
+
+    device_type = Column(String(50))
+
+    def __repr__(self):
+        return f"<EngagementRecord {self.record_id}>"
+
+
+
+####################################################################################################
+# FILE: models/student.py
+####################################################################################################
+
+from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy.sql import func
+
+from database.base import Base
+
+
+class Student(Base):
+    __tablename__ = "students"
+
+    student_id = Column(Integer, primary_key=True, index=True)
+
+    usn = Column(String(30), unique=True, nullable=False)
+
+    name = Column(String(100), nullable=False)
+
+    email = Column(String(100), unique=True, nullable=False)
+
+    password_hash = Column(String(255), nullable=False)
+
+    department = Column(String(100), nullable=False)
+
+    semester = Column(Integer, nullable=False)
+
+    section = Column(String(10), nullable=False)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    def __repr__(self):
+        return f"<Student {self.name}>"
+
+
+####################################################################################################
+# FILE: models/classroom.py
+####################################################################################################
+
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy.sql import func
+
+from database.base import Base
+
+
+class Classroom(Base):
+    __tablename__ = "classrooms"
+
+    class_id = Column(Integer, primary_key=True, index=True)
+
+    classroom_name = Column(String(100), nullable=False)
+
+    subject = Column(String(100), nullable=False)
+
+    semester = Column(Integer, nullable=False)
+
+    section = Column(String(10), nullable=False)
+
+    teacher_id = Column(Integer, ForeignKey("teachers.teacher_id"))
+
+    class_code = Column(String(20), unique=True, nullable=False)
+
+    meeting_link = Column(String(500), nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    def __repr__(self):
+        return f"<Classroom {self.classroom_name}>"
+
+
+####################################################################################################
+# FILE: services/ai_service.py
+####################################################################################################
+
+import cv2
+import time
+import numpy as np
+import mediapipe as mp
+
+from scipy.spatial import distance
+from tensorflow.keras.models import load_model
+from ultralytics import YOLO
+
+
+# ============================================================
+# MODEL PATHS
+# ============================================================
+
+FACE_MODEL_PATH = "models/face_recognition_model.keras"
+EMOTION_MODEL_PATH = "models/emotion_recognition/emotion_model.keras"
+YOLO_MODEL_PATH = "yolov8n.pt"
+LANDMARKER_PATH = "face_landmarker.task"
+
+
+# ============================================================
+# LOAD MODELS
+# ============================================================
+
+print("Loading Face Recognition Model...")
+face_model = load_model(FACE_MODEL_PATH)
+
+print("Loading Emotion Model...")
+emotion_model = load_model(EMOTION_MODEL_PATH)
+
+print("Loading YOLO...")
+yolo_model = YOLO(YOLO_MODEL_PATH)
+
+
+# ============================================================
+# EMOTION LABELS
+# ============================================================
+# IMPORTANT:
+# Keep the same order used when your emotion model was trained.
+
+emotion_labels = [
+    "Angry",
+    "Disgust",
+    "Fear",
+    "Happy",
+    "Sad",
+    "Surprise",
+    "Neutral"
+]
+
+
+# ============================================================
+# OPENCV FACE DETECTOR
+# ============================================================
+
+face_detector = cv2.CascadeClassifier(
+    cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+)
+
+
+# ============================================================
+# MEDIAPIPE FACE LANDMARKER
+# ============================================================
+
+BaseOptions = mp.tasks.BaseOptions
+FaceLandmarker = mp.tasks.vision.FaceLandmarker
+FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
+VisionRunningMode = mp.tasks.vision.RunningMode
+
+options = FaceLandmarkerOptions(
+    base_options=BaseOptions(
+        model_asset_path=LANDMARKER_PATH
+    ),
+    running_mode=VisionRunningMode.VIDEO,
+    num_faces=1
+)
+
+landmarker = FaceLandmarker.create_from_options(options)
+
+
+# ============================================================
+# EYE LANDMARKS
+# ============================================================
+
+LEFT_EYE = [33, 160, 158, 133, 153, 144]
+RIGHT_EYE = [362, 385, 387, 263, 373, 380]
+
+
+# ============================================================
+# HEAD POSE LANDMARKS
+# ============================================================
+
+NOSE = 1
+CHIN = 152
+LEFT_EYE_OUTER = 33
+RIGHT_EYE_OUTER = 263
+LEFT_MOUTH = 61
+RIGHT_MOUTH = 291
+
+
+# ============================================================
+# GAZE LANDMARKS
+# ============================================================
+
+LEFT_IRIS = [468, 469, 470, 471]
+RIGHT_IRIS = [473, 474, 475, 476]
+
+
+# ============================================================
+# BLINK SETTINGS
+# ============================================================
+
+EAR_THRESHOLD = 0.25
+CONSEC_FRAMES = 1
+
+last_ear = 0.0
+PROCESS_EVERY = 5
+
+frame_counter = 0
+
+last_name = "Unknown"
+last_emotion = "Unknown"
+last_person_count = 1
+last_phone_detected = False
+
+
+# ============================================================
+# EAR FUNCTION
+# ============================================================
+
+def eye_aspect_ratio(eye):
+
+    A = distance.euclidean(
+        eye[1],
+        eye[5]
+    )
+
+    B = distance.euclidean(
+        eye[2],
+        eye[4]
+    )
+
+    C = distance.euclidean(
+        eye[0],
+        eye[3]
+    )
+
+    ear = (A + B) / (2.0 * C)
+
+    return ear
+
+
+# ============================================================
+# HEAD POSE FUNCTION
+# ============================================================
+
+def calculate_head_pose(landmarks, width, height):
+
+    face_2d = []
+    face_3d = []
+
+    landmark_ids = [
+        NOSE,
+        CHIN,
+        LEFT_EYE_OUTER,
+        RIGHT_EYE_OUTER,
+        LEFT_MOUTH,
+        RIGHT_MOUTH
+    ]
+
+    for idx in landmark_ids:
+
+        x = int(landmarks[idx].x * width)
+        y = int(landmarks[idx].y * height)
+
+        face_2d.append([x, y])
+
+        face_3d.append([
+            x,
+            y,
+            landmarks[idx].z
+        ])
+
+    face_2d = np.array(
+        face_2d,
+        dtype=np.float64
+    )
+
+    face_3d = np.array(
+        face_3d,
+        dtype=np.float64
+    )
+
+    focal_length = width
+
+    cam_matrix = np.array([
+        [focal_length, 0, width / 2],
+        [0, focal_length, height / 2],
+        [0, 0, 1]
+    ])
+
+    dist_matrix = np.zeros(
+        (4, 1),
+        dtype=np.float64
+    )
+
+    success, rot_vec, trans_vec = cv2.solvePnP(
+        face_3d,
+        face_2d,
+        cam_matrix,
+        dist_matrix
+    )
+
+    if not success:
+        return "Looking Forward"
+
+    rmat, _ = cv2.Rodrigues(rot_vec)
+
+    angles, _, _, _, _, _ = cv2.RQDecomp3x3(rmat)
+
+    x_angle = angles[0] * 360
+    y_angle = angles[1] * 360
+
+    if y_angle < -10:
+        return "Looking Left"
+
+    elif y_angle > 10:
+        return "Looking Right"
+
+    elif x_angle < -10:
+        return "Looking Down"
+
+    elif x_angle > 10:
+        return "Looking Up"
+
+    return "Looking Forward"
+
+
+# ============================================================
+# GAZE FUNCTION
+# ============================================================
+
+def calculate_gaze(landmarks):
+
+    # Use iris center and eye region.
+    # This provides a simple center/off-center classification.
+
+    left_iris_x = np.mean(
+        [landmarks[i].x for i in LEFT_IRIS]
+    )
+
+    right_iris_x = np.mean(
+        [landmarks[i].x for i in RIGHT_IRIS]
+    )
+
+    iris_x = (
+        left_iris_x +
+        right_iris_x
+    ) / 2.0
+
+    left_eye_x = landmarks[33].x
+    right_eye_x = landmarks[263].x
+
+    eye_center = (
+        left_eye_x +
+        right_eye_x
+    ) / 2.0
+
+    difference = iris_x - eye_center
+
+    if difference < -0.015:
+        return "Left"
+
+    elif difference > 0.015:
+        return "Right"
+
+    return "Center"
+
+
+# ============================================================
+# YOLO DETECTION
+# ============================================================
+
+def detect_objects(frame):
+
+    results = yolo_model(
+        frame,
+        verbose=False
+    )[0]
+
+    person_count = 0
+    phone_detected = False
+
+    for box in results.boxes:
+
+        cls = int(box.cls[0])
+
+        label = yolo_model.names[cls]
+
+        if label == "person":
+
+            person_count += 1
+
+        elif label == "cell phone":
+
+            phone_detected = True
+
+    return (
+        results,
+        person_count,
+        phone_detected
+    )
+
+
+# ============================================================
+# ENGAGEMENT SCORE
+# ============================================================
+
+def calculate_engagement(
+    emotion,
+    blink_count,
+    head_pose,
+    gaze,
+    phone_detected,
+    person_count
+):
+
+    score = 100
+
+    if phone_detected:
+        score -= 30
+
+    if person_count > 1:
+        score -= 30
+
+    if gaze != "Center":
+        score -= 10
+
+    if head_pose != "Looking Forward":
+        score -= 10
+
+    return max(score, 0)
+
+
+# ============================================================
+# PROCESS ONE FRAME
+# ============================================================
+
+def process_frame(
+    frame,
+    blink_counter=0,
+    blink_total=0
+):
+
+    if frame is None:
+        return None
+
+    height, width = frame.shape[:2]
+
+    PROCESS_EVERY = 5
+
+    global frame_counter
+    global last_name
+    global last_emotion
+    global last_person_count
+    global last_phone_detected
+    global last_ear
+
+    frame_counter += 1
+
+    # ========================================================
+    # YOLO
+    # ========================================================
+
+    if frame_counter % PROCESS_EVERY == 0:
+
+        yolo_results, person_count, phone_detected = detect_objects(
+            frame
+        )
+
+        last_person_count = person_count
+        last_phone_detected = phone_detected
+
+    else:
+
+        person_count = last_person_count
+        phone_detected = last_phone_detected
+
+    # ========================================================
+    # OPENCV FACE DETECTION
+    # ========================================================
+
+    gray = cv2.cvtColor(
+        frame,
+        cv2.COLOR_BGR2GRAY
+    )
+
+    faces = face_detector.detectMultiScale(
+        gray,
+        scaleFactor=1.3,
+        minNeighbors=5
+    )
+
+    # ========================================================
+    # MEDIAPIPE
+    # ========================================================
+
+    rgb = cv2.cvtColor(
+        frame,
+        cv2.COLOR_BGR2RGB
+    )
+
+    mp_image = mp.Image(
+        image_format=mp.ImageFormat.SRGB,
+        data=rgb
+    )
+
+    timestamp_ms = int(
+        time.time() * 1000
+    )
+
+    result = landmarker.detect_for_video(
+        mp_image,
+        timestamp_ms
+    )
+
+    # ========================================================
+    # DEFAULT VALUES
+    # ========================================================
+
+    name = last_name
+    emotion = last_emotion
+
+    ear = 0.0
+
+    head_pose = "Looking Forward"
+    gaze = "Center"
+
+    # ========================================================
+    # BLINK + HEAD POSE + GAZE
+    # ========================================================
+
+    if result.face_landmarks:
+
+        landmarks = result.face_landmarks[0]
+
+        # ---------------- Blink ----------------
+
+        left_eye = [
+            (landmarks[i].x, landmarks[i].y)
+            for i in LEFT_EYE
+        ]
+
+        right_eye = [
+            (landmarks[i].x, landmarks[i].y)
+            for i in RIGHT_EYE
+        ]
+
+        leftEAR = eye_aspect_ratio(
+            left_eye
+        )
+
+        rightEAR = eye_aspect_ratio(
+            right_eye
+        )
+
+        ear = (
+            leftEAR +
+            rightEAR
+        ) / 2.0
+
+        last_ear = ear
+
+        if ear < EAR_THRESHOLD:
+
+            blink_counter = 1
+
+        else:
+
+            if blink_counter == 1:
+                blink_total += 1
+
+            blink_counter = 0
+
+        # ---------------- Head Pose ----------------
+
+        head_pose = calculate_head_pose(
+            landmarks,
+            width,
+            height
+        )
+
+        # ---------------- Gaze ----------------
+
+        gaze = calculate_gaze(
+            landmarks
+        )
+
+    # ========================================================
+    # MEDIAPIPE FACE FALLBACK
+    # ========================================================
+
+    if len(faces) == 0 and result.face_landmarks:
+
+        landmarks = result.face_landmarks[0]
+
+        xs = [
+            lm.x * width
+            for lm in landmarks
+        ]
+
+        ys = [
+            lm.y * height
+            for lm in landmarks
+        ]
+
+        x1 = max(
+            0,
+            int(min(xs))
+        )
+
+        y1 = max(
+            0,
+            int(min(ys))
+        )
+
+        x2 = min(
+            width,
+            int(max(xs))
+        )
+
+        y2 = min(
+            height,
+            int(max(ys))
+        )
+
+        padding_x = int(
+            (x2 - x1) * 0.15
+        )
+
+        padding_y = int(
+            (y2 - y1) * 0.15
+        )
+
+        x1 = max(
+            0,
+            x1 - padding_x
+        )
+
+        y1 = max(
+            0,
+            y1 - padding_y
+        )
+
+        x2 = min(
+            width,
+            x2 + padding_x
+        )
+
+        y2 = min(
+            height,
+            y2 + padding_y
+        )
+
+        if x2 > x1 and y2 > y1:
+
+            faces = np.array([
+                [
+                    x1,
+                    y1,
+                    x2 - x1,
+                    y2 - y1
+                ]
+            ])
+
+    # ========================================================
+    # FACE RECOGNITION + EMOTION
+    # ========================================================
+
+    for (x, y, w, h) in faces:
+
+        face_crop = frame[
+            y:y+h,
+            x:x+w
+        ]
+
+        if face_crop.size == 0:
+            continue
+
+        # ---------------- Face Recognition ----------------
+
+        face_input = cv2.resize(
+            face_crop,
+            (224, 224)
+        )
+
+        face_input = (
+            face_input.astype("float32")
+            / 255.0
+        )
+
+        face_input = np.expand_dims(
+            face_input,
+            axis=0
+        )
+
+        if frame_counter % PROCESS_EVERY == 0:
+
+            face_pred = face_model.predict(
+                face_input,
+                verbose=0
+            )
+
+            # Current project has one enrolled student
+            last_name = "Disha"
+
+            # ---------------- Emotion ----------------
+
+            emotion_input = cv2.resize(
+                face_crop,
+                (224, 224)
+            )
+
+            emotion_input = (
+                emotion_input.astype("float32")
+                / 255.0
+            )
+
+            emotion_input = np.expand_dims(
+                emotion_input,
+                axis=0
+            )
+
+            emotion_pred = emotion_model.predict(
+                emotion_input,
+                verbose=0
+            )
+
+            last_emotion = emotion_labels[
+                np.argmax(emotion_pred)
+            ]
+
+        name = last_name
+        emotion = last_emotion
+
+        # ---------------- Face Box ----------------
+
+        cv2.rectangle(
+            frame,
+            (x, y),
+            (x+w, y+h),
+            (0, 255, 0),
+            2
+        )
+
+        cv2.putText(
+            frame,
+            f"Name: {name}",
+            (x, y-35),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.7,
+            (0, 255, 0),
+            2
+        )
+
+        cv2.putText(
+            frame,
+            f"Emotion: {emotion}",
+            (x, y-10),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.7,
+            (255, 0, 0),
+            2
+        )
+
+        break
+
+    # ========================================================
+    # ENGAGEMENT
+    # ========================================================
+
+    engagement_score = calculate_engagement(
+        emotion,
+        blink_total,
+        head_pose,
+        gaze,
+        phone_detected,
+        person_count
+    )
+
+    # ========================================================
+    # DISPLAY INFORMATION
+    # ========================================================
+
+    cv2.putText(
+        frame,
+        f"Blinks: {blink_total}",
+        (20, 40),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.8,
+        (0, 255, 255),
+        2
+    )
+
+    cv2.putText(
+        frame,
+        f"Persons: {person_count}",
+        (20, 75),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.7,
+        (0, 255, 0),
+        2
+    )
+
+    cv2.putText(
+        frame,
+        f"Phone: {'Detected' if phone_detected else 'Not Detected'}",
+        (20, 110),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.7,
+        (0, 0, 255) if phone_detected else (255, 0, 0),
+        2
+    )
+
+    cv2.putText(
+        frame,
+        f"Head: {head_pose}",
+        (20, 145),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.7,
+        (255, 255, 255),
+        2
+    )
+
+    cv2.putText(
+        frame,
+        f"Gaze: {gaze}",
+        (20, 180),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.7,
+        (255, 255, 255),
+        2
+    )
+
+    cv2.putText(
+        frame,
+        f"Engagement: {engagement_score}",
+        (20, 215),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.8,
+        (0, 255, 255),
+        2
+    )
+
+    return {
+        "frame": frame,
+        "name": name,
+        "emotion": emotion,
+        "blink_count": blink_total,
+        "head_pose": head_pose,
+        "gaze": gaze,
+        "phone_detected": phone_detected,
+        "person_count": person_count,
+        "engagement_score": engagement_score,
+        "engagement_status":
+            "Engaged"
+            if engagement_score >= 70
+            else "Distracted"
+    }, blink_counter, blink_total
+
+
+
+
+####################################################################################################
+# FILE: services/monitoring_service.py
+####################################################################################################
+
+from backend.ai.webcam import get_frame
+from backend.services.ai_service import process_frame
+
+
+class MonitoringService:
+
+    blink_counter = 0
+    blink_total = 0
+
+    @staticmethod
+    def get_live_data():
+
+        frame = get_frame()
+
+        if frame is None:
+            return {
+                "success": False,
+                "error": "Camera not found",
+                "data": []
+            }
+
+        result, MonitoringService.blink_counter, MonitoringService.blink_total = process_frame(
+            frame,
+            MonitoringService.blink_counter,
+            MonitoringService.blink_total
+        )
+
+        # ============================================================
+        # DETERMINE ACTIVE AI ALERT
+        # ============================================================
+
+        active_alert = None
+
+        if result.get("phone_detected"):
+            active_alert = "phone_detected"
+
+        elif result.get("person_count", 1) > 1:
+            active_alert = "multiple_person"
+
+        elif result.get("head_pose") not in (
+            None,
+            "Looking Forward",
+            "Forward",
+        ):
+            active_alert = "looking_away"
+
+        elif result.get("gaze") not in (
+            None,
+            "Center",
+        ):
+            active_alert = "looking_away"
+
+        elif result.get("engagement_score", 100) < 40:
+            active_alert = "attention_drop_predicted"
+
+        # ============================================================
+        # RETURN AI RESULT
+        # ============================================================
+
+        return {
+            "success": True,
+
+            "name": result.get("name", "Unknown"),
+            "emotion": result.get("emotion", "Unknown"),
+
+            "blink_count": result.get("blink_count", 0),
+
+            "head_pose": result.get("head_pose", "Unknown"),
+            "gaze": result.get("gaze", "Unknown"),
+
+            "phone_detected": result.get("phone_detected", False),
+            "person_count": result.get("person_count", 1),
+
+            "engagement_score": result.get("engagement_score", 0),
+            "engagement_status": result.get(
+                "engagement_status",
+                "unknown"
+            ),
+
+            # NEW
+            "active_alert": active_alert,
+        }
+
+
+####################################################################################################
+# FILE: services/session_service.py
+####################################################################################################
+
+from models.session import Session
+from repositories.session_repository import SessionRepository
+from repositories.classroom_repository import ClassroomRepository
+
+
+class SessionService:
+
+    @staticmethod
+    def start_session(db, teacher_id, class_id):
+
+        classroom = ClassroomRepository.get_classroom_by_id(
+            db,
+            class_id
+        )
+
+        if not classroom:
+            raise Exception("Classroom not found.")
+
+        if classroom.teacher_id != teacher_id:
+            raise Exception("You are not authorized.")
+
+        active = SessionRepository.get_active_session(
+            db,
+            class_id
+        )
+
+        if active:
+            raise Exception("Session already active.")
+
+        session = Session(
+            class_id=class_id,
+            teacher_id=teacher_id
+        )
+
+        return SessionRepository.create_session(
+            db,
+            session
+        )
+
+
+####################################################################################################
+# FILE: database/database.py
+####################################################################################################
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from config import DATABASE_PATH
+
+DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
+
+engine = create_engine(
+    DATABASE_URL,
+    echo=True,
+    future=True
+)
+
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,
+    autocommit=False
+)
+
+
+####################################################################################################
+# FILE: services/api/client.ts
+####################################################################################################
+
+/**
+ * API CLIENT — INTEGRATION CONTRACT
+ * ---------------------------------------------------------------------------
+ * This file is the single seam between the frontend and the future backend.
+ * Every function below documents:
+ *   - the REST endpoint it will call
+ *   - method + payload shape
+ *   - the response shape (see src/types/domain.ts)
+ *
+ * TODAY: each function resolves from `src/mocks/data.ts` after an artificial
+ * network delay, so every screen in the app is fully interactive.
+ *
+ * WHEN THE BACKEND IS READY: swap the body of each function for a real
+ * `fetch`/axios call to `baseURL + path`. No component code changes, because
+ * components only ever import from `src/services/api/*`, never from mocks
+ * directly. This is the core scalability decision described in ARCHITECTURE.md.
+ */
+
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:5000'
+
+export const WS_BASE_URL =
+  import.meta.env.VITE_WS_BASE_URL ?? 'ws://127.0.0.1:5000'
+export function simulateNetwork<T>(data: T, ms = 350): Promise<T> {
+  return new Promise((resolve) => setTimeout(() => resolve(data), ms))
+}
+
+export class ApiError extends Error {
+  status: number
+  constructor(status: number, message: string) {
+    super(message)
+    this.status = status
+  }
+}
+
+/**
+ * Real implementation (for reference — activate when backend is live):
+ *
+ * async function request<T>(path: string, init?: RequestInit): Promise<T> {
+ *   const token = localStorage.getItem('access_token')
+ *   const res = await fetch(`${API_BASE_URL}${path}`, {
+ *     ...init,
+ *     headers: {
+ *       'Content-Type': 'application/json',
+ *       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+ *       ...init?.headers,
+ *     },
+ *   })
+ *   if (!res.ok) throw new ApiError(res.status, await res.text())
+ *   return res.json() as Promise<T>
+ * }
+ */
+
+
+
+####################################################################################################
+# FILE: services/api/endpoints.ts
+####################################################################################################
+
+import { API_BASE_URL, simulateNetwork } from './client'
+import {
+  generateLiveStudents, generateAlerts, generateAttendance,
+  generateEngagementTrend, generateNotifications, generateTests,
+  currentTeacher, currentStudent, behaviorBreakdown,
+  getClassesStore, createClassInStore, startClassInStore, endClassInStore,finalizeClassAttendance,
+} from '@/mocks/data'
+import type {
+  ClassSession, StudentLiveState, AIAlert, AttendanceRecord,
+  EngagementTrendPoint, AppNotification, Test, User,
+} from '@/types/domain'
+
+// ----------------------------------------------------------------------------
+// AUTH        POST /auth/login · POST /auth/register · POST /auth/forgot-password
+// ----------------------------------------------------------------------------
+export const authApi = {
+  login: async (email: string, password: string) => {
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  const normalizedEmail = email.toLowerCase().trim();
+
+  if (
+    !normalizedEmail.includes("teacher") &&
+    !normalizedEmail.includes("student")
+  ) {
+    throw new Error(
+      "Demo login: use an email containing 'teacher' or 'student'."
+    );
+  }
+
+  const role = normalizedEmail.includes("teacher")
+    ? "teacher"
+    : "student";
+
+  return {
+    user: {
+      id: role === "teacher" ? "teacher-demo" : "student-demo",
+      name: role === "teacher" ? "Demo Teacher" : "Disha",
+      email: normalizedEmail,
+      role,
+    },
+    token: "demo-token",
+  };
+},
+  register: (payload: { name: string; email: string; role: string }) =>
+    simulateNetwork({ success: true, message: `Account created for ${payload.name}` }, 700),
+  forgotPassword: (email: string) =>
+    simulateNetwork({ success: true, message: `Reset link sent to ${email}` }, 600),
+}
+
+// ----------------------------------------------------------------------------
+// CLASSES     GET /classes · POST /classes · PATCH /classes/:id/start · PATCH /classes/:id/end
+// ----------------------------------------------------------------------------
+export const classesApi = {
+  list: () => simulateNetwork<ClassSession[]>(getClassesStore()),
+  get: (id: string) => simulateNetwork<ClassSession | undefined>(getClassesStore().find((c) => c.id === id)),
+  create: (input: { title: string; subject: string; scheduledStart: string; startNow: boolean }) =>
+    simulateNetwork<ClassSession>(createClassInStore(input), 500),
+  start: (id: string) => simulateNetwork<ClassSession | undefined>(startClassInStore(id), 400),
+  end: (id: string) => {
+  finalizeClassAttendance(id)
+
+  return simulateNetwork<ClassSession | undefined>(
+    endClassInStore(id),
+    400,
+  )
+},
+}
+
+// ----------------------------------------------------------------------------
+// MONITORING  GET /classes/:id/live-students · WS /ws/classes/:id/engagement
+// ----------------------------------------------------------------------------
+export const monitoringApi = {
+  liveStudents: async () => {
+    const response = await fetch(
+      `${API_BASE_URL}/live-monitor`,
+      {
+        cache: 'no-store',
+      },
+    )
+
+    const result = await response.json()
+
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.error || 'Unable to fetch live monitoring data',
+      )
+    }
+
+    const students = Array.isArray(result.data)
+      ? result.data
+      : []
+
+    // Convert the REAL backend AI result into
+    // the exact structure used by the teacher dashboard.
+    return students.map((student: any) => ({
+      studentId:
+        student.studentId ??
+        student.id ??
+        'unknown',
+
+      studentName:
+        student.studentName ??
+        student.name ??
+        'Student',
+
+      currentEmotion:
+        student.currentEmotion ??
+        student.emotion ??
+        'neutral',
+
+      currentEngagement: Number(
+        student.currentEngagement ??
+        student.engagement_score ??
+        student.engagement ??
+        0,
+      ),
+
+      authenticated:
+        student.authenticated ?? true,
+
+      cognitiveState:
+        student.cognitiveState ??
+        'focused',
+
+      activeAlert:
+        student.activeAlert ??
+        undefined,
+
+      history:
+        Array.isArray(student.history)
+          ? student.history
+          : [
+              Number(
+                student.currentEngagement ??
+                student.engagement_score ??
+                0,
+              ),
+            ],
+
+      micOn:
+        student.micOn ?? false,
+
+      cameraOn:
+        student.cameraOn ?? true,
+
+      // ==========================================================
+      // REAL AI DATA
+      // ==========================================================
+
+      blinkCount: Number(
+        student.blinkCount ??
+        student.blink_count ??
+        0,
+      ),
+
+      headPose:
+        student.headPose ??
+        student.head_pose ??
+        'Forward',
+
+      gaze:
+        student.gaze ??
+        'Center',
+
+      phoneDetected:
+        Boolean(
+          student.phoneDetected ??
+          student.phone_detected ??
+          false,
+        ),
+
+      personCount: Number(
+        student.personCount ??
+        student.person_count ??
+        1,
+      ),
+
+      engagementStatus:
+        student.engagementStatus ??
+        student.engagement_status ??
+        undefined,
+    }))
+  },
+
+  alerts: () =>
+    simulateNetwork<AIAlert[]>(
+      generateAlerts(24),
+    ),
+}
+
+// ----------------------------------------------------------------------------
+// ATTENDANCE  GET /attendance?classId=&studentId=&date=
+// ----------------------------------------------------------------------------
+export const attendanceApi = {
+    list: () => simulateNetwork<AttendanceRecord[]>(generateAttendance()),
+}
+
+// ----------------------------------------------------------------------------
+// REPORTS     GET /reports/engagement-trend · GET /reports/behavior-breakdown
+// ----------------------------------------------------------------------------
+export const reportsApi = {
+  engagementTrend: () => simulateNetwork<EngagementTrendPoint[]>(generateEngagementTrend(14)),
+  behaviorBreakdown: () => simulateNetwork(behaviorBreakdown),
+}
+
+// ----------------------------------------------------------------------------
+// NOTIFICATIONS  GET /notifications · POST /notifications/:id/read
+// ----------------------------------------------------------------------------
+export const notificationsApi = {
+  list: () => simulateNetwork<AppNotification[]>(generateNotifications(15)),
+}
+
+// ----------------------------------------------------------------------------
+// TESTS       GET /tests · POST /tests · POST /tests/:id/submit
+// ----------------------------------------------------------------------------
+export const testsApi = {
+  list: () => simulateNetwork<Test[]>(generateTests()),
+}
+
+
+
+####################################################################################################
+# FILE: store/index.ts
+####################################################################################################
+
+import { configureStore } from '@reduxjs/toolkit'
+import authReducer from './slices/authSlice'
+import uiReducer from './slices/uiSlice'
+
+export const store = configureStore({
+  reducer: {
+    auth: authReducer,
+    ui: uiReducer,
+  },
+})
+
+export type RootState = ReturnType<typeof store.getState>
+export type AppDispatch = typeof store.dispatch
+
+
+
+####################################################################################################
+# FILE: pages/live-classroom/TeacherLiveClassroomPage.tsx
+####################################################################################################
+
+import { useEffect, useRef, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AlertTriangle, X, ShieldAlert } from 'lucide-react'
+
+import { VideoTile } from '@/components/classroom/VideoTile'
+import { ParticipantsPanel } from '@/components/classroom/ParticipantsPanel'
+import { ChatPanel } from '@/components/classroom/ChatPanel'
+import { ClassroomControls } from '@/components/classroom/ClassroomControls'
+import { AIMonitoringPanel } from '@/components/monitoring/AIMonitoringPanel'
+import { ConfidenceRing } from '@/components/monitoring/ConfidenceRing'
+import {
+  AlertToastStack,
+  pushAlertToast,
+} from '@/components/monitoring/AlertToast'
+
+import {
+  monitoringApi,
+  classesApi,
+} from '@/services/api/endpoints'
+
+import {
+  recordStudentEngagement,
+  finalizeClassAttendance,
+} from '@/mocks/data'
+
+import { Badge } from '@/components/ui/Badge'
+import type { StudentLiveState } from '@/types/domain'
+
+type SidePanel =
+  | 'none'
+  | 'participants'
+  | 'chat'
+  | 'monitoring'
+
+const ALERT_LABEL: Record<string, string> = {
+  looking_away: 'Looking away from screen',
+  drowsiness: 'Signs of drowsiness detected',
+  phone_detected: 'Mobile phone detected',
+  multiple_person: 'A second person detected',
+  face_auth_failed: 'Face authentication failed',
+  voice_disturbance: 'Background voice disturbance',
+  camera_off: 'Camera turned off',
+  attention_drop_predicted: 'Attention drop predicted',
+}
+function convertAIResultToStudent(
+  message: any,
+  existing: any,
+) {
+  const data = message.data ?? {}
+
+  const engagement = Math.max(
+    0,
+    Math.min(
+      100,
+      Number(
+        data.engagement_score ??
+          data.engagement ??
+          existing?.currentEngagement ??
+          0,
+      ),
+    ),
+  )
+
+  const gaze = String(
+    data.gaze ?? existing?.gaze ?? 'Center',
+  )
+
+  const headPose = String(
+    data.head_pose ??
+      existing?.headPose ??
+      'Looking Forward',
+  )
+
+  const phoneDetected = Boolean(
+    data.phone_detected ??
+      existing?.phoneDetected ??
+      false,
+  )
+
+  const personCount = Number(
+    data.person_count ??
+      existing?.personCount ??
+      1,
+  )
+
+  let activeAlert = null
+
+  if (phoneDetected) {
+    activeAlert = 'phone_detected'
+  } else if (personCount > 1) {
+    activeAlert = 'multiple_person'
+  } else if (
+    !['center', 'forward'].includes(
+      gaze.toLowerCase(),
+    )
+  ) {
+    activeAlert = 'looking_away'
+  }
+
+  let cognitiveState = 'focused'
+
+  if (engagement < 40) {
+    cognitiveState = 'drowsy'
+  } else if (
+    !['center', 'forward'].includes(
+      gaze.toLowerCase(),
+    ) ||
+    !['forward', 'looking forward'].includes(
+      headPose.toLowerCase(),
+    )
+  ) {
+    cognitiveState = 'distracted'
+  }
+
+  return {
+    ...(existing ?? {}),
+
+    studentId:
+      message.studentId ??
+      existing?.studentId,
+
+    studentName:
+      message.studentName ??
+      data.name ??
+      existing?.studentName ??
+      'Student',
+
+    currentEmotion:
+      data.emotion ??
+      existing?.currentEmotion ??
+      'neutral',
+
+    currentEngagement: engagement,
+
+    authenticated:
+      data.name &&
+      data.name !== 'Unknown'
+        ? true
+        : existing?.authenticated ?? false,
+
+    cognitiveState,
+
+    activeAlert,
+
+    blinkCount:
+      data.blink_count ??
+      existing?.blinkCount ??
+      0,
+
+    headPose,
+
+    gaze,
+
+    phoneDetected,
+
+    personCount,
+
+    history: [
+      ...(existing?.history ?? []).slice(-19),
+      engagement,
+    ],
+  }
+}
+
+export function TeacherLiveClassroomPage() {
+  const { classId } = useParams()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
+  const [micOn, setMicOn] = useState(true)
+  const [cameraOn, setCameraOn] = useState(true)
+  const [screenSharing, setScreenSharing] = useState(false)
+
+  const [panel, setPanel] = useState<SidePanel>('monitoring')
+
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [seconds, setSeconds] = useState(0)
+  const [dismissedAlert, setDismissedAlert] = useState(false)
+
+  // -------------------------------------------------------------------------
+  // WebRTC / signaling refs
+  // -------------------------------------------------------------------------
+
+  const alertedIds = useRef<Set<string>>(new Set())
+
+  const signalingRef = useRef<WebSocket | null>(null)
+
+  const peersRef = useRef<Record<string, RTCPeerConnection>>({})
+
+  const pendingCandidatesRef = useRef<
+    Record<string, RTCIceCandidateInit[]>
+  >({})
+
+  // -------------------------------------------------------------------------
+  // Students received through WebRTC
+  // -------------------------------------------------------------------------
+
+  const [connectedStudents, setConnectedStudents] = useState<
+    StudentLiveState[]
+  >([])
+
+  // -------------------------------------------------------------------------
+  // API data
+  // -------------------------------------------------------------------------
+
+  const classQuery = useQuery({
+    queryKey: ['class', classId],
+    queryFn: () => classesApi.get(classId ?? ''),
+  })
+
+  const studentsQuery = useQuery({
+  queryKey: ['live-students', classId],
+  queryFn: monitoringApi.liveStudents,
+  refetchInterval: 8000,
+})
+
+  const apiStudents = studentsQuery.data ?? []
+
+  // -------------------------------------------------------------------------
+  // Merge AI monitoring students + WebRTC-connected students
+  // -------------------------------------------------------------------------
+
+  const students: StudentLiveState[] = (() => {
+    const merged = new Map<string, StudentLiveState>()
+
+    // First add AI/backend students.
+    for (const student of apiStudents) {
+      merged.set(student.studentId, student)
+    }
+
+    // Then add/update students connected through WebRTC.
+    for (const student of connectedStudents) {
+      const existing = merged.get(student.studentId)
+
+      if (existing) {
+        merged.set(student.studentId, {
+          ...student,
+          ...existing,
+          cameraOn: true,
+        })
+      } else {
+        merged.set(student.studentId, student)
+      }
+    }
+
+    return Array.from(merged.values())
+  })()
+
+  const selected =
+    students.find((s) => s.studentId === selectedId) ??
+    students[0]
+
+  const avgEngagement = Math.round(
+    students.reduce(
+      (total, student) => total + student.currentEngagement,
+      0,
+    ) / (students.length || 1),
+  )
+
+  const activeAlerts = students.filter(
+    (student) => student.activeAlert,
+  )
+
+  // -------------------------------------------------------------------------
+  // End class
+  // -------------------------------------------------------------------------
+
+  const endMutation = useMutation({
+  mutationFn: async () => {
+    const endedClass = await classesApi.end(classId ?? '')
+
+    if (classId && endedClass) {
+      finalizeClassAttendance(classId)
+    }
+
+    return endedClass
+  },
+
+  onSuccess: () => {
+    queryClient.invalidateQueries({
+      queryKey: ['classes'],
+    })
+
+    queryClient.invalidateQueries({
+      queryKey: ['attendance'],
+    })
+
+    navigate('/teacher')
+  },
+})
+
+  // -------------------------------------------------------------------------
+  // Timer
+  // -------------------------------------------------------------------------
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSeconds((value) => value + 1)
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [])
+
+  // =========================================================================
+  // WEBRTC SIGNALING
+  // =========================================================================
+
+  useEffect(() => {
+    if (!classId) {
+      return
+    }
+
+    const ws = new WebSocket(
+      `ws://127.0.0.1:8000/ws/classes/${classId}/signaling`,
+    )
+
+    signalingRef.current = ws
+
+    // -----------------------------------------------------------------------
+    // WebSocket connected
+    // -----------------------------------------------------------------------
+
+    ws.onopen = () => {
+      console.log('Teacher signaling connected')
+    }
+
+    // -----------------------------------------------------------------------
+    // Messages from students
+    // -----------------------------------------------------------------------
+
+    ws.onmessage = async (event) => {
+  try {
+    const message = JSON.parse(event.data)
+
+    // ===================================================================
+    // REAL AI RESULT FROM STUDENT
+    // ===================================================================
+
+    if (message.type === 'ai_result') {
+      const studentId = message.studentId
+      const studentName =
+        message.studentName ?? 'Student'
+
+      console.log(
+        'REAL AI RESULT FROM STUDENT:',
+        studentId,
+        message.data,
+      )
+
+      setConnectedStudents((current) => {
+        const existing = current.find(
+          (student) =>
+            student.studentId === studentId,
+        )
+
+        const updatedStudent =
+          convertAIResultToStudent(
+            message,
+            existing,
+          ) as StudentLiveState
+        // ---------------------------------------------------------------
+// RECORD REAL ENGAGEMENT FOR ATTENDANCE
+// ---------------------------------------------------------------
+
+if (
+  classId &&
+  classQuery.data?.status === 'live'
+) {
+  recordStudentEngagement(
+    classId,
+    studentId,
+    studentName,
+    updatedStudent.currentEngagement ?? 0,
+  )
+}
+
+        // ---------------------------------------------------------------
+        // Student already connected through WebRTC.
+        // ---------------------------------------------------------------
+
+        if (existing) {
+          return current.map((student) =>
+            student.studentId === studentId
+              ? {
+                  ...student,
+                  ...updatedStudent,
+                  cameraOn: true,
+                }
+              : student,
+          )
+        }
+
+        // ---------------------------------------------------------------
+        // AI result arrived before WebRTC entry.
+        // Create the student so the teacher still sees the AI data.
+        // ---------------------------------------------------------------
+
+        const newStudent: StudentLiveState = {
+          ...updatedStudent,
+
+          studentId,
+
+          studentName,
+
+          cameraOn: true,
+          micOn: false,
+          handRaised: false,
+
+          currentEngagement:
+            updatedStudent.currentEngagement ?? 0,
+
+          currentEmotion:
+            updatedStudent.currentEmotion ?? 'neutral',
+
+          cognitiveState:
+            updatedStudent.cognitiveState ?? 'focused',
+
+          authenticated:
+            updatedStudent.authenticated ?? false,
+
+          history:
+            updatedStudent.history ?? [
+              updatedStudent.currentEngagement ?? 0,
+            ],
+        }
+
+        return [
+          ...current,
+          newStudent,
+        ]
+      })
+
+      return
+    }
+
+    // ===================================================================
+    // STUDENT OFFER
+    // ===================================================================
+
+    if (message.type === 'offer') {
+      const studentId = message.studentId
+      const studentName =
+        message.studentName ?? 'Student'
+
+      console.log(
+        'WebRTC offer received from student:',
+        studentId,
+      )
+
+      // Close an old peer if one somehow exists.
+      const oldPeer =
+        peersRef.current[studentId]
+
+      if (oldPeer) {
+        oldPeer.close()
+      }
+
+      // Create new peer connection.
+      const peer = new RTCPeerConnection({
+        iceServers: [
+          {
+            urls:
+              'stun:stun.l.google.com:19302',
+          },
+        ],
+      })
+
+      peersRef.current[studentId] = peer
+
+      pendingCandidatesRef.current[
+        studentId
+      ] = []
+
+      // ---------------------------------------------------------------
+      // Create student entry immediately.
+      // This makes VideoTile render before ontrack fires.
+      // ---------------------------------------------------------------
+
+      setConnectedStudents((current) => {
+        const alreadyExists =
+          current.some(
+            (student) =>
+              student.studentId === studentId,
+          )
+
+        if (alreadyExists) {
+          return current
+        }
+
+        const newStudent:
+          StudentLiveState = {
+          studentId,
+          studentName,
+
+          cameraOn: true,
+          micOn: false,
+          handRaised: false,
+
+          currentEngagement: 74,
+          currentEmotion: 'neutral',
+          cognitiveState: 'focused',
+
+          authenticated: true,
+
+          activeAlert: undefined,
+
+          history: [74],
+        }
+
+        return [
+          ...current,
+          newStudent,
+        ]
+      })
+
+      // ---------------------------------------------------------------
+      // Receive student's camera
+      // ---------------------------------------------------------------
+
+      peer.ontrack = (event) => {
+        console.log(
+          'Remote student camera received:',
+          studentId,
+        )
+
+        const stream =
+          event.streams[0]
+
+        if (!stream) {
+          return
+        }
+
+        const video =
+          document.getElementById(
+            `student-video-${studentId}`,
+          ) as HTMLVideoElement | null
+
+        if (video) {
+          video.srcObject = stream
+
+          video.play().catch(() => {})
+        }
+
+        // Make sure student remains visible.
+        setConnectedStudents(
+          (current) =>
+            current.map((student) =>
+              student.studentId ===
+              studentId
+                ? {
+                    ...student,
+                    cameraOn: true,
+                  }
+                : student,
+            ),
+        )
+      }
+
+      // ---------------------------------------------------------------
+      // Send ICE candidates to student
+      // ---------------------------------------------------------------
+
+      peer.onicecandidate = (
+        event,
+      ) => {
+        if (
+          event.candidate &&
+          ws.readyState ===
+            WebSocket.OPEN
+        ) {
+          ws.send(
+            JSON.stringify({
+              type: 'candidate',
+              role: 'teacher',
+              studentId,
+              candidate:
+                event.candidate,
+            }),
+          )
+        }
+      }
+
+      // ---------------------------------------------------------------
+      // Connection state
+      // ---------------------------------------------------------------
+
+      peer.onconnectionstatechange =
+        () => {
+          console.log(
+            `Student ${studentId} WebRTC state:`,
+            peer.connectionState,
+          )
+
+          if (
+            peer.connectionState ===
+              'failed' ||
+            peer.connectionState ===
+              'closed' ||
+            peer.connectionState ===
+              'disconnected'
+          ) {
+            setConnectedStudents(
+              (current) =>
+                current.filter(
+                  (student) =>
+                    student.studentId !==
+                    studentId,
+                ),
+            )
+
+            delete peersRef.current[
+              studentId
+            ]
+          }
+        }
+
+      // ---------------------------------------------------------------
+      // Receive student's offer
+      // ---------------------------------------------------------------
+
+      await peer.setRemoteDescription(
+        new RTCSessionDescription(
+          message.offer,
+        ),
+      )
+
+      // ---------------------------------------------------------------
+      // Add any ICE candidates that arrived early
+      // ---------------------------------------------------------------
+
+      const pending =
+        pendingCandidatesRef.current[
+          studentId
+        ] ?? []
+
+      for (const candidate of pending) {
+        try {
+          await peer.addIceCandidate(
+            new RTCIceCandidate(
+              candidate,
+            ),
+          )
+        } catch (error) {
+          console.error(
+            'Failed to add queued ICE candidate:',
+            error,
+          )
+        }
+      }
+
+      pendingCandidatesRef.current[
+        studentId
+      ] = []
+
+      // ---------------------------------------------------------------
+      // Create answer
+      // ---------------------------------------------------------------
+
+      const answer =
+        await peer.createAnswer()
+
+      await peer.setLocalDescription(
+        answer,
+      )
+
+      if (
+        ws.readyState ===
+        WebSocket.OPEN
+      ) {
+        ws.send(
+          JSON.stringify({
+            type: 'answer',
+            role: 'teacher',
+            studentId,
+            answer,
+          }),
+        )
+      }
+
+      console.log(
+        'WebRTC answer sent to student:',
+        studentId,
+      )
+
+      return
+    }
+
+    // ===================================================================
+    // STUDENT ICE CANDIDATE
+    // ===================================================================
+
+    if (message.type === 'candidate') {
+      const studentId =
+        message.studentId
+
+      const peer =
+        peersRef.current[
+          studentId
+        ]
+
+      if (!peer) {
+        return
+      }
+
+      const candidate =
+        message.candidate
+
+      // If remote description is not ready yet,
+      // queue the candidate.
+      if (
+        !peer.remoteDescription
+      ) {
+        if (
+          !pendingCandidatesRef
+            .current[studentId]
+        ) {
+          pendingCandidatesRef.current[
+            studentId
+          ] = []
+        }
+
+        pendingCandidatesRef.current[
+          studentId
+        ].push(candidate)
+
+        console.log(
+          'ICE candidate queued until remote description arrives:',
+          studentId,
+        )
+
+        return
+      }
+
+      try {
+        await peer.addIceCandidate(
+          new RTCIceCandidate(
+            candidate,
+          ),
+        )
+      } catch (error) {
+        console.error(
+          'Failed to add ICE candidate:',
+          error,
+        )
+      }
+    }
+  } catch (error) {
+    console.error(
+      'Teacher signaling message error:',
+      error,
+    )
+  }
+}
+
+    // -----------------------------------------------------------------------
+    // WebSocket error
+    // -----------------------------------------------------------------------
+
+    ws.onerror = (error) => {
+      console.error(
+        'Teacher signaling error:',
+        error,
+      )
+    }
+
+    // -----------------------------------------------------------------------
+    // Cleanup
+    // -----------------------------------------------------------------------
+
+    return () => {
+      ws.close()
+
+      Object.values(peersRef.current).forEach(
+        (peer) => peer.close(),
+      )
+
+      peersRef.current = {}
+
+      pendingCandidatesRef.current = {}
+
+      setConnectedStudents([])
+    }
+  }, [classId])
+
+  // =========================================================================
+  // ALERT TOASTS
+  // =========================================================================
+
+  // =========================================================================
+// ALERT TOASTS
+// =========================================================================
+
+useEffect(() => {
+  const currentlyActive = new Set<string>()
+
+  for (const student of students) {
+    if (!student.activeAlert) {
+      continue
+    }
+
+    const alertKey =
+      `${student.studentId}-${student.activeAlert}`
+
+    currentlyActive.add(alertKey)
+
+    // ---------------------------------------------------------------
+    // Only show a toast when this alert is newly detected.
+    // ---------------------------------------------------------------
+
+    if (!alertedIds.current.has(alertKey)) {
+      alertedIds.current.add(alertKey)
+
+      pushAlertToast({
+        studentName: student.studentName,
+
+        message:
+          ALERT_LABEL[student.activeAlert] ??
+          'Attention issue detected',
+
+        severity:
+          student.activeAlert === 'phone_detected' ||
+          student.activeAlert === 'multiple_person'
+            ? 'critical'
+            : 'warning',
+      })
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // Remove cleared alerts from the memory.
+  //
+  // This allows the same alert to trigger again later.
+  // ---------------------------------------------------------------
+
+  for (const key of alertedIds.current) {
+    if (!currentlyActive.has(key)) {
+      alertedIds.current.delete(key)
+    }
+  }
+}, [students])
+
+  const timer = `${String(
+    Math.floor(seconds / 60),
+  ).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
+
+  return (
+    <div className="flex h-screen flex-col bg-[#080b12]">
+      {/* Header */}
+
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5 text-xs font-medium text-critical-400">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-critical-500" />
+            LIVE
+          </span>
+
+          <p className="text-sm font-semibold text-white">
+            {classQuery.data?.title ?? 'Live class'}
+          </p>
+
+          <Badge
+            variant="neutral"
+            className="bg-white/10 text-white"
+          >
+            {students.length} students
+          </Badge>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="hidden items-center gap-2 sm:flex">
+            <ConfidenceRing
+              value={avgEngagement}
+              size={36}
+              strokeWidth={4}
+            />
+
+            <span className="text-xs text-white/60">
+              class avg.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Alert banner */}
+
+      {activeAlerts.length > 0 && !dismissedAlert && (
+        <div className="flex items-center justify-between gap-3 bg-critical-500/15 px-4 py-2 text-sm text-critical-300">
+          <span className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+
+            {activeAlerts.length} student(s) currently need
+            attention — {activeAlerts[0].studentName} (
+            {ALERT_LABEL[
+              activeAlerts[0].activeAlert ?? ''
+            ] ?? 'flagged'}
+            )
+          </span>
+
+          <button
+            onClick={() => setDismissedAlert(true)}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Main content */}
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Video grid */}
+
+        <div className="flex-1 overflow-y-auto p-3">
+          {students.length === 0 ? (
+            <div className="flex h-full items-center justify-center">
+              <div className="text-center text-white/50">
+                <p className="text-sm">
+                  Waiting for students to join...
+                </p>
+
+                <p className="mt-1 text-xs">
+                  WebRTC connection is ready.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {students.map((student) => (
+                <VideoTile
+                  key={student.studentId}
+                  student={student}
+                  selected={
+                    student.studentId ===
+                    selected?.studentId
+                  }
+                  onSelect={() => {
+                    setSelectedId(student.studentId)
+                    setPanel('monitoring')
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Side panel */}
+
+        {panel !== 'none' && (
+          <div className="w-[320px] shrink-0 border-l border-white/10 bg-[#0f131e]">
+            {panel === 'participants' && (
+              <ParticipantsPanel students={students} />
+            )}
+
+            {panel === 'chat' && <ChatPanel />}
+
+            {panel === 'monitoring' && selected && (
+              <div className="dark h-full">
+                <AIMonitoringPanel student={selected} />
+              </div>
+            )}
+
+            {panel === 'monitoring' && !selected && (
+              <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center text-white/60">
+                <ShieldAlert className="h-6 w-6" />
+
+                <p className="text-sm">
+                  Select a student tile to view their AI
+                  monitoring detail.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Controls */}
+
+      <ClassroomControls
+        role="teacher"
+        micOn={micOn}
+        cameraOn={cameraOn}
+        handRaised={false}
+        screenSharing={screenSharing}
+        recording
+        onToggleMic={() =>
+          setMicOn((value) => !value)
+        }
+        onToggleCamera={() =>
+          setCameraOn((value) => !value)
+        }
+        onToggleHand={() => {}}
+        onToggleScreenShare={() =>
+          setScreenSharing((value) => !value)
+        }
+        onToggleParticipants={() =>
+          setPanel((value) =>
+            value === 'participants'
+              ? 'none'
+              : 'participants',
+          )
+        }
+        onToggleChat={() =>
+          setPanel((value) =>
+            value === 'chat' ? 'none' : 'chat',
+          )
+        }
+        onToggleMonitoring={() =>
+          setPanel((value) =>
+            value === 'monitoring'
+              ? 'none'
+              : 'monitoring',
+          )
+        }
+        onLeave={() => endMutation.mutate()}
+        leaveLabel="End class"
+        timer={timer}
+      />
+    </div>
+  )
+}
+
+
+####################################################################################################
+# FILE: pages/live-classroom/StudentLiveClassroomPage.tsx
+####################################################################################################
+
+import { useRef } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+
+import {
+  AlertTriangle,
+  Phone,
+  Users,
+  EyeOff,
+  X,
+  ScreenShare,
+} from 'lucide-react'
+
+import { ParticipantsPanel } from '@/components/classroom/ParticipantsPanel'
+import { ChatPanel } from '@/components/classroom/ChatPanel'
+import { ClassroomControls } from '@/components/classroom/ClassroomControls'
+import { Avatar } from '@/components/ui/Avatar'
+import { ConfidenceRing } from '@/components/monitoring/ConfidenceRing'
+import { Badge } from '@/components/ui/Badge'
+
+import { currentStudent } from '@/mocks/data'
+import { generateLiveStudents } from '@/mocks/data'
+import { classesApi } from '@/services/api/endpoints'
+
+type SidePanel = 'none' | 'participants' | 'chat'
+
+export function StudentLiveClassroomPage() {
+  const navigate = useNavigate()
+  const { classId } = useParams()
+
+  const classQuery = useQuery({
+    queryKey: ['class', classId],
+    queryFn: () => classesApi.get(classId ?? ''),
+  })
+
+  const [micOn, setMicOn] = useState(false)
+  const [cameraOn, setCameraOn] = useState(true)
+  const [handRaised, setHandRaised] = useState(false)
+  const [panel, setPanel] = useState<SidePanel>('none')
+  const [seconds, setSeconds] = useState(0)
+  const [myEngagement, setMyEngagement] = useState(74)
+
+  const [aiAlert, setAiAlert] = useState<string | null>(null)
+  const [showAiAlert, setShowAiAlert] = useState(false)
+
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const aiCanvasRef = useRef<HTMLCanvasElement | null>(null)
+
+  const peerRef = useRef<RTCPeerConnection | null>(null)
+  const wsRef = useRef<WebSocket | null>(null)
+
+  const students = generateLiveStudents(15)
+
+  // ---------------------------------------------------------------------------
+  // CAMERA + WEBRTC
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    let stream: MediaStream | null = null
+
+    async function startCameraAndWebRTC() {
+      try {
+        // ------------------------------------------------------------
+        // 1. Open student's camera
+        // ------------------------------------------------------------
+
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        })
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+        }
+
+        // ------------------------------------------------------------
+        // 2. Connect to signaling server
+        // ------------------------------------------------------------
+
+        const ws = new WebSocket(
+          `ws://127.0.0.1:8000/ws/classes/${classId}/signaling`,
+        )
+
+        wsRef.current = ws
+
+        ws.onopen = async () => {
+          console.log('Student signaling connected')
+
+          // ----------------------------------------------------------
+          // 3. Create WebRTC peer connection
+          // ----------------------------------------------------------
+
+          const peer = new RTCPeerConnection({
+            iceServers: [
+              {
+                urls: 'stun:stun.l.google.com:19302',
+              },
+            ],
+          })
+
+          peerRef.current = peer
+
+          // ----------------------------------------------------------
+          // 4. Store ICE candidates that arrive before the answer
+          // ----------------------------------------------------------
+
+          const pendingCandidates: RTCIceCandidate[] = []
+
+          // ----------------------------------------------------------
+          // 5. Add camera tracks
+          // ----------------------------------------------------------
+
+          stream?.getTracks().forEach((track) => {
+            peer.addTrack(track, stream!)
+          })
+
+          // ----------------------------------------------------------
+          // 6. Send ICE candidates
+          // ----------------------------------------------------------
+
+          peer.onicecandidate = (event) => {
+            if (
+              event.candidate &&
+              ws.readyState === WebSocket.OPEN
+            ) {
+              ws.send(
+                JSON.stringify({
+                  type: 'candidate',
+                  role: 'student',
+                  studentId: currentStudent.id,
+                  candidate: event.candidate,
+                }),
+              )
+            }
+          }
+
+          // ----------------------------------------------------------
+          // 7. Create offer
+          // ----------------------------------------------------------
+
+          const offer = await peer.createOffer()
+
+          await peer.setLocalDescription(offer)
+
+          ws.send(
+            JSON.stringify({
+              type: 'offer',
+              role: 'student',
+              studentId: currentStudent.id,
+              studentName: currentStudent.name,
+              offer,
+            }),
+          )
+
+          console.log('Student WebRTC offer sent')
+
+          // ----------------------------------------------------------
+          // 8. Receive signaling messages
+          // ----------------------------------------------------------
+
+          ws.onmessage = async (event) => {
+            try {
+              const message = JSON.parse(event.data)
+
+              // ------------------------------------------------------
+              // Teacher sent WebRTC answer
+              // ------------------------------------------------------
+
+              if (message.type === 'answer') {
+                // Prevent duplicate / late answers.
+                if (peer.signalingState !== 'have-local-offer') {
+                  console.warn(
+                    'Ignoring duplicate/late WebRTC answer. Current state:',
+                    peer.signalingState,
+                  )
+
+                  return
+                }
+
+                await peer.setRemoteDescription(
+                  new RTCSessionDescription(message.answer),
+                )
+
+                console.log('Teacher WebRTC answer received')
+
+                // ----------------------------------------------------
+                // Add ICE candidates that arrived before the answer.
+                // ----------------------------------------------------
+
+                for (const candidate of pendingCandidates) {
+                  try {
+                    await peer.addIceCandidate(candidate)
+                  } catch (error) {
+                    console.warn(
+                      'Failed to add queued ICE candidate:',
+                      error,
+                    )
+                  }
+                }
+
+                pendingCandidates.length = 0
+              }
+
+              // ------------------------------------------------------
+              // Teacher sent ICE candidate
+              // ------------------------------------------------------
+
+              if (message.type === 'candidate') {
+                const candidate = new RTCIceCandidate(
+                  message.candidate,
+                )
+
+                // Remote description already exists.
+                if (peer.remoteDescription) {
+                  await peer.addIceCandidate(candidate)
+                } else {
+                  // Answer has not arrived yet.
+                  pendingCandidates.push(candidate)
+
+                  console.log(
+                    'ICE candidate queued until teacher answer arrives',
+                  )
+                }
+              }
+            } catch (error) {
+              console.error(
+                'Student signaling message error:',
+                error,
+              )
+            }
+          }
+        }
+
+        ws.onerror = (error) => {
+          console.error(
+            'Student signaling error:',
+            error,
+          )
+        }
+
+        ws.onclose = () => {
+          console.log('Student signaling disconnected')
+        }
+      } catch (error) {
+        console.error(
+          'Unable to start camera/WebRTC:',
+          error,
+        )
+      }
+    }
+
+    startCameraAndWebRTC()
+
+    return () => {
+      wsRef.current?.close()
+      peerRef.current?.close()
+
+      stream?.getTracks().forEach((track) => {
+        track.stop()
+      })
+    }
+  }, [classId])
+
+  // ---------------------------------------------------------------------------
+  // REAL AI CAMERA ANALYSIS
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const video = videoRef.current
+
+      // Camera/video is not ready yet.
+      if (!video || video.readyState < 2) {
+        return
+      }
+
+      try {
+        // Create canvas once.
+        if (!aiCanvasRef.current) {
+          aiCanvasRef.current = document.createElement('canvas')
+        }
+
+        const canvas = aiCanvasRef.current
+
+        canvas.width = 640
+        canvas.height = 480
+
+        const context = canvas.getContext('2d')
+
+        if (!context) {
+          return
+        }
+
+        // Copy current webcam frame into canvas.
+        context.drawImage(
+          video,
+          0,
+          0,
+          canvas.width,
+          canvas.height,
+        )
+
+        // Convert frame to JPEG base64.
+        const frame = canvas.toDataURL(
+          'image/jpeg',
+          0.7,
+        )
+
+        // Send frame to FastAPI AI endpoint.
+        const response = await fetch(
+          'http://127.0.0.1:8000/ai/analyze-frame',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              frame,
+            }),
+          },
+        )
+
+        const result = await response.json()
+
+        if (result.success) {
+          console.log(
+            'REAL AI RESULT:',
+            result.data,
+          )
+
+          // ----------------------------------------------------------
+          // Send the real AI result to the teacher
+          // through the existing classroom WebSocket.
+          // ----------------------------------------------------------
+
+          if (
+            wsRef.current?.readyState === WebSocket.OPEN
+          ) {
+            wsRef.current.send(
+              JSON.stringify({
+                type: 'ai_result',
+                role: 'student',
+                studentId: currentStudent.id,
+                studentName: currentStudent.name,
+                data: result.data,
+              }),
+            )
+          }
+
+          // ----------------------------------------------------------
+          // Update student's own engagement indicator.
+          // ----------------------------------------------------------
+
+          if (
+            typeof result.data?.engagement_score === 'number'
+          ) {
+            setMyEngagement(
+              Math.max(
+                0,
+                Math.min(
+                  100,
+                  Number(
+                    result.data.engagement_score,
+                  ),
+                ),
+              ),
+            )
+          }
+
+          // ----------------------------------------------------------
+          // STUDENT AI ALERT
+          // Uses the alert generated from THIS student's camera.
+          // ----------------------------------------------------------
+
+          const activeAlert =
+            result.data?.active_alert ?? null
+
+          if (activeAlert) {
+            setAiAlert((previousAlert) => {
+              if (
+                previousAlert !== activeAlert
+              ) {
+                setShowAiAlert(true)
+              }
+
+              return activeAlert
+            })
+          } else {
+            setAiAlert(null)
+            setShowAiAlert(false)
+          }
+        } else {
+          console.warn(
+            'AI analysis failed:',
+            result.error,
+          )
+        }
+      } catch (error) {
+        console.error(
+          'Unable to send frame to AI:',
+          error,
+        )
+      }
+    }, 2000)
+
+    return () => {
+      clearInterval(interval)
+    }
+  }, [])
+
+  // ---------------------------------------------------------------------------
+  // TIMER
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    const timerInterval = window.setInterval(() => {
+      setSeconds((value) => value + 1)
+    }, 1000)
+
+    return () => {
+      window.clearInterval(timerInterval)
+    }
+  }, [])
+
+  const timer = `${String(
+    Math.floor(seconds / 60),
+  ).padStart(2, '0')}:${String(
+    seconds % 60,
+  ).padStart(2, '0')}`
+
+  // ---------------------------------------------------------------------------
+  // UI
+  // ---------------------------------------------------------------------------
+
+  return (
+    <>
+      {/* ============================================================
+          AI MONITORING ALERT
+         ============================================================ */}
+
+      {showAiAlert && aiAlert && (
+        <div className="fixed right-4 top-4 z-50 w-[360px] rounded-2xl border border-critical-500/30 bg-[#171923] p-4 shadow-2xl">
+
+          <div className="flex items-start gap-3">
+
+            {/* Alert icon */}
+
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-critical-500/15">
+
+              {aiAlert === 'phone_detected' && (
+                <Phone className="h-5 w-5 text-critical-400" />
+              )}
+
+              {aiAlert === 'multiple_person' && (
+                <Users className="h-5 w-5 text-critical-400" />
+              )}
+
+              {aiAlert === 'looking_away' && (
+                <EyeOff className="h-5 w-5 text-critical-400" />
+              )}
+
+              {aiAlert === 'attention_drop_predicted' && (
+                <AlertTriangle className="h-5 w-5 text-critical-400" />
+              )}
+
+              {aiAlert === 'drowsiness' && (
+                <AlertTriangle className="h-5 w-5 text-critical-400" />
+              )}
+
+              {aiAlert === 'face_auth_failed' && (
+                <AlertTriangle className="h-5 w-5 text-critical-400" />
+              )}
+
+            </div>
+
+            {/* Alert message */}
+
+            <div className="flex-1">
+
+              <p className="text-sm font-semibold text-white">
+                AI Monitoring Alert
+              </p>
+
+              <p className="mt-1 text-sm text-white/70">
+
+                {aiAlert === 'phone_detected' &&
+                  'Please put away your mobile phone.'}
+
+                {aiAlert === 'multiple_person' &&
+                  'Multiple people detected. Please remain alone in the classroom.'}
+
+                {aiAlert === 'looking_away' &&
+                  'Please look toward the screen.'}
+
+                {aiAlert === 'attention_drop_predicted' &&
+                  'Your attention appears to be dropping. Please focus on the class.'}
+
+                {aiAlert === 'drowsiness' &&
+                  'Signs of drowsiness were detected. Please stay attentive.'}
+
+                {aiAlert === 'face_auth_failed' &&
+                  'Face authentication failed. Please position your face clearly in the camera.'}
+
+              </p>
+
+            </div>
+
+            {/* Close notification */}
+
+            <button
+              type="button"
+              onClick={() => setShowAiAlert(false)}
+              className="text-white/40 transition-colors hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* ============================================================
+          HEADER
+         ============================================================ */}
+
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
+
+        <div className="flex items-center gap-3">
+
+          <span className="flex items-center gap-1.5 text-xs font-medium text-critical-400">
+
+            <span className="h-2 w-2 animate-pulse rounded-full bg-critical-500" />
+
+            LIVE
+
+          </span>
+
+          <p className="text-sm font-semibold text-white">
+            {classQuery.data?.title ?? 'Live class'}
+          </p>
+
+        </div>
+
+        <div>
+          Face verified
+        </div>
+
+      </div>
+
+      {/* ============================================================
+          MAIN CLASSROOM
+         ============================================================ */}
+
+      <div className="flex flex-1 overflow-hidden">
+
+        <div className="flex flex-1 flex-col gap-3 p-3">
+
+          {/* Teacher's video, large */}
+
+          <div className="relative flex flex-1 items-center justify-center rounded-2xl bg-gradient-to-br from-focus-900/60 to-[#0f131e]">
+
+            <Avatar
+              name="Dr. Kavita Rao"
+              size={72}
+            />
+
+            <div className="absolute left-3 top-3 rounded-md bg-black/50 px-2.5 py-1 text-xs font-medium text-white backdrop-blur">
+              Dr. Kavita Rao (Teacher)
+            </div>
+
+            <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-md bg-black/50 px-2.5 py-1 text-xs text-white backdrop-blur">
+
+              <ScreenShare className="h-3.5 w-3.5" />
+
+              Screen not shared
+
+            </div>
+
+          </div>
+
+          {/* ========================================================
+              SELF TILE + ENGAGEMENT
+             ======================================================== */}
+
+          <div className="flex items-center justify-between rounded-2xl bg-[#12151f] p-3">
+
+            <div className="flex items-center gap-3">
+
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="h-24 w-32 rounded-xl object-cover"
+              />
+
+              <div>
+
+                <p className="text-sm font-medium text-white">
+                  {currentStudent.name} (You)
+                </p>
+
+                <p className="text-xs text-white/50">
+
+                  {cameraOn
+                    ? 'Camera on'
+                    : 'Camera off'}{' '}
+
+                  ·{' '}
+
+                  {micOn
+                    ? 'Mic on'
+                    : 'Mic muted'}
+
+                </p>
+
+              </div>
+
+            </div>
+
+            <div className="flex items-center gap-3">
+
+              <div className="text-right">
+
+                <p className="text-xs text-white/50">
+                  Your engagement
+                </p>
+
+                <Badge
+                  variant={
+                    myEngagement >= 70
+                      ? 'engaged'
+                      : myEngagement >= 40
+                        ? 'attention'
+                        : 'critical'
+                  }
+                >
+
+                  {myEngagement >= 70
+                    ? 'Focused'
+                    : myEngagement >= 40
+                      ? 'Drifting'
+                      : 'Needs attention'}
+
+                </Badge>
+
+              </div>
+
+              <ConfidenceRing
+                value={myEngagement}
+                size={48}
+                strokeWidth={5}
+              />
+
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* ==========================================================
+            SIDE PANEL
+           ========================================================== */}
+
+        {panel !== 'none' && (
+          <div className="w-[320px] shrink-0 border-l border-white/10 bg-[#0f131e]">
+
+            {panel === 'participants' && (
+              <ParticipantsPanel
+                students={students}
+              />
+            )}
+
+            {panel === 'chat' && (
+              <ChatPanel />
+            )}
+
+          </div>
+        )}
+
+      </div>
+
+      {/* ============================================================
+          CLASSROOM CONTROLS
+         ============================================================ */}
+
+      <ClassroomControls
+        role="student"
+
+        micOn={micOn}
+
+        cameraOn={cameraOn}
+
+        handRaised={handRaised}
+
+        screenSharing={false}
+
+        recording={false}
+
+        onToggleMic={() =>
+          setMicOn((value) => !value)
+        }
+
+        onToggleCamera={() =>
+          setCameraOn((value) => !value)
+        }
+
+        onToggleHand={() =>
+          setHandRaised((value) => !value)
+        }
+
+        onToggleScreenShare={() => {}}
+
+        onToggleParticipants={() =>
+          setPanel((value) =>
+            value === 'participants'
+              ? 'none'
+              : 'participants',
+          )
+        }
+
+        onToggleChat={() =>
+          setPanel((value) =>
+            value === 'chat'
+              ? 'none'
+              : 'chat',
+          )
+        }
+
+        onLeave={() =>
+          navigate('/student')
+        }
+
+        timer={timer}
+      />
+
+    </>
+  )
+}
+
+
+####################################################################################################
+# FILE: pages/teacher/TeacherDashboardPage.tsx
+####################################################################################################
+
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Users, TrendingUp, Bell, CalendarCheck2, Search, SlidersHorizontal, Plus } from 'lucide-react'
+import { AppShell } from '@/components/layout/AppShell'
+import { StatCard } from '@/components/dashboard/StatCard'
+import { ClassCard } from '@/components/dashboard/ClassCard'
+import { ScheduleClassModal } from '@/components/dashboard/ScheduleClassModal'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card'
+import { Tabs } from '@/components/ui/Tabs'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
+import { EngagementTrendChart } from '@/components/charts/EngagementTrendChart'
+import { BehaviorPieChart } from '@/components/charts/BehaviorPieChart'
+import { classesApi, reportsApi, monitoringApi } from '@/services/api/endpoints'
+import { relativeTime } from '@/lib/utils'
+import { Input } from '@/components/ui/Input'
+
+type Filter = 'all' | 'live' | 'scheduled' | 'completed'
+
+export function TeacherDashboardPage() {
+  const [filter, setFilter] = useState<Filter>('all')
+  const [search, setSearch] = useState('')
+  const [scheduleOpen, setScheduleOpen] = useState(false)
+
+  const classesQuery = useQuery({ queryKey: ['classes'], queryFn: classesApi.list })
+  const trendQuery = useQuery({ queryKey: ['engagement-trend'], queryFn: reportsApi.engagementTrend })
+  const breakdownQuery = useQuery({ queryKey: ['behavior-breakdown'], queryFn: reportsApi.behaviorBreakdown })
+  const alertsQuery = useQuery({ queryKey: ['alerts'], queryFn: monitoringApi.alerts })
+
+  const classes = (classesQuery.data ?? []).filter((c) => {
+    const matchesFilter = filter === 'all' || c.status === filter
+    const matchesSearch = c.title.toLowerCase().includes(search.toLowerCase())
+    return matchesFilter && matchesSearch
+  })
+  const liveCount = (classesQuery.data ?? []).filter((c) => c.status === 'live').length
+  const todayCount = (classesQuery.data ?? []).length
+
+  return (
+    <AppShell role="teacher" title="Teacher Dashboard">
+      <div className="space-y-6">
+        {/* Stat row */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label="Today's classes" value={String(todayCount)} icon={CalendarCheck2} tone="focus" trend={{ value: 8, positive: true }} />
+          <StatCard label="Live right now" value={String(liveCount)} icon={Users} tone="critical" />
+          <StatCard label="Avg. engagement" value="72%" icon={TrendingUp} tone="engaged" trend={{ value: 4, positive: true }} />
+          <StatCard label="Open alerts" value={String((alertsQuery.data ?? []).filter((a) => !a.acknowledged).length)} icon={Bell} tone="attention" />
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Classes list */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader className="flex-col items-stretch gap-3 sm:flex-row sm:items-center pb-3">
+                <div>
+                  <CardTitle>Your classes</CardTitle>
+                  <CardDescription>Upcoming, live, and recent sessions</CardDescription>
+                </div>
+                <div className="flex flex-1 items-center gap-2 sm:justify-end">
+                  <div className="relative flex-1 sm:max-w-[180px]">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-textmuted-light dark:text-textmuted-dark" />
+                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search" className="h-8 pl-8 text-xs" />
+                  </div>
+                  <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-border-light text-textmuted-light dark:border-border-dark dark:text-textmuted-dark">
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
+                  </button>
+                  <Button size="sm" onClick={() => setScheduleOpen(true)}><Plus className="h-4 w-4" />New class</Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-3">
+                <Tabs
+                  className="mb-4"
+                  active={filter}
+                  onChange={setFilter}
+                  tabs={[
+                    { value: 'all', label: 'All', count: classesQuery.data?.length },
+                    { value: 'live', label: 'Live', count: (classesQuery.data ?? []).filter((c) => c.status === 'live').length },
+                    { value: 'scheduled', label: 'Scheduled' },
+                    { value: 'completed', label: 'Completed' },
+                  ]}
+                />
+                {classesQuery.isLoading ? (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40" />)}
+                  </div>
+                ) : classesQuery.isError ? (
+                  <ErrorState onRetry={() => classesQuery.refetch()} />
+                ) : classes.length === 0 ? (
+                  <EmptyState icon={CalendarCheck2} title="No classes match" description="Try a different filter or search term." />
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {classes.map((c) => <ClassCard key={c.id} session={c} role="teacher" />)}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Alerts / recent activity */}
+          <Card className="h-fit">
+            <CardHeader className="pb-3">
+              <CardTitle>Alert center</CardTitle>
+              <CardDescription>Latest AI-flagged behavior</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-3">
+              {alertsQuery.isLoading ? (
+                <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14" />)}</div>
+              ) : (
+                <ul className="space-y-1 max-h-[420px] overflow-y-auto">
+                  {(alertsQuery.data ?? []).slice(0, 8).map((alert) => (
+                    <li key={alert.id} className="flex items-start gap-3 rounded-lg px-2 py-2.5 hover:bg-black/5 dark:hover:bg-white/5">
+                      <Badge variant={alert.severity === 'critical' ? 'critical' : alert.severity === 'warning' ? 'attention' : 'neutral'} className="mt-0.5 shrink-0">
+                        {alert.severity}
+                      </Badge>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-text-light dark:text-text-dark">{alert.studentName}</p>
+                        <p className="truncate text-xs text-textmuted-light dark:text-textmuted-dark">{alert.message}</p>
+                        <p className="mt-0.5 text-[11px] text-textmuted-light dark:text-textmuted-dark">{relativeTime(alert.timestamp)}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
+            <CardHeader className="pb-3">
+              <CardTitle>Engagement trend</CardTitle>
+              <CardDescription>Average engagement across all classes, last 14 days</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {trendQuery.isLoading ? <Skeleton className="h-[260px]" /> : <EngagementTrendChart data={trendQuery.data ?? []} />}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>Behavior breakdown</CardTitle>
+              <CardDescription>Aggregated cognitive states this week</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {breakdownQuery.isLoading ? <Skeleton className="h-[240px]" /> : <BehaviorPieChart data={breakdownQuery.data ?? []} />}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+      <ScheduleClassModal open={scheduleOpen} onClose={() => setScheduleOpen(false)} />
+    </AppShell>
+  )
+}
+
+
+
+####################################################################################################
+# FILE: pages/student/StudentDashboardPage.tsx
+####################################################################################################
+
+import {
+  CalendarCheck2,
+  ClipboardList,
+  ListChecks,
+  Camera,
+  Mic,
+  Bell,
+  Activity,
+  Smile,
+  Eye,
+  User,
+  Users,
+  Smartphone,
+} from "lucide-react";
+
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+
+import { AppShell } from "@/components/layout/AppShell";
+import { StatCard } from "@/components/dashboard/StatCard";
+import { ClassCard } from "@/components/dashboard/ClassCard";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/Card";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Switch } from "@/components/ui/Switch";
+import { Badge } from "@/components/ui/Badge";
+
+import {
+  classesApi,
+  notificationsApi,
+  testsApi,
+  monitoringApi,
+} from "@/services/api/endpoints";
+
+import { currentStudent } from "@/mocks/data";
+import { relativeTime, formatDateTime } from "@/lib/utils";
+
+export function StudentDashboardPage() {
+  // ------------------------------------------------------------
+  // EXISTING API DATA
+  // ------------------------------------------------------------
+
+  const classesQuery = useQuery({
+  queryKey: ["classes"],
+  queryFn: classesApi.list,
+  refetchOnMount: "always",
+});
+
+  const notificationsQuery = useQuery({
+    queryKey: ["notifications"],
+    queryFn: notificationsApi.list,
+  });
+
+  const testsQuery = useQuery({
+    queryKey: ["tests"],
+    queryFn: testsApi.list,
+  });
+
+  // ------------------------------------------------------------
+  // DEVICE STATE
+  // ------------------------------------------------------------
+
+  const [cameraOn, setCameraOn] = useState(
+    currentStudent.cameraEnabled
+  );
+
+  const [micOn, setMicOn] = useState(
+    currentStudent.micEnabled
+  );
+
+  // ------------------------------------------------------------
+  // REAL AI MONITORING DATA
+  // ------------------------------------------------------------
+
+  const monitoringQuery = useQuery({
+    queryKey: ["live-monitor"],
+    queryFn: monitoringApi.liveStudents,
+    refetchInterval: 1000,
+  });
+
+  /*
+   * Backend response:
+   *
+   * {
+   *   success: true,
+   *   data: [
+   *     {
+   *       studentName,
+   *       currentEmotion,
+   *       currentEngagement,
+   *       blinkCount,
+   *       headPose,
+   *       gaze,
+   *       phoneDetected,
+   *       personCount
+   *     }
+   *   ]
+   * }
+   *
+   * Some API implementations may return the data array directly,
+   * so handle both cases.
+   */
+
+  const monitoring = Array.isArray(monitoringQuery.data)
+  ? monitoringQuery.data[0]
+  : null
+
+  const monitoringStudent = monitoring
+
+  // ------------------------------------------------------------
+  // REAL AI VALUES
+  // ------------------------------------------------------------
+
+  const engagement =
+    monitoringStudent?.currentEngagement ??
+    monitoringStudent?.engagement_score ??
+    monitoringStudent?.engagement ??
+    null;
+
+  const emotion =
+    monitoringStudent?.currentEmotion ??
+    monitoringStudent?.emotion ??
+    null;
+
+  const blinkCount =
+    monitoringStudent?.blinkCount ??
+    monitoringStudent?.blink_count ??
+    null;
+
+  const headPose =
+    monitoringStudent?.headPose ??
+    monitoringStudent?.head_pose ??
+    null;
+
+  const gaze =
+    monitoringStudent?.gaze ??
+    null;
+
+  const personCount =
+    monitoringStudent?.personCount ??
+    monitoringStudent?.person_count ??
+    null;
+
+  const phoneDetected =
+    monitoringStudent?.phoneDetected ??
+    monitoringStudent?.phone_detected ??
+    null;
+
+  // ------------------------------------------------------------
+  // CLASSES
+  // ------------------------------------------------------------
+
+  const upcoming = (classesQuery.data ?? []).filter(
+    (c) => c.status !== "completed"
+  );
+
+  const today = upcoming.slice(0, 4);
+
+  // ------------------------------------------------------------
+  // TESTS
+  // ------------------------------------------------------------
+
+  const pendingTests = (testsQuery.data ?? []).filter(
+    (t) => t.status === "scheduled"
+  );
+
+  // ------------------------------------------------------------
+  // NOTIFICATIONS
+  // ------------------------------------------------------------
+
+  const unreadNotifications = (
+    notificationsQuery.data ?? []
+  ).filter((n) => !n.read);
+
+  // ------------------------------------------------------------
+  // DISPLAY HELPERS
+  // ------------------------------------------------------------
+
+  const displayValue = (
+    value: unknown,
+    fallback = "—"
+  ) => {
+    if (
+      value === null ||
+      value === undefined ||
+      value === ""
+    ) {
+      return fallback;
+    }
+
+    return String(value);
+  };
+
+  return (
+    <AppShell role="student" title="Student Dashboard">
+      <div className="space-y-6">
+
+        {/* ====================================================== */}
+        {/* AI MONITORING STATS                                   */}
+        {/* ====================================================== */}
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+          <StatCard
+  label="Engagement"
+  value={`${monitoring?.currentEngagement ?? monitoring?.engagement_score ?? 0}%`}
+  icon={Activity}
+  tone="engaged"
+/>
+
+<StatCard
+  label="Emotion"
+  value={monitoring?.currentEmotion ?? "Loading..."}
+  icon={Smile}
+  tone="focus"
+/>
+
+<StatCard
+  label="Blink Count"
+  value={String(monitoring?.blinkCount ?? 0)}
+  icon={Eye}
+  tone="attention"
+/>
+
+<StatCard
+  label="Head Pose"
+  value={monitoring?.headPose ?? "Loading..."}
+  icon={User}
+  tone="critical"
+/>
+
+<StatCard
+  label="Persons"
+  value={String(monitoring?.personCount ?? 0)}
+  icon={Users}
+  tone="focus"
+/>
+
+<StatCard
+  label="Phone"
+  value={monitoring?.phoneDetected ? "Detected" : "Not Detected"}
+  icon={Smartphone}
+  tone={monitoring?.phoneDetected ? "critical" : "engaged"}
+/>
+
+<StatCard
+  label="Gaze"
+  value={monitoring?.gaze ?? "Loading..."}
+  icon={Eye}
+  tone="attention"
+/>
+
+        </div>
+
+        {/* ====================================================== */}
+        {/* CLASS / TEST AREA                                     */}
+        {/* ====================================================== */}
+
+        <div className="grid gap-6 lg:grid-cols-3">
+
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* -------------------------------------------------- */}
+            {/* UPCOMING CLASSES                                  */}
+            {/* -------------------------------------------------- */}
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>
+                  Upcoming classes
+                </CardTitle>
+
+                <CardDescription>
+                  Join a live session or view what's scheduled
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="pt-3">
+
+                {classesQuery.isLoading ? (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {Array.from({ length: 4 }).map(
+                      (_, i) => (
+                        <Skeleton
+                          key={i}
+                          className="h-40"
+                        />
+                      )
+                    )}
+                  </div>
+                ) : today.length === 0 ? (
+                  <EmptyState
+                    icon={CalendarCheck2}
+                    title="Nothing scheduled"
+                    description="Your upcoming classes will show up here."
+                  />
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {today.map((c) => (
+                      <ClassCard
+                        key={c.id}
+                        session={c}
+                        role="student"
+                      />
+                    ))}
+                  </div>
+                )}
+
+              </CardContent>
+            </Card>
+
+            {/* -------------------------------------------------- */}
+            {/* TESTS                                              */}
+            {/* -------------------------------------------------- */}
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>
+                  Tests & assignments
+                </CardTitle>
+
+                <CardDescription>
+                  Stay on top of what's due
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="pt-3 space-y-2">
+
+                {(testsQuery.data ?? []).length === 0 ? (
+                  <EmptyState
+                    icon={ListChecks}
+                    title="No tests available"
+                    description="Your scheduled tests will appear here."
+                  />
+                ) : (
+                  (testsQuery.data ?? []).map((t) => (
+                    <div
+                      key={t.id}
+                      className="flex items-center justify-between rounded-lg border border-border-light p-3 dark:border-border-dark"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-text-light dark:text-text-dark">
+                          {t.title}
+                        </p>
+
+                        <p className="text-xs text-textmuted-light dark:text-textmuted-dark">
+                          {t.subject} · {t.durationMinutes} min ·{" "}
+                          {formatDateTime(t.scheduledStart)}
+                        </p>
+                      </div>
+
+                      <Badge
+                        variant={
+                          t.status === "scheduled"
+                            ? "attention"
+                            : t.status === "completed"
+                              ? "engaged"
+                              : "neutral"
+                        }
+                      >
+                        {t.status}
+                      </Badge>
+                    </div>
+                  ))
+                )}
+
+              </CardContent>
+            </Card>
+
+          </div>
+
+          {/* ==================================================== */}
+          {/* RIGHT SIDE                                           */}
+          {/* ==================================================== */}
+
+          <div className="space-y-6">
+
+            {/* -------------------------------------------------- */}
+            {/* DEVICE STATUS                                      */}
+            {/* -------------------------------------------------- */}
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>
+                  Device status
+                </CardTitle>
+
+                <CardDescription>
+                  Controls used during live sessions
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="space-y-4 pt-3">
+
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-sm text-text-light dark:text-text-dark">
+                    <Camera className="h-4 w-4" />
+                    Camera
+                  </span>
+
+                  <Switch
+                    checked={cameraOn}
+                    onChange={setCameraOn}
+                    label="Toggle camera"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-sm text-text-light dark:text-text-dark">
+                    <Mic className="h-4 w-4" />
+                    Microphone
+                  </span>
+
+                  <Switch
+                    checked={micOn}
+                    onChange={setMicOn}
+                    label="Toggle microphone"
+                  />
+                </div>
+
+                <p className="rounded-lg bg-focus-500/5 p-2.5 text-xs text-textmuted-light dark:text-textmuted-dark">
+                  Face authentication is required before joining
+                  any monitored session. Your teacher controls
+                  whether camera use is mandatory for a given class.
+                </p>
+
+              </CardContent>
+            </Card>
+
+            {/* -------------------------------------------------- */}
+            {/* NOTIFICATIONS                                      */}
+            {/* -------------------------------------------------- */}
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>
+                  Notifications
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="pt-3">
+
+                {notificationsQuery.isLoading ? (
+                  <div className="space-y-3">
+                    {Array.from({ length: 3 }).map(
+                      (_, i) => (
+                        <Skeleton
+                          key={i}
+                          className="h-12"
+                        />
+                      )
+                    )}
+                  </div>
+                ) : unreadNotifications.length === 0 ? (
+                  <EmptyState
+                    icon={Bell}
+                    title="No notifications"
+                    description="You have no unread notifications."
+                  />
+                ) : (
+                  <ul className="space-y-1">
+                    {unreadNotifications
+                      .slice(0, 5)
+                      .map((n) => (
+                        <li
+                          key={n.id}
+                          className="rounded-lg px-2 py-2 hover:bg-black/5 dark:hover:bg-white/5"
+                        >
+                          <p className="text-sm font-medium text-text-light dark:text-text-dark">
+                            {n.title}
+                          </p>
+
+                          <p className="text-xs text-textmuted-light dark:text-textmuted-dark">
+                            {relativeTime(n.timestamp)}
+                          </p>
+                        </li>
+                      ))}
+                  </ul>
+                )}
+
+              </CardContent>
+            </Card>
+
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
+
+####################################################################################################
+# FILE: pages/shared/AttendancePage.tsx
+####################################################################################################
+
+import { useQuery } from '@tanstack/react-query'
+import { Download, ClipboardList } from 'lucide-react'
+import { AppShell } from '@/components/layout/AppShell'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { attendanceApi } from '@/services/api/endpoints'
+import { Avatar } from '@/components/ui/Avatar'
+import type { UserRole } from '@/types/domain'
+
+const STATUS_VARIANT = {
+  present: 'engaged',
+  late: 'attention',
+  absent: 'critical',
+  left_early: 'attention',
+} as const
+
+export function AttendancePage({ role }: { role: UserRole }) {
+  const attendanceQuery = useQuery({ queryKey: ['attendance'], queryFn: attendanceApi.list })
+  const records = attendanceQuery.data ?? []
+  const presentCount = records.filter((r) => r.status === 'present').length
+
+  return (
+    <AppShell role={role} title="Attendance">
+      <Card>
+        <CardHeader className="flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+          <div>
+            <CardTitle>Attendance records</CardTitle>
+            <CardDescription>{role === 'teacher' ? 'Machine Learning — Unit 3' : 'Your attendance across all classes'}</CardDescription>
+          </div>
+          <Button variant="outline" size="sm" className="sm:ml-auto"><Download className="h-4 w-4" />Export CSV</Button>
+        </CardHeader>
+        <CardContent className="pt-3">
+          <div className="mb-4 flex flex-wrap gap-3 text-sm">
+            <span className="rounded-full bg-engaged-500/10 px-3 py-1 text-engaged-600 dark:text-engaged-400">{presentCount} present</span>
+            <span className="rounded-full bg-critical-500/10 px-3 py-1 text-critical-600 dark:text-critical-400">{records.filter((r) => r.status === 'absent').length} absent</span>
+            <span className="rounded-full bg-attention-500/10 px-3 py-1 text-attention-600 dark:text-attention-400">{records.filter((r) => r.status === 'late').length} late</span>
+          </div>
+
+          {attendanceQuery.isLoading ? (
+            <div className="space-y-2">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
+          ) : records.length === 0 ? (
+            <EmptyState icon={ClipboardList} title="No attendance yet" description="Records appear once a class session has taken place." />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border-light text-xs text-textmuted-light dark:border-border-dark dark:text-textmuted-dark">
+                    {role === 'teacher' && <th className="pb-2 font-medium">Student</th>}
+                    <th className="pb-2 font-medium">Class</th>
+                    <th className="pb-2 font-medium">Join / Leave</th>
+                    <th className="pb-2 font-medium">Engagement avg.</th>
+                    <th className="pb-2 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {records.map((r) => (
+                    <tr key={r.id} className="border-b border-border-light last:border-0 dark:border-border-dark">
+                      {role === 'teacher' && (
+                        <td className="py-2.5">
+                          <div className="flex items-center gap-2">
+                            <Avatar name={r.studentName} size={26} />
+                            <span className="text-text-light dark:text-text-dark">{r.studentName}</span>
+                          </div>
+                        </td>
+                      )}
+                      <td className="py-2.5 text-textmuted-light dark:text-textmuted-dark">{r.className}</td>
+                      <td className="py-2.5 font-mono text-xs text-textmuted-light dark:text-textmuted-dark">{r.joinTime} – {r.leaveTime}</td>
+                      <td className="py-2.5 text-textmuted-light dark:text-textmuted-dark">{r.engagementAvg}%</td>
+                      <td className="py-2.5"><Badge variant={STATUS_VARIANT[r.status]}>{r.status.replace('_', ' ')}</Badge></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </AppShell>
+  )
+}
+
+
+
+####################################################################################################
+# FILE: types/domain.ts
+####################################################################################################
+
+// ============================================================================
+// Core domain types — the single source of truth for shapes returned by the
+// (future) backend APIs. All mock data and components conform to these.
+// ============================================================================
+
+export type UserRole = 'teacher' | 'student' | 'admin'
+
+export interface User {
+  id: string
+  name: string
+  email: string
+  role: UserRole
+  avatarUrl?: string
+  department?: string
+  createdAt: string
+}
+
+export interface TeacherProfile extends User {
+  role: 'teacher'
+  subjects: string[]
+  totalClasses: number
+}
+
+export interface StudentProfile extends User {
+  role: 'student'
+  rollNumber: string
+  cameraEnabled: boolean
+  micEnabled: boolean
+  faceEnrolled: boolean
+}
+
+// ---------------------------------------------------------------------------
+// Classes / scheduling
+// ---------------------------------------------------------------------------
+
+export type ClassStatus = 'scheduled' | 'live' | 'completed' | 'cancelled'
+
+export interface ClassSession {
+  id: string
+  title: string
+  subject: string
+  teacherId: string
+  teacherName: string
+  scheduledStart: string // ISO
+  scheduledEnd: string // ISO
+  status: ClassStatus
+  studentsEnrolled: number
+  studentsPresent?: number
+  avgEngagement?: number
+  coverColor: string
+  recordingAvailable?: boolean
+}
+
+// ---------------------------------------------------------------------------
+// AI Monitoring
+// ---------------------------------------------------------------------------
+
+export type EmotionLabel =
+  | 'neutral'
+  | 'happy'
+  | 'confused'
+  | 'bored'
+  | 'frustrated'
+  | 'surprised'
+  | 'sad'
+
+export type CognitiveState = 'focused' | 'distracted' | 'drowsy' | 'confused'
+
+export type AlertType =
+  | 'looking_away'
+  | 'drowsiness'
+  | 'phone_detected'
+  | 'multiple_person'
+  | 'face_auth_failed'
+  | 'voice_disturbance'
+  | 'camera_off'
+  | 'attention_drop_predicted'
+  | 'no_face_detected'
+
+export type AlertSeverity = 'info' | 'warning' | 'critical'
+
+export interface AIAlert {
+  id: string
+  studentId: string
+  studentName: string
+  classId: string
+  type: AlertType
+  severity: AlertSeverity
+  message: string
+  timestamp: string
+  confidence: number // 0-1
+  acknowledged: boolean
+}
+
+export interface EngagementSnapshot {
+  studentId: string
+  timestamp: string
+  engagementScore: number // 0-100
+  emotion: EmotionLabel
+  emotionConfidence: number
+  cognitiveState: CognitiveState
+  gazeOnScreen: boolean
+  headPoseDeviation: number // degrees
+  faceAuthenticated: boolean
+  voiceActivity: 'silent' | 'speaking' | 'disturbance'
+  objectFlags: Array<'phone' | 'book' | 'second_person' | 'none'>
+}
+
+export interface EngagementPrediction {
+  studentId: string
+  riskLevel: 'low' | 'medium' | 'high'
+  probability: number
+  predictedForMinute: number
+  generatedAt: string
+}
+
+export interface StudentLiveState {
+  studentId: string
+  studentName: string
+  avatarUrl?: string
+
+  cameraOn: boolean
+  micOn: boolean
+  handRaised: boolean
+
+  currentEngagement: number
+  currentEmotion: EmotionLabel
+  cognitiveState: CognitiveState
+  authenticated: boolean
+  activeAlert?: AlertType
+
+  history: number[]
+
+  // Real AI monitoring values
+  blinkCount?: number
+  headPose?: string
+  gaze?: string
+  phoneDetected?: boolean
+  personCount?: number
+  engagementStatus?: string
+}
+
+// ---------------------------------------------------------------------------
+// Attendance
+// ---------------------------------------------------------------------------
+
+export interface AttendanceRecord {
+  id: string
+  studentId: string
+  studentName: string
+  classId: string
+  className: string
+  date: string
+  status: 'present' | 'absent' | 'late' | 'left_early'
+  joinTime?: string
+  leaveTime?: string
+  engagementAvg?: number
+}
+
+// ---------------------------------------------------------------------------
+// Tests / Assessments
+// ---------------------------------------------------------------------------
+
+export type QuestionType = 'mcq' | 'true_false' | 'short_answer' | 'essay'
+
+export interface TestQuestion {
+  id: string
+  type: QuestionType
+  prompt: string
+  options?: string[]
+  correctOptionIndex?: number
+  marks: number
+}
+
+export interface Test {
+  id: string
+  title: string
+  subject: string
+  classId: string
+  durationMinutes: number
+  totalMarks: number
+  questions: TestQuestion[]
+  scheduledStart: string
+  status: 'draft' | 'scheduled' | 'live' | 'completed'
+  proctoringEnabled: boolean
+}
+
+export interface TestSubmission {
+  id: string
+  testId: string
+  studentId: string
+  studentName: string
+  answers: Record<string, string | number>
+  score?: number
+  submittedAt?: string
+  autoSubmitted: boolean
+  integrityFlags: number
+}
+
+// ---------------------------------------------------------------------------
+// Reports
+// ---------------------------------------------------------------------------
+
+export interface EngagementTrendPoint {
+  label: string
+  avgEngagement: number
+  attendanceRate: number
+}
+
+export interface BehaviorBreakdown {
+  label: string
+  value: number
+  color: string
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+export type NotificationCategory = 'ai_alert' | 'system' | 'class' | 'attendance'
+
+export interface AppNotification {
+  id: string
+  category: NotificationCategory
+  title: string
+  message: string
+  timestamp: string
+  read: boolean
+  severity?: AlertSeverity
+  actionUrl?: string
+}
+
+
+
+####################################################################################################
+# FILE: components/monitoring/AIMonitoringPanel.tsx
+####################################################################################################
+
+import {
+  Eye,
+  EyeOff,
+  Smile,
+  Frown,
+  Meh,
+  ScanFace,
+  Volume2,
+  VolumeX,
+  Phone,
+  Users2,
+  Moon,
+  AlertTriangle,
+  CheckCircle2,
+  Activity,
+  Eye as BlinkIcon,
+} from 'lucide-react'
+
+import { ConfidenceRing } from './ConfidenceRing'
+import { Badge } from '@/components/ui/Badge'
+import type { StudentLiveState } from '@/types/domain'
+import { cn } from '@/lib/utils'
+
+const EMOTION_ICON = {
+  neutral: Meh,
+  happy: Smile,
+  confused: Meh,
+  bored: Frown,
+  frustrated: Frown,
+  surprised: Smile,
+  sad: Frown,
+} as const
+
+function MetricRow({
+  icon: Icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: typeof Eye
+  label: string
+  value: string
+  tone: 'engaged' | 'attention' | 'critical' | 'neutral'
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-lg bg-black/5 px-3 py-2 dark:bg-white/5">
+      <div className="flex min-w-0 items-center gap-2">
+        <Icon className="h-4 w-4 shrink-0 text-textmuted-light dark:text-textmuted-dark" />
+
+        <span className="text-xs text-textmuted-light dark:text-textmuted-dark">
+          {label}
+        </span>
+      </div>
+
+      <Badge variant={tone}>
+        {value}
+      </Badge>
+    </div>
+  )
+}
+
+/**
+ * Detailed AI readout for a single student.
+ *
+ * Uses the REAL AI values coming from:
+ *
+ * /live-monitor
+ *
+ * including:
+ * - emotion
+ * - engagement
+ * - face authentication
+ * - head pose
+ * - gaze
+ * - blink count
+ * - drowsiness
+ * - phone detection
+ * - person count
+ * - voice disturbance
+ */
+export function AIMonitoringPanel({
+  student,
+}: {
+  student: StudentLiveState
+}) {
+  const EmotionIcon =
+    EMOTION_ICON[
+      student.currentEmotion as keyof typeof EMOTION_ICON
+    ] ?? Meh
+
+  const alertActive = Boolean(student.activeAlert)
+
+  // ------------------------------------------------------------
+  // REAL AI VALUES
+  // ------------------------------------------------------------
+
+  const aiStudent = student as StudentLiveState & {
+    blinkCount?: number
+    headPose?: string
+    gaze?: string
+    phoneDetected?: boolean
+    personCount?: number
+    engagementStatus?: string
+  }
+
+  const blinkCount = aiStudent.blinkCount ?? 0
+
+  const headPose =
+    aiStudent.headPose ?? 'Forward'
+
+  const gaze =
+    aiStudent.gaze ?? 'Center'
+
+  const phoneDetected =
+    aiStudent.phoneDetected ?? false
+
+  const personCount =
+    aiStudent.personCount ?? 1
+
+  const engagementStatus =
+    aiStudent.engagementStatus ??
+    (student.currentEngagement >= 70
+      ? 'Focused'
+      : student.currentEngagement >= 40
+        ? 'Drifting'
+        : 'Needs attention')
+
+  const isLookingForward =
+    headPose.toLowerCase().includes('forward')
+
+  const isGazeCenter =
+    gaze.toLowerCase() === 'center'
+
+  const isDrowsy =
+    student.cognitiveState === 'drowsy'
+
+  const multiplePersons =
+    personCount > 1
+
+  return (
+    <div className="flex h-full flex-col gap-3 overflow-y-auto p-3">
+
+      {/* ============================================================
+          HEADER
+      ============================================================ */}
+
+      <div className="flex items-center gap-2">
+        <Activity className="h-4 w-4 text-focus-500" />
+
+        <p className="text-sm font-semibold text-text-light dark:text-text-dark">
+          AI Monitoring — {student.studentName}
+        </p>
+      </div>
+
+      {/* ============================================================
+          ENGAGEMENT SCORE
+      ============================================================ */}
+
+      <div className="flex items-center gap-4 rounded-xl border border-border-light p-4 dark:border-border-dark">
+
+        <ConfidenceRing
+          value={student.currentEngagement}
+          size={72}
+          strokeWidth={7}
+          label="score"
+        />
+
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-text-light dark:text-text-dark">
+            Engagement score
+          </p>
+
+          <p className="text-xs text-textmuted-light dark:text-textmuted-dark">
+            Computed from gaze, emotion, participation, and distraction penalty
+          </p>
+
+          <div className="mt-2">
+            <Badge
+              variant={
+                student.currentEngagement >= 70
+                  ? 'engaged'
+                  : student.currentEngagement >= 40
+                    ? 'attention'
+                    : 'critical'
+              }
+            >
+              {engagementStatus}
+            </Badge>
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================================
+          REAL AI METRICS
+      ============================================================ */}
+
+      <div className="grid grid-cols-2 gap-2">
+
+        {/* Emotion */}
+        <MetricRow
+          icon={EmotionIcon}
+          label="Emotion"
+          value={student.currentEmotion}
+          tone={
+            student.currentEmotion === 'happy' ||
+            student.currentEmotion === 'neutral'
+              ? 'engaged'
+              : 'attention'
+          }
+        />
+
+        {/* Face authentication */}
+        <MetricRow
+          icon={
+            student.authenticated
+              ? CheckCircle2
+              : AlertTriangle
+          }
+          label="Face auth"
+          value={
+            student.authenticated
+              ? 'Verified'
+              : 'Failed'
+          }
+          tone={
+            student.authenticated
+              ? 'engaged'
+              : 'critical'
+          }
+        />
+
+        {/* Head pose */}
+        <MetricRow
+          icon={
+            isLookingForward
+              ? Eye
+              : EyeOff
+          }
+          label="Head pose"
+          value={headPose}
+          tone={
+            isLookingForward
+              ? 'engaged'
+              : 'attention'
+          }
+        />
+
+        {/* Gaze */}
+        <MetricRow
+          icon={
+            isGazeCenter
+              ? Eye
+              : EyeOff
+          }
+          label="Gaze"
+          value={gaze}
+          tone={
+            isGazeCenter
+              ? 'engaged'
+              : 'attention'
+          }
+        />
+
+        {/* Sleeping / drowsiness */}
+        <MetricRow
+          icon={Moon}
+          label="Sleeping"
+          value={
+            isDrowsy
+              ? 'Detected'
+              : 'No'
+          }
+          tone={
+            isDrowsy
+              ? 'critical'
+              : 'engaged'
+          }
+        />
+
+        {/* Phone */}
+        <MetricRow
+          icon={Phone}
+          label="Phone detected"
+          value={
+            phoneDetected
+              ? 'Yes'
+              : 'No'
+          }
+          tone={
+            phoneDetected
+              ? 'critical'
+              : 'engaged'
+          }
+        />
+
+        {/* Person count */}
+        <MetricRow
+          icon={Users2}
+          label="Persons"
+          value={String(personCount)}
+          tone={
+            multiplePersons
+              ? 'critical'
+              : 'engaged'
+          }
+        />
+
+        {/* Blink count */}
+        <MetricRow
+          icon={BlinkIcon}
+          label="Blink count"
+          value={String(blinkCount)}
+          tone="neutral"
+        />
+
+        {/* Voice */}
+        <MetricRow
+          icon={
+            student.micOn
+              ? Volume2
+              : VolumeX
+          }
+          label="Voice disturbance"
+          value={
+            student.activeAlert ===
+            'voice_disturbance'
+              ? 'Detected'
+              : 'Clear'
+          }
+          tone={
+            student.activeAlert ===
+            'voice_disturbance'
+              ? 'attention'
+              : 'engaged'
+          }
+        />
+      </div>
+
+      {/* ============================================================
+          ENGAGEMENT TIMELINE
+      ============================================================ */}
+
+      <div className="rounded-xl border border-border-light p-3 dark:border-border-dark">
+
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-textmuted-light dark:text-textmuted-dark">
+          Engagement timeline
+        </p>
+
+        <div className="flex h-16 items-end gap-1">
+
+          {student.history.map((value, index) => (
+            <div
+              key={index}
+              className={cn(
+                'flex-1 rounded-t',
+                value >= 70
+                  ? 'bg-engaged-500'
+                  : value >= 40
+                    ? 'bg-attention-500'
+                    : 'bg-critical-500',
+              )}
+              style={{
+                height: `${Math.max(8, value)}%`,
+              }}
+            />
+          ))}
+
+        </div>
+
+        <div className="mt-1 flex justify-between text-[10px] text-textmuted-light dark:text-textmuted-dark">
+          <span>12 min ago</span>
+          <span>now</span>
+        </div>
+      </div>
+
+      {/* ============================================================
+          ACTIVE ALERT
+      ============================================================ */}
+
+      {alertActive && (
+        <div className="flex items-start gap-2 rounded-xl border border-critical-500/30 bg-critical-500/5 p-3">
+
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-critical-500" />
+
+          <div>
+
+            <p className="text-sm font-medium text-critical-600 dark:text-critical-400">
+              Active alert:{' '}
+              {student.activeAlert?.replaceAll(
+                '_',
+                ' ',
+              )}
+            </p>
+
+            <p className="text-xs text-textmuted-light dark:text-textmuted-dark">
+              Active backend alert · flagged just now
+            </p>
+
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================
+          AI STATUS SUMMARY
+      ============================================================ */}
+
+      <div className="rounded-xl border border-border-light bg-focus-500/5 p-3 dark:border-border-dark">
+
+        <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-focus-600 dark:text-focus-400">
+          <ScanFace className="h-3.5 w-3.5" />
+
+          Real-time AI status
+        </p>
+
+        <div className="grid grid-cols-2 gap-2 text-xs">
+
+          <div>
+            <span className="text-textmuted-light dark:text-textmuted-dark">
+              Emotion
+            </span>
+
+            <p className="font-medium capitalize text-text-light dark:text-text-dark">
+              {student.currentEmotion}
+            </p>
+          </div>
+
+          <div>
+            <span className="text-textmuted-light dark:text-textmuted-dark">
+              Engagement
+            </span>
+
+            <p className="font-medium text-text-light dark:text-text-dark">
+              {student.currentEngagement}%
+            </p>
+          </div>
+
+          <div>
+            <span className="text-textmuted-light dark:text-textmuted-dark">
+              Head
+            </span>
+
+            <p className="font-medium text-text-light dark:text-text-dark">
+              {headPose}
+            </p>
+          </div>
+
+          <div>
+            <span className="text-textmuted-light dark:text-textmuted-dark">
+              Gaze
+            </span>
+
+            <p className="font-medium text-text-light dark:text-text-dark">
+              {gaze}
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      {/* ============================================================
+          LSTM PREDICTION
+      ============================================================ */}
+
+      <div className="rounded-xl bg-focus-500/5 p-3 text-xs text-textmuted-light dark:text-textmuted-dark">
+
+        <p className="mb-1 flex items-center gap-1.5 font-medium text-focus-600 dark:text-focus-400">
+          <ScanFace className="h-3.5 w-3.5" />
+
+          LSTM prediction
+        </p>
+
+        Attention drop probability in the next 5 minutes:{' '}
+
+        <strong className="text-text-light dark:text-text-dark">
+          {student.currentEngagement < 50
+            ? 'High (68%)'
+            : student.currentEngagement < 70
+              ? 'Medium (34%)'
+              : 'Low (9%)'}
+        </strong>
+
+      </div>
+
+    </div>
+  )
+}
+

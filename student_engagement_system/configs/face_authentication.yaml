@@ -1,0 +1,24 @@
+embedding_model: Facenet512
+similarity_threshold: 0.68
+camera_index: 0
+registration:
+  num_images: 10
+  max_attempts_per_image: 30
+  image_size:
+  - 224
+  - 224
+quality_thresholds:
+  min_blur_score: 60.0
+  brightness_range:
+  - 40.0
+  - 220.0
+  min_face_size:
+  - 60
+  - 60
+detection:
+  min_confidence: 0.6
+  model_selection: 1
+attendance:
+  prevent_duplicate_same_day: true
+  csv_filename: attendance.csv
+  mongo_collection: attendance

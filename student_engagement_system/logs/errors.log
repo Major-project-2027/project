@@ -1,0 +1,234 @@
+2026-07-09 13:16:23.358 | ERROR    | __main__:<module>:19 - Deliberate sample exception for errors.log demonstration.
+Traceback (most recent call last):
+
+  File "C:\Users\disha\anaconda3\Lib\runpy.py", line 198, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+           │         │     └ {'__name__': '__main__', '__doc__': 'Entry point for launching an IPython kernel.\n\nThis is separate from the ipykernel pack...
+           │         └ <code object <module> at 0x000001D604DADCE0, file "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel_launcher.py", line 1>
+           └ <function _run_code at 0x000001D6068EBF60>
+  File "C:\Users\disha\anaconda3\Lib\runpy.py", line 88, in _run_code
+    exec(code, run_globals)
+         │     └ {'__name__': '__main__', '__doc__': 'Entry point for launching an IPython kernel.\n\nThis is separate from the ipykernel pack...
+         └ <code object <module> at 0x000001D604DADCE0, file "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel_launcher.py", line 1>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel_launcher.py", line 18, in <module>
+    app.launch_new_instance()
+    │   └ <bound method Application.launch_instance of <class 'ipykernel.kernelapp.IPKernelApp'>>
+    └ <module 'ipykernel.kernelapp' from 'C:\\Users\\disha\\anaconda3\\Lib\\site-packages\\ipykernel\\kernelapp.py'>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\traitlets\config\application.py", line 1075, in launch_instance
+    app.start()
+    │   └ <function IPKernelApp.start at 0x000001D6097E8900>
+    └ <ipykernel.kernelapp.IPKernelApp object at 0x000001D6096E7770>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelapp.py", line 739, in start
+    self.io_loop.start()
+    │    │       └ <function BaseAsyncIOLoop.start at 0x000001D6097E9800>
+    │    └ <tornado.platform.asyncio.AsyncIOMainLoop object at 0x000001D6097F9FD0>
+    └ <ipykernel.kernelapp.IPKernelApp object at 0x000001D6096E7770>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\tornado\platform\asyncio.py", line 211, in start
+    self.asyncio_loop.run_forever()
+    │    │            └ <function BaseEventLoop.run_forever at 0x000001D6076051C0>
+    │    └ <_WindowsSelectorEventLoop running=True closed=False debug=False>
+    └ <tornado.platform.asyncio.AsyncIOMainLoop object at 0x000001D6097F9FD0>
+  File "C:\Users\disha\anaconda3\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0x000001D607606FC0>
+    └ <_WindowsSelectorEventLoop running=True closed=False debug=False>
+  File "C:\Users\disha\anaconda3\Lib\asyncio\base_events.py", line 2050, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0x000001D60759CCC0>
+    └ <Handle Task.task_wakeup()>
+  File "C:\Users\disha\anaconda3\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle Task.task_wakeup()>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle Task.task_wakeup()>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle Task.task_wakeup()>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 519, in dispatch_queue
+    await self.process_one()
+          │    └ <function Kernel.process_one at 0x000001D6097ACE00>
+          └ <ipykernel.ipkernel.IPythonKernel object at 0x000001D6097FA120>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 508, in process_one
+    await dispatch(*args)
+          │         └ ([<zmq.Frame(b'a877edfb-383'...36B)>, <zmq.Frame(b'<IDS|MSG>')>, <zmq.Frame(b'4cd11014e5bf'...64B)>, <zmq.Frame(b'{"date":"20...
+          └ <bound method Kernel.dispatch_shell of <ipykernel.ipkernel.IPythonKernel object at 0x000001D6097FA120>>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 400, in dispatch_shell
+    await result
+          └ <coroutine object IPythonKernel.execute_request at 0x000001D60D80FC40>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\ipkernel.py", line 368, in execute_request
+    await super().execute_request(stream, ident, parent)
+                                  │       │      └ {'header': {'date': datetime.datetime(2026, 7, 9, 7, 44, 46, 951000, tzinfo=tzutc()), 'msg_id': 'f0d2a24d-a358-46c6-bc8c-6fb3...
+                                  │       └ [b'a877edfb-383c-432d-bed9-eb3adc491bbb']
+                                  └ <zmq.eventloop.zmqstream.ZMQStream object at 0x000001D6097C20D0>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 767, in execute_request
+    reply_content = await reply_content
+                          └ <coroutine object IPythonKernel.do_execute at 0x000001D6097AB240>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\ipkernel.py", line 455, in do_execute
+    res = shell.run_cell(
+          │     └ <function ZMQInteractiveShell.run_cell at 0x000001D6097E1440>
+          └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000001D60AA6FA10>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\zmqshell.py", line 602, in run_cell
+    return super().run_cell(*args, **kwargs)
+                             │       └ {'store_history': True, 'silent': False, 'cell_id': '84e3bab8'}
+                             └ ('"""\nSection 6.2 -- Exercise the logging system: import it, log to each\nstream, and confirm the four log files are created...
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3116, in run_cell
+    result = self._run_cell(
+             │    └ <function InteractiveShell._run_cell at 0x000001D608ADA340>
+             └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000001D60AA6FA10>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3171, in _run_cell
+    result = runner(coro)
+             │      └ <coroutine object InteractiveShell.run_cell_async at 0x000001D61A4ABE00>
+             └ <function _pseudo_sync_runner at 0x000001D608AC8B80>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\async_helpers.py", line 128, in _pseudo_sync_runner
+    coro.send(None)
+    │    └ <method 'send' of 'coroutine' objects>
+    └ <coroutine object InteractiveShell.run_cell_async at 0x000001D61A4ABE00>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3394, in run_cell_async
+    has_raised = await self.run_ast_nodes(code_ast.body, cell_name,
+                       │    │             │        │     └ 'C:\\Users\\disha\\AppData\\Local\\Temp\\ipykernel_26336\\4275789091.py'
+                       │    │             │        └ [<ast.Expr object at 0x000001D624C15FD0>, <ast.Import object at 0x000001D624C15690>, <ast.Expr object at 0x000001D624C16950>,...
+                       │    │             └ <ast.Module object at 0x000001D624C16B10>
+                       │    └ <function InteractiveShell.run_ast_nodes at 0x000001D608ADA700>
+                       └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000001D60AA6FA10>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3639, in run_ast_nodes
+    if await self.run_code(code, result, async_=asy):
+             │    │        │     │              └ False
+             │    │        │     └ <ExecutionResult object at 1d60d8b1c80, execution_count=12 error_before_exec=None error_in_exec=None info=<ExecutionInfo obje...
+             │    │        └ <code object <module> at 0x000001D624B93BD0, file "C:\Users\disha\AppData\Local\Temp\ipykernel_26336\4275789091.py", line 1>
+             │    └ <function InteractiveShell.run_code at 0x000001D608ADA7A0>
+             └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000001D60AA6FA10>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3699, in run_code
+    exec(code_obj, self.user_global_ns, self.user_ns)
+         │         │    │               │    └ <property object at 0x000001D608AC5620>
+         │         │    │               └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000001D60AA6FA10>
+         │         │    └ <property object at 0x000001D608AC5670>
+         │         └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000001D60AA6FA10>
+         └ <code object <module> at 0x000001D624B93BD0, file "C:\Users\disha\AppData\Local\Temp\ipykernel_26336\4275789091.py", line 1>
+
+> File "C:\Users\disha\AppData\Local\Temp\ipykernel_26336\4275789091.py", line 17, in <module>
+    1 / 0
+
+ZeroDivisionError: division by zero
+2026-07-15 09:56:01.230 | ERROR    | __main__:<module>:28 - Sample Phase 2 error for errors.log verification.
+Traceback (most recent call last):
+
+  File "C:\Users\disha\anaconda3\Lib\runpy.py", line 198, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+           │         │     └ {'__name__': '__main__', '__doc__': 'Entry point for launching an IPython kernel.\n\nThis is separate from the ipykernel pack...
+           │         └ <code object <module> at 0x000002BCB9B2DCE0, file "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel_launcher.py", line 1>
+           └ <function _run_code at 0x000002BCBB82BF60>
+  File "C:\Users\disha\anaconda3\Lib\runpy.py", line 88, in _run_code
+    exec(code, run_globals)
+         │     └ {'__name__': '__main__', '__doc__': 'Entry point for launching an IPython kernel.\n\nThis is separate from the ipykernel pack...
+         └ <code object <module> at 0x000002BCB9B2DCE0, file "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel_launcher.py", line 1>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel_launcher.py", line 18, in <module>
+    app.launch_new_instance()
+    │   └ <bound method Application.launch_instance of <class 'ipykernel.kernelapp.IPKernelApp'>>
+    └ <module 'ipykernel.kernelapp' from 'C:\\Users\\disha\\anaconda3\\Lib\\site-packages\\ipykernel\\kernelapp.py'>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\traitlets\config\application.py", line 1075, in launch_instance
+    app.start()
+    │   └ <function IPKernelApp.start at 0x000002BCBE788900>
+    └ <ipykernel.kernelapp.IPKernelApp object at 0x000002BCBE687770>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelapp.py", line 739, in start
+    self.io_loop.start()
+    │    │       └ <function BaseAsyncIOLoop.start at 0x000002BCBE789800>
+    │    └ <tornado.platform.asyncio.AsyncIOMainLoop object at 0x000002BCBE799FD0>
+    └ <ipykernel.kernelapp.IPKernelApp object at 0x000002BCBE687770>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\tornado\platform\asyncio.py", line 211, in start
+    self.asyncio_loop.run_forever()
+    │    │            └ <function BaseEventLoop.run_forever at 0x000002BCBC5951C0>
+    │    └ <_WindowsSelectorEventLoop running=True closed=False debug=False>
+    └ <tornado.platform.asyncio.AsyncIOMainLoop object at 0x000002BCBE799FD0>
+  File "C:\Users\disha\anaconda3\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0x000002BCBC596FC0>
+    └ <_WindowsSelectorEventLoop running=True closed=False debug=False>
+  File "C:\Users\disha\anaconda3\Lib\asyncio\base_events.py", line 2050, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0x000002BCBC52CCC0>
+    └ <Handle Task.task_wakeup()>
+  File "C:\Users\disha\anaconda3\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle Task.task_wakeup()>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle Task.task_wakeup()>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle Task.task_wakeup()>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 519, in dispatch_queue
+    await self.process_one()
+          │    └ <function Kernel.process_one at 0x000002BCBE74CE00>
+          └ <ipykernel.ipkernel.IPythonKernel object at 0x000002BCBE79A120>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 508, in process_one
+    await dispatch(*args)
+          │         └ ([<zmq.Frame(b'9554d7d5-3e5'...36B)>, <zmq.Frame(b'<IDS|MSG>')>, <zmq.Frame(b'b670c1641d0c'...64B)>, <zmq.Frame(b'{"date":"20...
+          └ <bound method Kernel.dispatch_shell of <ipykernel.ipkernel.IPythonKernel object at 0x000002BCBE79A120>>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 400, in dispatch_shell
+    await result
+          └ <coroutine object IPythonKernel.execute_request at 0x000002BCD0575640>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\ipkernel.py", line 368, in execute_request
+    await super().execute_request(stream, ident, parent)
+                                  │       │      └ {'header': {'date': datetime.datetime(2026, 7, 15, 4, 26, 1, 199000, tzinfo=tzutc()), 'msg_id': '538e718b-77f5-4524-9a64-58b3...
+                                  │       └ [b'9554d7d5-3e56-4006-a44f-37e061bdc0a2']
+                                  └ <zmq.eventloop.zmqstream.ZMQStream object at 0x000002BCBE7620D0>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 767, in execute_request
+    reply_content = await reply_content
+                          └ <coroutine object IPythonKernel.do_execute at 0x000002BCC2939170>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\ipkernel.py", line 455, in do_execute
+    res = shell.run_cell(
+          │     └ <function ZMQInteractiveShell.run_cell at 0x000002BCBE781440>
+          └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000002BCBFA0FA10>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\zmqshell.py", line 602, in run_cell
+    return super().run_cell(*args, **kwargs)
+                             │       └ {'store_history': True, 'silent': False, 'cell_id': '365440fb'}
+                             └ ('"""\nSection 12 -- Confirm Phase 2 module log lines land in Phase 1\\\'s\nexisting log files, and log a Phase-2-specific pe...
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3116, in run_cell
+    result = self._run_cell(
+             │    └ <function InteractiveShell._run_cell at 0x000002BCBDA6A340>
+             └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000002BCBFA0FA10>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3171, in _run_cell
+    result = runner(coro)
+             │      └ <coroutine object InteractiveShell.run_cell_async at 0x000002BCBFA06400>
+             └ <function _pseudo_sync_runner at 0x000002BCBDA58B80>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\async_helpers.py", line 128, in _pseudo_sync_runner
+    coro.send(None)
+    │    └ <method 'send' of 'coroutine' objects>
+    └ <coroutine object InteractiveShell.run_cell_async at 0x000002BCBFA06400>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3394, in run_cell_async
+    has_raised = await self.run_ast_nodes(code_ast.body, cell_name,
+                       │    │             │        │     └ 'C:\\Users\\disha\\AppData\\Local\\Temp\\ipykernel_16436\\3536711378.py'
+                       │    │             │        └ [<ast.Expr object at 0x000002BCDFF99E10>, <ast.Import object at 0x000002BCDFF98C50>, <ast.ImportFrom object at 0x000002BCDFF9...
+                       │    │             └ <ast.Module object at 0x000002BCDFF9A210>
+                       │    └ <function InteractiveShell.run_ast_nodes at 0x000002BCBDA6A700>
+                       └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000002BCBFA0FA10>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3639, in run_ast_nodes
+    if await self.run_code(code, result, async_=asy):
+             │    │        │     │              └ False
+             │    │        │     └ <ExecutionResult object at 2bcdff57c50, execution_count=25 error_before_exec=None error_in_exec=None info=<ExecutionInfo obje...
+             │    │        └ <code object <module> at 0x000002BCE8212550, file "C:\Users\disha\AppData\Local\Temp\ipykernel_16436\3536711378.py", line 1>
+             │    └ <function InteractiveShell.run_code at 0x000002BCBDA6A7A0>
+             └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000002BCBFA0FA10>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3699, in run_code
+    exec(code_obj, self.user_global_ns, self.user_ns)
+         │         │    │               │    └ <property object at 0x000002BCBDA55940>
+         │         │    │               └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000002BCBFA0FA10>
+         │         │    └ <property object at 0x000002BCBDA55990>
+         │         └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000002BCBFA0FA10>
+         └ <code object <module> at 0x000002BCE8212550, file "C:\Users\disha\AppData\Local\Temp\ipykernel_16436\3536711378.py", line 1>
+
+> File "C:\Users\disha\AppData\Local\Temp\ipykernel_16436\3536711378.py", line 26, in <module>
+    raise ValueError("Deliberate sample error to confirm errors.log receives Phase 2 events too.")
+
+ValueError: Deliberate sample error to confirm errors.log receives Phase 2 events too.
+2026-07-17 09:15:23.145 | ERROR    | models.engagement_prediction.engagement_predictor:_get_config:210 - Failed to load engagement_prediction.yaml (Config file not found: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\engagement_prediction.yaml); using built-in defaults.
+2026-07-17 09:15:23.149 | ERROR    | models.engagement_prediction.engagement_predictor:predict_safe:356 - Engagement prediction degraded gracefully: Expected an EngagementPredictionInput, got <class 'str'>.
+2026-07-17 09:16:58.683 | ERROR    | models.engagement_prediction.engagement_predictor:_get_config:210 - Failed to load engagement_prediction.yaml (Config file not found: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\engagement_prediction.yaml); using built-in defaults.
+2026-07-17 09:22:27.790 | ERROR    | models.engagement_prediction.engagement_predictor:predict_safe:356 - Engagement prediction degraded gracefully: Expected an EngagementPredictionInput, got <class 'str'>.
+2026-07-18 00:34:06.033 | ERROR    | models.cognitive_monitoring.cognitive_monitor:_get_config:204 - Failed to load cognitive_monitoring.yaml (Config file not found: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml); using built-in defaults.
+2026-07-18 00:34:06.041 | ERROR    | models.cognitive_monitoring.cognitive_monitor:predict_safe:373 - Cognitive prediction degraded gracefully: Expected a CognitiveMonitoringInput, got <class 'str'>.
+2026-07-18 00:36:13.965 | ERROR    | models.cognitive_monitoring.cognitive_monitor:_get_config:204 - Failed to load cognitive_monitoring.yaml (Config file not found: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml); using built-in defaults.
+2026-07-18 00:36:14.022 | ERROR    | models.cognitive_monitoring.cognitive_monitor:predict_safe:373 - Cognitive prediction degraded gracefully: Expected a CognitiveMonitoringInput, got <class 'dict'>.
+2026-07-18 00:37:10.628 | ERROR    | models.cognitive_monitoring.cognitive_monitor:predict_safe:373 - Cognitive prediction degraded gracefully: Expected a CognitiveMonitoringInput, got <class 'str'>.
+2026-07-18 00:37:30.952 | ERROR    | models.cognitive_monitoring.cognitive_monitor:predict_safe:373 - Cognitive prediction degraded gracefully: Expected a CognitiveMonitoringInput, got <class 'str'>.
+2026-07-18 00:40:18.354 | ERROR    | models.cognitive_monitoring.cognitive_monitor:predict_safe:373 - Cognitive prediction degraded gracefully: Expected a CognitiveMonitoringInput, got <class 'str'>.
+2026-07-18 00:40:18.404 | ERROR    | models.cognitive_monitoring.cognitive_monitor:predict_safe:373 - Cognitive prediction degraded gracefully: Expected a CognitiveMonitoringInput, got <class 'dict'>.

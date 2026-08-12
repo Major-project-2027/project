@@ -1,0 +1,24 @@
+model:
+  name: yolov11
+  weights: yolo11n.pt
+  framework: ultralytics
+thresholds:
+  confidence_threshold: 0.6
+  iou_threshold: 0.45
+target_classes:
+  required:
+  - person
+  - cell phone
+  optional:
+  - laptop
+  - book
+  - mouse
+  - keyboard
+  - monitor
+smoothing:
+  window_size: 5
+  min_true_ratio: 0.6
+quality_thresholds:
+  min_frame_width: 32
+  min_frame_height: 32
+device: cpu

@@ -1,0 +1,9 @@
+level: INFO
+rotation: 10 MB
+retention: 14 days
+compression: zip
+log_files:
+  application: logs/application.log
+  errors: logs/errors.log
+  training: logs/training.log
+  predictions: logs/predictions.log

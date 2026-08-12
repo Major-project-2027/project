@@ -1,0 +1,11 @@
+project_root: .
+datasets:
+  raw: datasets/raw
+  processed: datasets/processed
+  splits: datasets/splits
+models: models
+weights: weights
+logs: logs
+outputs:
+  reports: outputs/reports
+  figures: outputs/figures

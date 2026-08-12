@@ -1,0 +1,8 @@
+low_engagement_threshold: 40
+attention_drop_prediction_threshold: 40
+consecutive_low_frames_before_alert: 15
+phone_detection_triggers_alert: true
+multiple_person_triggers_alert: true
+notification_channels:
+- dashboard
+- email

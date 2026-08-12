@@ -1,0 +1,209 @@
+[
+  {
+    "name": "FER-2013",
+    "purpose": "Facial emotion recognition training",
+    "download_source": "https://www.kaggle.com/datasets/msambare/fer2013",
+    "folder": "datasets/raw/fer2013",
+    "expected_structure": "train/<emotion>/*.jpg, test/<emotion>/*.jpg",
+    "split": [
+      0.8,
+      0.1,
+      0.1
+    ],
+    "image_size": [
+      64,
+      64
+    ],
+    "preprocessing": [
+      "grayscale_to_rgb",
+      "face_crop_verification",
+      "resize"
+    ],
+    "normalization": "pixel / 255.0 (0-1 scaling)",
+    "augmentation": [
+      "horizontal_flip",
+      "rotation_10deg",
+      "brightness_jitter",
+      "zoom_10pct"
+    ]
+  },
+  {
+    "name": "CK+",
+    "purpose": "Higher-quality emotion label augmentation for FER-2013",
+    "download_source": "https://www.kaggle.com/datasets/shawon10/ckplus",
+    "folder": "datasets/raw/ckplus",
+    "expected_structure": "<emotion>/*.png (peak-expression frames only)",
+    "split": [
+      0.8,
+      0.1,
+      0.1
+    ],
+    "image_size": [
+      64,
+      64
+    ],
+    "preprocessing": [
+      "face_crop",
+      "grayscale_to_rgb",
+      "resize"
+    ],
+    "normalization": "pixel / 255.0 (0-1 scaling)",
+    "augmentation": [
+      "horizontal_flip",
+      "rotation_10deg"
+    ]
+  },
+  {
+    "name": "Custom Enrolled-Student Faces",
+    "purpose": "Per-student face embeddings for authentication",
+    "download_source": "Captured live via webcam during Phase 2 enrollment flow",
+    "folder": "datasets/raw/enrolled_faces/<student_id>",
+    "expected_structure": "<student_id>/img_0001.jpg ... img_00NN.jpg (5-10 images/student)",
+    "split": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "image_size": [
+      224,
+      224
+    ],
+    "preprocessing": [
+      "face_detection_crop",
+      "alignment_by_eye_landmarks",
+      "resize"
+    ],
+    "normalization": "model-specific (FaceNet: [-1, 1] scaling)",
+    "augmentation": [
+      "none -- enrollment images must be authentic, unaugmented"
+    ]
+  },
+  {
+    "name": "MPIIGaze",
+    "purpose": "Gaze-direction estimation reference / fine-tuning",
+    "download_source": "https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/research/gaze-based-human-computer-interaction/appearance-based-gaze-estimation-in-the-wild",
+    "folder": "datasets/raw/mpiigaze",
+    "expected_structure": "Data/Original/pXX/dayXX/*.jpg + annotation.txt",
+    "split": [
+      0.7,
+      0.15,
+      0.15
+    ],
+    "image_size": [
+      60,
+      36
+    ],
+    "preprocessing": [
+      "eye_region_crop",
+      "grayscale",
+      "histogram_equalization"
+    ],
+    "normalization": "pixel / 255.0 (0-1 scaling)",
+    "augmentation": [
+      "brightness_jitter",
+      "gaussian_noise"
+    ]
+  },
+  {
+    "name": "300W-LP / AFLW2000",
+    "purpose": "Head-pose landmark reference for PnP calibration validation",
+    "download_source": "http://www.cbsr.ia.ac.cn/users/xiangyuzhu/projects/3DDFA/main.htm",
+    "folder": "datasets/raw/head_pose_300w_lp",
+    "expected_structure": "<subset>/*.jpg + *.mat (68 landmark points, pose angles)",
+    "split": [
+      0.8,
+      0.1,
+      0.1
+    ],
+    "image_size": [
+      224,
+      224
+    ],
+    "preprocessing": [
+      "face_crop",
+      "landmark_extraction",
+      "resize"
+    ],
+    "normalization": "pixel / 255.0 (0-1 scaling)",
+    "augmentation": [
+      "rotation_5deg",
+      "horizontal_flip_with_landmark_remap"
+    ]
+  },
+  {
+    "name": "COCO (person, cell phone)",
+    "purpose": "Pretrained YOLOv8 already covers these classes -- used only for validation",
+    "download_source": "auto-downloaded by ultralytics on first YOLO(...) instantiation",
+    "folder": "datasets/raw/coco_subset",
+    "expected_structure": "images/*.jpg, labels/*.txt (YOLO format)",
+    "split": [
+      0.8,
+      0.1,
+      0.1
+    ],
+    "image_size": [
+      640,
+      640
+    ],
+    "preprocessing": [
+      "letterbox_resize"
+    ],
+    "normalization": "pixel / 255.0 (0-1 scaling)",
+    "augmentation": [
+      "mosaic",
+      "hsv_jitter",
+      "horizontal_flip"
+    ]
+  },
+  {
+    "name": "Custom Classroom Distraction Set",
+    "purpose": "Optional YOLOv8 fine-tuning on classroom-specific phone/person imagery",
+    "download_source": "To be collected by the project team (own webcam captures)",
+    "folder": "datasets/raw/classroom_distraction",
+    "expected_structure": "images/*.jpg, labels/*.txt (YOLO format: phone=0, person=1)",
+    "split": [
+      0.75,
+      0.15,
+      0.1
+    ],
+    "image_size": [
+      640,
+      640
+    ],
+    "preprocessing": [
+      "letterbox_resize",
+      "manual_bbox_annotation"
+    ],
+    "normalization": "pixel / 255.0 (0-1 scaling)",
+    "augmentation": [
+      "mosaic",
+      "random_crop",
+      "hsv_jitter"
+    ]
+  },
+  {
+    "name": "Synthetic Engagement Time-Series",
+    "purpose": "Bootstraps LSTM attention-drop predictor before real session data accumulates",
+    "download_source": "Generated programmatically (numpy random-walk generator, Phase 6)",
+    "folder": "datasets/processed/synthetic_engagement",
+    "expected_structure": "session_<id>.csv with columns [timestamp, engagement_score]",
+    "split": [
+      0.7,
+      0.15,
+      0.15
+    ],
+    "image_size": [
+      0,
+      0
+    ],
+    "preprocessing": [
+      "resampling_to_1hz",
+      "missing_value_interpolation"
+    ],
+    "normalization": "min-max scaling to [0, 1] per session",
+    "augmentation": [
+      "jitter_noise",
+      "time_warping"
+    ]
+  }
+]

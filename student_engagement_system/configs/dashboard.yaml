@@ -1,0 +1,31 @@
+# Phase 8 -- Dashboard & Analytics configuration.
+# Loaded by models/dashboard_analytics/analytics_store.py via
+# utils.common.load_yaml_config(). Purely additive: nothing here is read
+# by Phases 1-7.
+
+retention_days: 90
+
+default_range: today          # today | week | month | all
+timeline_bucket_minutes: 60
+
+alert_thresholds:
+  low_attention: 40.0
+  high_distraction: 50.0
+  fatigue: 60.0
+
+theme:
+  default_mode: dark          # dark | light
+  accent_color: "#6d8bff"
+
+polling:
+  dashboard_home_ms: 8000
+  analytics_ms: 15000
+
+pagination:
+  students_page_size: 25
+  alerts_page_size: 50
+
+logging:
+  enabled: true
+  log_file: logs/dashboard_analytics.log
+  level: INFO

@@ -1,0 +1,579 @@
+2026-07-09 13:16:23.352 | INFO     | __main__:<module>:14 - Phase 1 foundation notebook started.
+2026-07-09 13:16:23.354 | WARNING  | __main__:<module>:15 - This is a sample warning to demonstrate log levels.
+2026-07-09 13:16:23.358 | ERROR    | __main__:<module>:19 - Deliberate sample exception for errors.log demonstration.
+Traceback (most recent call last):
+
+  File "C:\Users\disha\anaconda3\Lib\runpy.py", line 198, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+           │         │     └ {'__name__': '__main__', '__doc__': 'Entry point for launching an IPython kernel.\n\nThis is separate from the ipykernel pack...
+           │         └ <code object <module> at 0x000001D604DADCE0, file "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel_launcher.py", line 1>
+           └ <function _run_code at 0x000001D6068EBF60>
+  File "C:\Users\disha\anaconda3\Lib\runpy.py", line 88, in _run_code
+    exec(code, run_globals)
+         │     └ {'__name__': '__main__', '__doc__': 'Entry point for launching an IPython kernel.\n\nThis is separate from the ipykernel pack...
+         └ <code object <module> at 0x000001D604DADCE0, file "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel_launcher.py", line 1>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel_launcher.py", line 18, in <module>
+    app.launch_new_instance()
+    │   └ <bound method Application.launch_instance of <class 'ipykernel.kernelapp.IPKernelApp'>>
+    └ <module 'ipykernel.kernelapp' from 'C:\\Users\\disha\\anaconda3\\Lib\\site-packages\\ipykernel\\kernelapp.py'>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\traitlets\config\application.py", line 1075, in launch_instance
+    app.start()
+    │   └ <function IPKernelApp.start at 0x000001D6097E8900>
+    └ <ipykernel.kernelapp.IPKernelApp object at 0x000001D6096E7770>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelapp.py", line 739, in start
+    self.io_loop.start()
+    │    │       └ <function BaseAsyncIOLoop.start at 0x000001D6097E9800>
+    │    └ <tornado.platform.asyncio.AsyncIOMainLoop object at 0x000001D6097F9FD0>
+    └ <ipykernel.kernelapp.IPKernelApp object at 0x000001D6096E7770>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\tornado\platform\asyncio.py", line 211, in start
+    self.asyncio_loop.run_forever()
+    │    │            └ <function BaseEventLoop.run_forever at 0x000001D6076051C0>
+    │    └ <_WindowsSelectorEventLoop running=True closed=False debug=False>
+    └ <tornado.platform.asyncio.AsyncIOMainLoop object at 0x000001D6097F9FD0>
+  File "C:\Users\disha\anaconda3\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0x000001D607606FC0>
+    └ <_WindowsSelectorEventLoop running=True closed=False debug=False>
+  File "C:\Users\disha\anaconda3\Lib\asyncio\base_events.py", line 2050, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0x000001D60759CCC0>
+    └ <Handle Task.task_wakeup()>
+  File "C:\Users\disha\anaconda3\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle Task.task_wakeup()>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle Task.task_wakeup()>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle Task.task_wakeup()>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 519, in dispatch_queue
+    await self.process_one()
+          │    └ <function Kernel.process_one at 0x000001D6097ACE00>
+          └ <ipykernel.ipkernel.IPythonKernel object at 0x000001D6097FA120>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 508, in process_one
+    await dispatch(*args)
+          │         └ ([<zmq.Frame(b'a877edfb-383'...36B)>, <zmq.Frame(b'<IDS|MSG>')>, <zmq.Frame(b'4cd11014e5bf'...64B)>, <zmq.Frame(b'{"date":"20...
+          └ <bound method Kernel.dispatch_shell of <ipykernel.ipkernel.IPythonKernel object at 0x000001D6097FA120>>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 400, in dispatch_shell
+    await result
+          └ <coroutine object IPythonKernel.execute_request at 0x000001D60D80FC40>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\ipkernel.py", line 368, in execute_request
+    await super().execute_request(stream, ident, parent)
+                                  │       │      └ {'header': {'date': datetime.datetime(2026, 7, 9, 7, 44, 46, 951000, tzinfo=tzutc()), 'msg_id': 'f0d2a24d-a358-46c6-bc8c-6fb3...
+                                  │       └ [b'a877edfb-383c-432d-bed9-eb3adc491bbb']
+                                  └ <zmq.eventloop.zmqstream.ZMQStream object at 0x000001D6097C20D0>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 767, in execute_request
+    reply_content = await reply_content
+                          └ <coroutine object IPythonKernel.do_execute at 0x000001D6097AB240>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\ipkernel.py", line 455, in do_execute
+    res = shell.run_cell(
+          │     └ <function ZMQInteractiveShell.run_cell at 0x000001D6097E1440>
+          └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000001D60AA6FA10>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\zmqshell.py", line 602, in run_cell
+    return super().run_cell(*args, **kwargs)
+                             │       └ {'store_history': True, 'silent': False, 'cell_id': '84e3bab8'}
+                             └ ('"""\nSection 6.2 -- Exercise the logging system: import it, log to each\nstream, and confirm the four log files are created...
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3116, in run_cell
+    result = self._run_cell(
+             │    └ <function InteractiveShell._run_cell at 0x000001D608ADA340>
+             └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000001D60AA6FA10>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3171, in _run_cell
+    result = runner(coro)
+             │      └ <coroutine object InteractiveShell.run_cell_async at 0x000001D61A4ABE00>
+             └ <function _pseudo_sync_runner at 0x000001D608AC8B80>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\async_helpers.py", line 128, in _pseudo_sync_runner
+    coro.send(None)
+    │    └ <method 'send' of 'coroutine' objects>
+    └ <coroutine object InteractiveShell.run_cell_async at 0x000001D61A4ABE00>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3394, in run_cell_async
+    has_raised = await self.run_ast_nodes(code_ast.body, cell_name,
+                       │    │             │        │     └ 'C:\\Users\\disha\\AppData\\Local\\Temp\\ipykernel_26336\\4275789091.py'
+                       │    │             │        └ [<ast.Expr object at 0x000001D624C15FD0>, <ast.Import object at 0x000001D624C15690>, <ast.Expr object at 0x000001D624C16950>,...
+                       │    │             └ <ast.Module object at 0x000001D624C16B10>
+                       │    └ <function InteractiveShell.run_ast_nodes at 0x000001D608ADA700>
+                       └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000001D60AA6FA10>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3639, in run_ast_nodes
+    if await self.run_code(code, result, async_=asy):
+             │    │        │     │              └ False
+             │    │        │     └ <ExecutionResult object at 1d60d8b1c80, execution_count=12 error_before_exec=None error_in_exec=None info=<ExecutionInfo obje...
+             │    │        └ <code object <module> at 0x000001D624B93BD0, file "C:\Users\disha\AppData\Local\Temp\ipykernel_26336\4275789091.py", line 1>
+             │    └ <function InteractiveShell.run_code at 0x000001D608ADA7A0>
+             └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000001D60AA6FA10>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3699, in run_code
+    exec(code_obj, self.user_global_ns, self.user_ns)
+         │         │    │               │    └ <property object at 0x000001D608AC5620>
+         │         │    │               └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000001D60AA6FA10>
+         │         │    └ <property object at 0x000001D608AC5670>
+         │         └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000001D60AA6FA10>
+         └ <code object <module> at 0x000001D624B93BD0, file "C:\Users\disha\AppData\Local\Temp\ipykernel_26336\4275789091.py", line 1>
+
+> File "C:\Users\disha\AppData\Local\Temp\ipykernel_26336\4275789091.py", line 17, in <module>
+    1 / 0
+
+ZeroDivisionError: division by zero
+2026-07-09 13:16:23.613 | INFO     | utils.common:validate_directory:37 - Created missing directory: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\outputs\tmp_check
+2026-07-09 13:55:43.544 | INFO     | backend.app.services.database:connect_to_database:28 - MongoDB client created for database 'student_engagement_db'
+2026-07-09 13:55:46.613 | WARNING  | backend.app.services.database:ping_database:53 - MongoDB ping failed: ServerSelectionTimeoutError: localhost:27017: [WinError 10061] No connection could be made because the target machine actively refused it (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 3.0s, Topology Description: <TopologyDescription id: 6a4f5b07721ee0a7ac618600, topology_type: Unknown, servers: [<ServerDescription ('localhost', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('localhost:27017: [WinError 10061] No connection could be made because the target machine actively refused it (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2026-07-09 13:58:16.657 | INFO     | tests.test_phase1_foundation:test_logging_creates_all_four_log_files:102 - pytest log check -- stream=application
+2026-07-15 09:37:23.073 | INFO     | __main__:<module>:35 - Phase 2 notebook started -- Phase 1 foundation verified.
+2026-07-15 09:41:29.969 | INFO     | models.face_authentication.webcam:open:56 - Camera 0 opened -- requested 640x480, actual 640x480
+2026-07-15 09:41:30.582 | INFO     | models.face_authentication.webcam:release:82 - Camera 0 released.
+2026-07-15 09:43:19.467 | WARNING  | models.face_authentication.face_detector:_init_backend:99 - mediapipe.solutions is unavailable in this installation (removed in newer MediaPipe releases) -- falling back to the Tasks API.
+2026-07-15 09:43:19.473 | INFO     | models.face_authentication.face_detector:_download_task_model_if_missing:53 - Downloading MediaPipe Tasks face-detector model to C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\weights\face_detection\blaze_face_short_range.tflite ...
+2026-07-15 09:43:21.219 | INFO     | models.face_authentication.face_detector:_init_backend:114 - FaceDetector using MediaPipe Tasks API.
+2026-07-15 09:43:59.185 | INFO     | models.face_authentication.webcam:open:56 - Camera 0 opened -- requested 640x480, actual 640x480
+2026-07-15 09:43:59.812 | INFO     | models.face_authentication.webcam:release:82 - Camera 0 released.
+2026-07-15 09:48:33.755 | INFO     | models.face_authentication.face_embedder:__init__:45 - FaceEmbedder ready -- backbone=Facenet512
+2026-07-15 09:49:51.893 | WARNING  | models.face_authentication.face_detector:_init_backend:99 - mediapipe.solutions is unavailable in this installation (removed in newer MediaPipe releases) -- falling back to the Tasks API.
+2026-07-15 09:49:51.924 | INFO     | models.face_authentication.face_detector:_init_backend:114 - FaceDetector using MediaPipe Tasks API.
+2026-07-15 09:49:51.929 | INFO     | models.face_authentication.face_embedder:__init__:45 - FaceEmbedder ready -- backbone=Facenet512
+2026-07-15 09:50:12.190 | INFO     | models.face_authentication.face_registration:register_from_images:139 - Registered student 1BI23CS999 (Test Student) using 10 image(s).
+2026-07-15 09:50:12.197 | WARNING  | models.face_authentication.face_detector:_init_backend:99 - mediapipe.solutions is unavailable in this installation (removed in newer MediaPipe releases) -- falling back to the Tasks API.
+2026-07-15 09:50:12.216 | INFO     | models.face_authentication.face_detector:_init_backend:114 - FaceDetector using MediaPipe Tasks API.
+2026-07-15 09:51:03.873 | INFO     | models.face_authentication.face_matcher:reload_gallery:72 - FaceMatcher gallery reloaded -- 1 student(s) loaded.
+2026-07-15 09:52:29.175 | INFO     | models.face_authentication.attendance_database:append:60 - Attendance recorded: 1BI23CS999 (Test Student) at 2026-07-15 09:52:29
+2026-07-15 09:52:29.190 | INFO     | models.face_authentication.attendance_database:append:60 - Attendance recorded: 1BI23CS999 (Test Student) at 2026-07-15 09:52:29
+2026-07-15 09:54:04.871 | WARNING  | models.face_authentication.face_detector:_init_backend:99 - mediapipe.solutions is unavailable in this installation (removed in newer MediaPipe releases) -- falling back to the Tasks API.
+2026-07-15 09:54:04.927 | INFO     | models.face_authentication.face_detector:_init_backend:114 - FaceDetector using MediaPipe Tasks API.
+2026-07-15 09:54:04.932 | INFO     | models.face_authentication.face_embedder:__init__:45 - FaceEmbedder ready -- backbone=Facenet512
+2026-07-15 09:54:24.212 | INFO     | models.face_authentication.face_registration:register_from_images:139 - Registered student 1BI23CS888 (API Test Student) using 10 image(s).
+2026-07-15 09:54:24.226 | INFO     | models.face_authentication.face_matcher:reload_gallery:72 - FaceMatcher gallery reloaded -- 2 student(s) loaded.
+2026-07-15 09:54:24.235 | INFO     | models.face_authentication.face_matcher:reload_gallery:72 - FaceMatcher gallery reloaded -- 2 student(s) loaded.
+2026-07-15 09:54:24.298 | INFO     | models.face_authentication.attendance_database:append:60 - Attendance recorded: 1BI23CS888 (API Test Student) at 2026-07-15 09:54:24
+2026-07-15 09:56:01.220 | INFO     | __main__:<module>:16 - Phase 2 logging check -- registration/authentication/attendance modules active.
+2026-07-15 09:56:01.224 | INFO     | __main__:<module>:22 - Performance: FaceMatcher.match() took 1.26 ms over a gallery of 1 student(s).
+2026-07-15 09:56:01.230 | ERROR    | __main__:<module>:28 - Sample Phase 2 error for errors.log verification.
+Traceback (most recent call last):
+
+  File "C:\Users\disha\anaconda3\Lib\runpy.py", line 198, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+           │         │     └ {'__name__': '__main__', '__doc__': 'Entry point for launching an IPython kernel.\n\nThis is separate from the ipykernel pack...
+           │         └ <code object <module> at 0x000002BCB9B2DCE0, file "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel_launcher.py", line 1>
+           └ <function _run_code at 0x000002BCBB82BF60>
+  File "C:\Users\disha\anaconda3\Lib\runpy.py", line 88, in _run_code
+    exec(code, run_globals)
+         │     └ {'__name__': '__main__', '__doc__': 'Entry point for launching an IPython kernel.\n\nThis is separate from the ipykernel pack...
+         └ <code object <module> at 0x000002BCB9B2DCE0, file "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel_launcher.py", line 1>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel_launcher.py", line 18, in <module>
+    app.launch_new_instance()
+    │   └ <bound method Application.launch_instance of <class 'ipykernel.kernelapp.IPKernelApp'>>
+    └ <module 'ipykernel.kernelapp' from 'C:\\Users\\disha\\anaconda3\\Lib\\site-packages\\ipykernel\\kernelapp.py'>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\traitlets\config\application.py", line 1075, in launch_instance
+    app.start()
+    │   └ <function IPKernelApp.start at 0x000002BCBE788900>
+    └ <ipykernel.kernelapp.IPKernelApp object at 0x000002BCBE687770>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelapp.py", line 739, in start
+    self.io_loop.start()
+    │    │       └ <function BaseAsyncIOLoop.start at 0x000002BCBE789800>
+    │    └ <tornado.platform.asyncio.AsyncIOMainLoop object at 0x000002BCBE799FD0>
+    └ <ipykernel.kernelapp.IPKernelApp object at 0x000002BCBE687770>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\tornado\platform\asyncio.py", line 211, in start
+    self.asyncio_loop.run_forever()
+    │    │            └ <function BaseEventLoop.run_forever at 0x000002BCBC5951C0>
+    │    └ <_WindowsSelectorEventLoop running=True closed=False debug=False>
+    └ <tornado.platform.asyncio.AsyncIOMainLoop object at 0x000002BCBE799FD0>
+  File "C:\Users\disha\anaconda3\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0x000002BCBC596FC0>
+    └ <_WindowsSelectorEventLoop running=True closed=False debug=False>
+  File "C:\Users\disha\anaconda3\Lib\asyncio\base_events.py", line 2050, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0x000002BCBC52CCC0>
+    └ <Handle Task.task_wakeup()>
+  File "C:\Users\disha\anaconda3\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle Task.task_wakeup()>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle Task.task_wakeup()>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle Task.task_wakeup()>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 519, in dispatch_queue
+    await self.process_one()
+          │    └ <function Kernel.process_one at 0x000002BCBE74CE00>
+          └ <ipykernel.ipkernel.IPythonKernel object at 0x000002BCBE79A120>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 508, in process_one
+    await dispatch(*args)
+          │         └ ([<zmq.Frame(b'9554d7d5-3e5'...36B)>, <zmq.Frame(b'<IDS|MSG>')>, <zmq.Frame(b'b670c1641d0c'...64B)>, <zmq.Frame(b'{"date":"20...
+          └ <bound method Kernel.dispatch_shell of <ipykernel.ipkernel.IPythonKernel object at 0x000002BCBE79A120>>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 400, in dispatch_shell
+    await result
+          └ <coroutine object IPythonKernel.execute_request at 0x000002BCD0575640>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\ipkernel.py", line 368, in execute_request
+    await super().execute_request(stream, ident, parent)
+                                  │       │      └ {'header': {'date': datetime.datetime(2026, 7, 15, 4, 26, 1, 199000, tzinfo=tzutc()), 'msg_id': '538e718b-77f5-4524-9a64-58b3...
+                                  │       └ [b'9554d7d5-3e56-4006-a44f-37e061bdc0a2']
+                                  └ <zmq.eventloop.zmqstream.ZMQStream object at 0x000002BCBE7620D0>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 767, in execute_request
+    reply_content = await reply_content
+                          └ <coroutine object IPythonKernel.do_execute at 0x000002BCC2939170>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\ipkernel.py", line 455, in do_execute
+    res = shell.run_cell(
+          │     └ <function ZMQInteractiveShell.run_cell at 0x000002BCBE781440>
+          └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000002BCBFA0FA10>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\ipykernel\zmqshell.py", line 602, in run_cell
+    return super().run_cell(*args, **kwargs)
+                             │       └ {'store_history': True, 'silent': False, 'cell_id': '365440fb'}
+                             └ ('"""\nSection 12 -- Confirm Phase 2 module log lines land in Phase 1\\\'s\nexisting log files, and log a Phase-2-specific pe...
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3116, in run_cell
+    result = self._run_cell(
+             │    └ <function InteractiveShell._run_cell at 0x000002BCBDA6A340>
+             └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000002BCBFA0FA10>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3171, in _run_cell
+    result = runner(coro)
+             │      └ <coroutine object InteractiveShell.run_cell_async at 0x000002BCBFA06400>
+             └ <function _pseudo_sync_runner at 0x000002BCBDA58B80>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\async_helpers.py", line 128, in _pseudo_sync_runner
+    coro.send(None)
+    │    └ <method 'send' of 'coroutine' objects>
+    └ <coroutine object InteractiveShell.run_cell_async at 0x000002BCBFA06400>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3394, in run_cell_async
+    has_raised = await self.run_ast_nodes(code_ast.body, cell_name,
+                       │    │             │        │     └ 'C:\\Users\\disha\\AppData\\Local\\Temp\\ipykernel_16436\\3536711378.py'
+                       │    │             │        └ [<ast.Expr object at 0x000002BCDFF99E10>, <ast.Import object at 0x000002BCDFF98C50>, <ast.ImportFrom object at 0x000002BCDFF9...
+                       │    │             └ <ast.Module object at 0x000002BCDFF9A210>
+                       │    └ <function InteractiveShell.run_ast_nodes at 0x000002BCBDA6A700>
+                       └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000002BCBFA0FA10>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3639, in run_ast_nodes
+    if await self.run_code(code, result, async_=asy):
+             │    │        │     │              └ False
+             │    │        │     └ <ExecutionResult object at 2bcdff57c50, execution_count=25 error_before_exec=None error_in_exec=None info=<ExecutionInfo obje...
+             │    │        └ <code object <module> at 0x000002BCE8212550, file "C:\Users\disha\AppData\Local\Temp\ipykernel_16436\3536711378.py", line 1>
+             │    └ <function InteractiveShell.run_code at 0x000002BCBDA6A7A0>
+             └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000002BCBFA0FA10>
+  File "C:\Users\disha\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3699, in run_code
+    exec(code_obj, self.user_global_ns, self.user_ns)
+         │         │    │               │    └ <property object at 0x000002BCBDA55940>
+         │         │    │               └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000002BCBFA0FA10>
+         │         │    └ <property object at 0x000002BCBDA55990>
+         │         └ <ipykernel.zmqshell.ZMQInteractiveShell object at 0x000002BCBFA0FA10>
+         └ <code object <module> at 0x000002BCE8212550, file "C:\Users\disha\AppData\Local\Temp\ipykernel_16436\3536711378.py", line 1>
+
+> File "C:\Users\disha\AppData\Local\Temp\ipykernel_16436\3536711378.py", line 26, in <module>
+    raise ValueError("Deliberate sample error to confirm errors.log receives Phase 2 events too.")
+
+ValueError: Deliberate sample error to confirm errors.log receives Phase 2 events too.
+2026-07-15 10:00:31.331 | WARNING  | models.face_authentication.face_detector:_init_backend:99 - mediapipe.solutions is unavailable in this installation (removed in newer MediaPipe releases) -- falling back to the Tasks API.
+2026-07-15 10:00:31.504 | INFO     | models.face_authentication.face_detector:_init_backend:114 - FaceDetector using MediaPipe Tasks API.
+2026-07-15 10:00:32.516 | WARNING  | models.face_authentication.face_detector:_init_backend:99 - mediapipe.solutions is unavailable in this installation (removed in newer MediaPipe releases) -- falling back to the Tasks API.
+2026-07-15 10:00:32.553 | INFO     | models.face_authentication.face_detector:_init_backend:114 - FaceDetector using MediaPipe Tasks API.
+2026-07-15 10:00:32.896 | INFO     | models.face_authentication.face_matcher:reload_gallery:72 - FaceMatcher gallery reloaded -- 0 student(s) loaded.
+2026-07-15 10:00:32.933 | INFO     | models.face_authentication.attendance_database:append:60 - Attendance recorded: S1 (Student One) at 2026-07-15 10:00:32
+2026-07-15 10:00:32.959 | INFO     | models.face_authentication.attendance_database:append:60 - Attendance recorded: S2 (Student Two) at 2026-07-15 10:00:32
+2026-07-15 10:00:32.963 | INFO     | models.face_authentication.attendance_database:append:60 - Attendance recorded: S2 (Student Two) at 2026-07-15 10:00:32
+2026-07-15 14:47:38.704 | INFO     | __main__:<module>:58 - Phase 3 notebook started -- Phase 1 and Phase 2 foundations verified.
+2026-07-15 15:07:06.154 | INFO     | __main__:<module>:16 - Phase 3 (Emotion Recognition) modules exercised successfully.
+2026-07-15 15:07:06.169 | INFO     | __main__:<module>:20 - Sample emotion-analysis timing log entry -- 11.00ms
+2026-07-15 15:08:34.428 | WARNING  | backend.app.routers.emotion:_decode_b64_image:61 - Failed to decode face_crop_b64: Incorrect padding
+2026-07-15 15:13:26.224 | WARNING  | backend.app.routers.emotion:_decode_b64_image:61 - Failed to decode face_crop_b64: Incorrect padding
+2026-07-16 10:18:56.106 | WARNING  | backend.app.routers.head_pose:_decode_b64_image:77 - Failed to decode frame_b64: Incorrect padding
+2026-07-16 10:18:56.120 | WARNING  | backend.app.routers.head_pose:_decode_b64_image:77 - Failed to decode frame_b64: Incorrect padding
+2026-07-16 10:51:14.315 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 10:51:14.324 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 10:57:50.279 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 10:57:50.284 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 10:57:50.294 | INFO     | models.object_detection.object_detector:_get_config:121 - Loaded object detection config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\object_detection.yaml
+2026-07-16 10:58:04.280 | INFO     | models.object_detection.object_detector:_load_model:173 - YOLO model loaded successfully: yolo11n.pt
+2026-07-16 10:58:13.092 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=0 multiple_person=False phone_detected=False objects=0 time=22804.75ms
+2026-07-16 10:58:53.950 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 10:58:53.966 | INFO     | models.object_detection.object_detector:_get_config:121 - Loaded object detection config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\object_detection.yaml
+2026-07-16 10:58:53.969 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=2 multiple_person=True phone_detected=True objects=3 time=10.49ms
+2026-07-16 10:58:53.975 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=1 multiple_person=False phone_detected=False objects=1 time=0.06ms
+2026-07-16 10:59:37.748 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 10:59:37.768 | INFO     | models.object_detection.object_detector:_get_config:121 - Loaded object detection config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\object_detection.yaml
+2026-07-16 10:59:37.774 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=1 multiple_person=False phone_detected=False objects=1 time=17.97ms
+2026-07-16 10:59:37.777 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=2 multiple_person=False phone_detected=False objects=2 time=0.05ms
+2026-07-16 10:59:37.782 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=1 multiple_person=False phone_detected=False objects=1 time=0.07ms
+2026-07-16 10:59:37.791 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=1 multiple_person=False phone_detected=False objects=1 time=0.06ms
+2026-07-16 10:59:37.796 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=1 multiple_person=False phone_detected=False objects=1 time=0.06ms
+2026-07-16 10:59:37.803 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 10:59:37.820 | INFO     | models.object_detection.object_detector:_get_config:121 - Loaded object detection config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\object_detection.yaml
+2026-07-16 10:59:37.823 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=2 multiple_person=True phone_detected=False objects=2 time=12.60ms
+2026-07-16 10:59:37.829 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=2 multiple_person=True phone_detected=False objects=2 time=0.05ms
+2026-07-16 10:59:37.835 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=2 multiple_person=True phone_detected=False objects=2 time=0.04ms
+2026-07-16 10:59:37.839 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=2 multiple_person=True phone_detected=False objects=2 time=0.09ms
+2026-07-16 10:59:37.845 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=2 multiple_person=True phone_detected=False objects=2 time=0.07ms
+2026-07-16 11:20:55.649 | INFO     | __main__:<module>:16 - Phase 5 (Object Detection and Classroom Monitoring) modules exercised successfully.
+2026-07-16 11:20:55.666 | INFO     | __main__:<module>:20 - Sample object-detection inference timing log entry -- 11.69ms
+2026-07-16 11:20:55.672 | INFO     | __main__:<module>:21 - Sample classroom-monitoring alert log entry -- multiple_person=True
+2026-07-16 11:21:39.569 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 11:21:39.571 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 11:21:39.572 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 11:21:39.573 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 11:21:39.574 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 11:21:39.575 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 11:21:39.577 | INFO     | models.object_detection.object_detector:_get_config:121 - Loaded object detection config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\object_detection.yaml
+2026-07-16 11:21:48.929 | INFO     | models.object_detection.object_detector:_load_model:173 - YOLO model loaded successfully: yolo11n.pt
+2026-07-16 11:21:56.046 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=0 multiple_person=False phone_detected=False objects=0 time=16471.02ms
+2026-07-16 11:21:56.054 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 11:21:56.065 | INFO     | models.object_detection.object_detector:_get_config:121 - Loaded object detection config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\object_detection.yaml
+2026-07-16 11:21:56.066 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=2 multiple_person=True phone_detected=False objects=2 time=9.15ms
+2026-07-16 11:21:56.073 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 11:21:56.082 | INFO     | models.object_detection.object_detector:_get_config:121 - Loaded object detection config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\object_detection.yaml
+2026-07-16 11:21:56.083 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=1 multiple_person=False phone_detected=False objects=1 time=8.57ms
+2026-07-16 11:21:56.090 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 11:21:56.098 | INFO     | models.object_detection.object_detector:_get_config:121 - Loaded object detection config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\object_detection.yaml
+2026-07-16 11:21:56.099 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=0 multiple_person=False phone_detected=True objects=1 time=7.29ms
+2026-07-16 11:21:56.105 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 11:21:56.113 | INFO     | models.object_detection.object_detector:_get_config:121 - Loaded object detection config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\object_detection.yaml
+2026-07-16 11:21:56.113 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=1 multiple_person=False phone_detected=False objects=1 time=7.10ms
+2026-07-16 11:21:56.117 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 11:21:56.122 | INFO     | models.object_detection.object_detector:_get_config:121 - Loaded object detection config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\object_detection.yaml
+2026-07-16 11:21:56.123 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=0 multiple_person=False phone_detected=False objects=0 time=5.13ms
+2026-07-16 11:21:56.130 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 11:21:56.138 | INFO     | models.object_detection.object_detector:_get_config:121 - Loaded object detection config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\object_detection.yaml
+2026-07-16 11:21:56.138 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=1 multiple_person=False phone_detected=True objects=2 time=7.21ms
+2026-07-16 11:21:56.145 | INFO     | models.object_detection.object_detector:__init__:110 - ObjectDetector instance created (model not yet loaded -- lazy loading).
+2026-07-16 11:21:56.155 | INFO     | models.object_detection.object_detector:_get_config:121 - Loaded object detection config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\object_detection.yaml
+2026-07-16 11:21:56.157 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=1 multiple_person=False phone_detected=False objects=1 time=9.28ms
+2026-07-16 11:21:56.158 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=2 multiple_person=False phone_detected=False objects=2 time=0.04ms
+2026-07-16 11:21:56.159 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=1 multiple_person=False phone_detected=False objects=1 time=0.03ms
+2026-07-16 11:21:56.160 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=1 multiple_person=False phone_detected=False objects=1 time=0.03ms
+2026-07-16 11:21:56.161 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=1 multiple_person=False phone_detected=False objects=1 time=0.03ms
+2026-07-16 11:21:58.621 | INFO     | models.object_detection.object_detector:_get_config:121 - Loaded object detection config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\object_detection.yaml
+2026-07-16 11:21:59.178 | INFO     | models.object_detection.object_detector:_load_model:173 - YOLO model loaded successfully: yolo11n.pt
+2026-07-16 11:21:59.667 | INFO     | models.object_detection.object_detector:detect:263 - Object detection: person_count=0 multiple_person=False phone_detected=False objects=0 time=1055.59ms
+2026-07-17 09:15:23.142 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-17 09:15:23.145 | ERROR    | models.engagement_prediction.engagement_predictor:_get_config:210 - Failed to load engagement_prediction.yaml (Config file not found: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\engagement_prediction.yaml); using built-in defaults.
+2026-07-17 09:15:23.147 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-17 09:15:23.149 | ERROR    | models.engagement_prediction.engagement_predictor:predict_safe:356 - Engagement prediction degraded gracefully: Expected an EngagementPredictionInput, got <class 'str'>.
+2026-07-17 09:16:58.680 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-17 09:16:58.683 | ERROR    | models.engagement_prediction.engagement_predictor:_get_config:210 - Failed to load engagement_prediction.yaml (Config file not found: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\engagement_prediction.yaml); using built-in defaults.
+2026-07-17 09:16:58.684 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=22CS001 score=84.44 level=EXCELLENT confidence=0.750 risk_flags=[] time=2.93ms
+2026-07-17 09:16:58.686 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:16:58.690 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=85.00 level=EXCELLENT confidence=0.200 risk_flags=['LOW_CONFIDENCE'] time=0.08ms
+2026-07-17 09:16:58.693 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:16:58.695 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=65.00 level=HIGH confidence=0.380 risk_flags=['PHONE_USAGE', 'LOW_CONFIDENCE'] time=0.07ms
+2026-07-17 09:16:58.697 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 50.00
+2026-07-17 09:16:58.699 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=57.50 level=MEDIUM confidence=0.200 risk_flags=['MULTIPLE_PERSON', 'LOW_CONFIDENCE'] time=0.06ms
+2026-07-17 09:16:58.701 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 50.00
+2026-07-17 09:16:58.703 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=58.75 level=MEDIUM confidence=0.200 risk_flags=['LOOKING_AWAY', 'LOW_CONFIDENCE'] time=0.08ms
+2026-07-17 09:16:58.705 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:16:58.707 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=48.06 level=MEDIUM confidence=0.200 risk_flags=['HEAD_DOWN', 'LOW_CONFIDENCE'] time=0.05ms
+2026-07-17 09:16:58.709 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:16:58.714 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=0.00 level=VERY_LOW confidence=0.000 risk_flags=['NO_FACE', 'LOW_CONFIDENCE', 'VERY_LOW_ENGAGEMENT'] time=0.06ms
+2026-07-17 09:16:58.716 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:16:58.718 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=62.50 level=HIGH confidence=0.200 risk_flags=['UNKNOWN_FACE', 'LOW_CONFIDENCE'] time=0.08ms
+2026-07-17 09:16:58.720 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:16:58.724 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=72.50 level=HIGH confidence=0.040 risk_flags=['LOW_CONFIDENCE'] time=0.09ms
+2026-07-17 09:16:58.727 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:16:58.729 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=22.50 level=LOW confidence=0.200 risk_flags=['UNKNOWN_FACE', 'PHONE_USAGE', 'MULTIPLE_PERSON', 'LOW_CONFIDENCE'] time=0.07ms
+2026-07-17 09:16:58.731 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 0.00
+2026-07-17 09:16:58.735 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=57.50 level=MEDIUM confidence=0.200 risk_flags=['UNKNOWN_FACE', 'LOW_CONFIDENCE'] time=0.08ms
+2026-07-17 09:16:58.736 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:16:58.739 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=72.50 level=HIGH confidence=0.200 risk_flags=['LOW_CONFIDENCE'] time=0.08ms
+2026-07-17 09:16:58.742 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:20:02.844 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=22CS001 score=85.00 level=EXCELLENT confidence=0.730 risk_flags=[] time=0.06ms
+2026-07-17 09:20:02.848 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:21:16.860 | INFO     | __main__:<module>:16 - Phase 6 (Engagement Prediction Engine) modules exercised successfully.
+2026-07-17 09:21:16.880 | INFO     | __main__:<module>:20 - Sample engagement-prediction inference timing log entry -- 11.22ms
+2026-07-17 09:21:16.883 | INFO     | __main__:<module>:21 - Sample engagement alert log entry -- risk_flags=['PHONE_USAGE', 'HEAD_DOWN']
+2026-07-17 09:22:27.783 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-17 09:22:27.787 | INFO     | models.engagement_prediction.engagement_predictor:_get_config:208 - Loaded engagement prediction config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\engagement_prediction.yaml
+2026-07-17 09:22:27.788 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-17 09:22:27.790 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-17 09:22:27.790 | ERROR    | models.engagement_prediction.engagement_predictor:predict_safe:356 - Engagement prediction degraded gracefully: Expected an EngagementPredictionInput, got <class 'str'>.
+2026-07-17 09:22:27.793 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-17 09:22:27.798 | INFO     | models.engagement_prediction.engagement_predictor:_get_config:208 - Loaded engagement prediction config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\engagement_prediction.yaml
+2026-07-17 09:22:27.798 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=22CS001 score=84.44 level=EXCELLENT confidence=0.750 risk_flags=[] time=4.43ms
+2026-07-17 09:22:27.799 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:22:27.800 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-17 09:22:27.804 | INFO     | models.engagement_prediction.engagement_predictor:_get_config:208 - Loaded engagement prediction config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\engagement_prediction.yaml
+2026-07-17 09:22:27.805 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=85.00 level=EXCELLENT confidence=0.200 risk_flags=['LOW_CONFIDENCE'] time=4.37ms
+2026-07-17 09:22:27.805 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:22:27.806 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=65.00 level=HIGH confidence=0.380 risk_flags=['PHONE_USAGE', 'LOW_CONFIDENCE'] time=0.04ms
+2026-07-17 09:22:27.806 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 50.00
+2026-07-17 09:22:27.809 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-17 09:22:27.813 | INFO     | models.engagement_prediction.engagement_predictor:_get_config:208 - Loaded engagement prediction config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\engagement_prediction.yaml
+2026-07-17 09:22:27.813 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=72.50 level=HIGH confidence=0.200 risk_flags=['LOW_CONFIDENCE'] time=3.81ms
+2026-07-17 09:22:27.813 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:22:27.813 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=57.50 level=MEDIUM confidence=0.200 risk_flags=['MULTIPLE_PERSON', 'LOW_CONFIDENCE'] time=0.04ms
+2026-07-17 09:22:27.814 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 50.00
+2026-07-17 09:22:27.816 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-17 09:22:27.820 | INFO     | models.engagement_prediction.engagement_predictor:_get_config:208 - Loaded engagement prediction config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\engagement_prediction.yaml
+2026-07-17 09:22:27.820 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=58.75 level=MEDIUM confidence=0.200 risk_flags=['LOOKING_AWAY', 'LOW_CONFIDENCE'] time=3.26ms
+2026-07-17 09:22:27.821 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:22:27.822 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-17 09:22:27.827 | INFO     | models.engagement_prediction.engagement_predictor:_get_config:208 - Loaded engagement prediction config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\engagement_prediction.yaml
+2026-07-17 09:22:27.827 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=48.06 level=MEDIUM confidence=0.200 risk_flags=['HEAD_DOWN', 'LOW_CONFIDENCE'] time=4.41ms
+2026-07-17 09:22:27.827 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:22:27.830 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-17 09:22:27.833 | INFO     | models.engagement_prediction.engagement_predictor:_get_config:208 - Loaded engagement prediction config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\engagement_prediction.yaml
+2026-07-17 09:22:27.833 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=0.00 level=VERY_LOW confidence=0.000 risk_flags=['NO_FACE', 'LOW_CONFIDENCE', 'VERY_LOW_ENGAGEMENT'] time=3.29ms
+2026-07-17 09:22:27.834 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:22:27.835 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-17 09:22:27.839 | INFO     | models.engagement_prediction.engagement_predictor:_get_config:208 - Loaded engagement prediction config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\engagement_prediction.yaml
+2026-07-17 09:22:27.839 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=62.50 level=HIGH confidence=0.200 risk_flags=['UNKNOWN_FACE', 'LOW_CONFIDENCE'] time=3.49ms
+2026-07-17 09:22:27.839 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:22:27.841 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-17 09:22:27.846 | INFO     | models.engagement_prediction.engagement_predictor:_get_config:208 - Loaded engagement prediction config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\engagement_prediction.yaml
+2026-07-17 09:22:27.846 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=72.50 level=HIGH confidence=0.040 risk_flags=['LOW_CONFIDENCE'] time=4.43ms
+2026-07-17 09:22:27.847 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:22:27.848 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-17 09:22:27.851 | INFO     | models.engagement_prediction.engagement_predictor:_get_config:208 - Loaded engagement prediction config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\engagement_prediction.yaml
+2026-07-17 09:22:27.851 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=37.50 level=LOW confidence=0.200 risk_flags=['PHONE_USAGE', 'MULTIPLE_PERSON', 'LOW_CONFIDENCE'] time=2.81ms
+2026-07-17 09:22:27.852 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 0.00
+2026-07-17 09:22:27.853 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-17 09:22:27.855 | INFO     | models.engagement_prediction.engagement_predictor:_get_config:208 - Loaded engagement prediction config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\engagement_prediction.yaml
+2026-07-17 09:22:27.856 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=72.50 level=HIGH confidence=0.200 risk_flags=['LOW_CONFIDENCE'] time=2.52ms
+2026-07-17 09:22:27.856 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:22:27.857 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-17 09:22:27.862 | INFO     | models.engagement_prediction.engagement_predictor:_get_config:208 - Loaded engagement prediction config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\engagement_prediction.yaml
+2026-07-17 09:22:27.862 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=57.50 level=MEDIUM confidence=0.200 risk_flags=['UNKNOWN_FACE', 'LOW_CONFIDENCE'] time=4.43ms
+2026-07-17 09:22:27.862 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:22:27.862 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=s1 score=72.50 level=HIGH confidence=0.200 risk_flags=['LOW_CONFIDENCE'] time=0.03ms
+2026-07-17 09:22:27.863 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-17 09:22:29.787 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=22CS001 score=85.00 level=EXCELLENT confidence=0.740 risk_flags=[] time=0.09ms
+2026-07-17 09:22:29.788 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-18 00:34:06.029 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:34:06.033 | ERROR    | models.cognitive_monitoring.cognitive_monitor:_get_config:204 - Failed to load cognitive_monitoring.yaml (Config file not found: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml); using built-in defaults.
+2026-07-18 00:34:06.036 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:34:06.041 | ERROR    | models.cognitive_monitoring.cognitive_monitor:predict_safe:373 - Cognitive prediction degraded gracefully: Expected a CognitiveMonitoringInput, got <class 'str'>.
+2026-07-18 00:36:13.955 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:36:13.965 | ERROR    | models.cognitive_monitoring.cognitive_monitor:_get_config:204 - Failed to load cognitive_monitoring.yaml (Config file not found: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml); using built-in defaults.
+2026-07-18 00:36:13.969 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=22CS001 state=FOCUSED attention=96.03 distraction=0.00 fatigue=0.00 confusion=0.00 confidence=0.845 risk_flags=[] time=8.10ms
+2026-07-18 00:36:13.977 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s1 state=DISENGAGED attention=20.17 distraction=25.00 fatigue=40.00 confusion=0.00 confidence=0.275 risk_flags=['LOOKING_AWAY', 'LOW_ATTENTION', 'LOW_CONFIDENCE'] time=0.21ms
+2026-07-18 00:36:13.984 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s2 state=CONFUSED attention=85.00 distraction=0.00 fatigue=0.00 confusion=75.00 confidence=0.435 risk_flags=['CONFUSION_DETECTED', 'LOW_CONFIDENCE'] time=0.18ms
+2026-07-18 00:36:13.990 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s3 state=FATIGUED attention=85.00 distraction=0.00 fatigue=70.00 confusion=0.00 confidence=0.275 risk_flags=['FATIGUE_DETECTED', 'LOW_CONFIDENCE'] time=0.17ms
+2026-07-18 00:36:13.993 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s4 state=DISTRACTED attention=85.00 distraction=50.00 fatigue=0.00 confusion=0.00 confidence=0.365 risk_flags=['PHONE_USAGE', 'HIGH_DISTRACTION', 'LOW_CONFIDENCE'] time=0.17ms
+2026-07-18 00:36:14.000 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s5 state=DISTRACTED attention=85.00 distraction=50.00 fatigue=0.00 confusion=0.00 confidence=0.275 risk_flags=['MULTIPLE_PERSON', 'HIGH_DISTRACTION', 'LOW_CONFIDENCE'] time=0.17ms
+2026-07-18 00:36:14.005 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s6 state=NEUTRAL attention=65.75 distraction=25.00 fatigue=0.00 confusion=0.00 confidence=0.275 risk_flags=['LOOKING_AWAY', 'LOW_CONFIDENCE'] time=0.10ms
+2026-07-18 00:36:14.009 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s7 state=UNAVAILABLE attention=0.00 distraction=0.00 fatigue=0.00 confusion=0.00 confidence=0.075 risk_flags=['NO_FACE', 'LOW_ATTENTION', 'LOW_CONFIDENCE'] time=0.13ms
+2026-07-18 00:36:14.014 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s8 state=FOCUSED attention=85.00 distraction=0.00 fatigue=0.00 confusion=0.00 confidence=0.275 risk_flags=['UNKNOWN_FACE', 'LOW_CONFIDENCE'] time=0.08ms
+2026-07-18 00:36:14.018 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s9 state=FOCUSED attention=85.00 distraction=0.00 fatigue=0.00 confusion=0.00 confidence=0.275 risk_flags=['LOW_CONFIDENCE'] time=0.21ms
+2026-07-18 00:36:14.022 | ERROR    | models.cognitive_monitoring.cognitive_monitor:predict_safe:373 - Cognitive prediction degraded gracefully: Expected a CognitiveMonitoringInput, got <class 'dict'>.
+2026-07-18 00:36:14.026 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s10 state=DISTRACTED attention=57.00 distraction=100.00 fatigue=100.00 confusion=0.00 confidence=0.275 risk_flags=['PHONE_USAGE', 'MULTIPLE_PERSON', 'LOOKING_AWAY', 'HIGH_DISTRACTION', 'FATIGUE_DETECTED', 'LOW_CONFIDENCE'] time=0.09ms
+2026-07-18 00:36:14.031 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s11 state=FOCUSED attention=93.10 distraction=0.00 fatigue=0.00 confusion=0.00 confidence=0.275 risk_flags=['LOW_CONFIDENCE'] time=0.09ms
+2026-07-18 00:37:10.600 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:37:10.621 | INFO     | models.cognitive_monitoring.cognitive_monitor:_get_config:202 - Loaded cognitive monitoring config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml
+2026-07-18 00:37:10.624 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:37:10.628 | ERROR    | models.cognitive_monitoring.cognitive_monitor:predict_safe:373 - Cognitive prediction degraded gracefully: Expected a CognitiveMonitoringInput, got <class 'str'>.
+2026-07-18 00:37:30.920 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:37:30.943 | INFO     | models.cognitive_monitoring.cognitive_monitor:_get_config:202 - Loaded cognitive monitoring config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml
+2026-07-18 00:37:30.948 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:37:30.952 | ERROR    | models.cognitive_monitoring.cognitive_monitor:predict_safe:373 - Cognitive prediction degraded gracefully: Expected a CognitiveMonitoringInput, got <class 'str'>.
+2026-07-18 00:38:56.098 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-18 00:38:56.129 | INFO     | models.engagement_prediction.engagement_predictor:_get_config:208 - Loaded engagement prediction config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\engagement_prediction.yaml
+2026-07-18 00:38:56.132 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=22CS001 score=85.00 level=EXCELLENT confidence=0.730 risk_flags=[] time=0.25ms
+2026-07-18 00:38:56.137 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-18 00:38:56.141 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=22CS001 state=FOCUSED attention=95.50 distraction=0.00 fatigue=0.00 confusion=0.00 confidence=0.795 risk_flags=[] time=0.24ms
+2026-07-18 00:39:19.970 | INFO     | __main__:<module>:16 - Phase 7 (Cognitive Monitoring Engine) modules exercised successfully.
+2026-07-18 00:39:19.985 | INFO     | __main__:<module>:20 - Sample cognitive-prediction inference timing log entry -- 11.04ms
+2026-07-18 00:39:19.989 | INFO     | __main__:<module>:21 - Sample cognitive alert log entry -- risk_flags=['FATIGUE_DETECTED', 'HIGH_DISTRACTION']
+2026-07-18 00:40:18.348 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:40:18.352 | INFO     | models.cognitive_monitoring.cognitive_monitor:_get_config:202 - Loaded cognitive monitoring config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml
+2026-07-18 00:40:18.353 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:40:18.354 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:40:18.354 | ERROR    | models.cognitive_monitoring.cognitive_monitor:predict_safe:373 - Cognitive prediction degraded gracefully: Expected a CognitiveMonitoringInput, got <class 'str'>.
+2026-07-18 00:40:18.356 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:40:18.359 | INFO     | models.cognitive_monitoring.cognitive_monitor:_get_config:202 - Loaded cognitive monitoring config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml
+2026-07-18 00:40:18.359 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=22CS001 state=FOCUSED attention=96.03 distraction=0.00 fatigue=0.00 confusion=0.00 confidence=0.845 risk_flags=[] time=3.11ms
+2026-07-18 00:40:18.361 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:40:18.364 | INFO     | models.cognitive_monitoring.cognitive_monitor:_get_config:202 - Loaded cognitive monitoring config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml
+2026-07-18 00:40:18.365 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s1 state=DISENGAGED attention=20.17 distraction=25.00 fatigue=40.00 confusion=0.00 confidence=0.275 risk_flags=['LOOKING_AWAY', 'LOW_ATTENTION', 'LOW_CONFIDENCE'] time=3.58ms
+2026-07-18 00:40:18.366 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:40:18.369 | INFO     | models.cognitive_monitoring.cognitive_monitor:_get_config:202 - Loaded cognitive monitoring config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml
+2026-07-18 00:40:18.369 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s2 state=CONFUSED attention=85.00 distraction=0.00 fatigue=0.00 confusion=75.00 confidence=0.435 risk_flags=['CONFUSION_DETECTED', 'LOW_CONFIDENCE'] time=3.00ms
+2026-07-18 00:40:18.370 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:40:18.373 | INFO     | models.cognitive_monitoring.cognitive_monitor:_get_config:202 - Loaded cognitive monitoring config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml
+2026-07-18 00:40:18.373 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s3 state=FATIGUED attention=85.00 distraction=0.00 fatigue=70.00 confusion=0.00 confidence=0.275 risk_flags=['FATIGUE_DETECTED', 'LOW_CONFIDENCE'] time=2.96ms
+2026-07-18 00:40:18.375 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:40:18.378 | INFO     | models.cognitive_monitoring.cognitive_monitor:_get_config:202 - Loaded cognitive monitoring config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml
+2026-07-18 00:40:18.378 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s4 state=DISTRACTED attention=85.00 distraction=50.00 fatigue=0.00 confusion=0.00 confidence=0.365 risk_flags=['PHONE_USAGE', 'HIGH_DISTRACTION', 'LOW_CONFIDENCE'] time=3.12ms
+2026-07-18 00:40:18.379 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:40:18.382 | INFO     | models.cognitive_monitoring.cognitive_monitor:_get_config:202 - Loaded cognitive monitoring config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml
+2026-07-18 00:40:18.383 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s5 state=DISTRACTED attention=85.00 distraction=50.00 fatigue=0.00 confusion=0.00 confidence=0.275 risk_flags=['MULTIPLE_PERSON', 'HIGH_DISTRACTION', 'LOW_CONFIDENCE'] time=2.96ms
+2026-07-18 00:40:18.384 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:40:18.387 | INFO     | models.cognitive_monitoring.cognitive_monitor:_get_config:202 - Loaded cognitive monitoring config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml
+2026-07-18 00:40:18.387 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s6 state=NEUTRAL attention=65.75 distraction=25.00 fatigue=0.00 confusion=0.00 confidence=0.275 risk_flags=['LOOKING_AWAY', 'LOW_CONFIDENCE'] time=2.97ms
+2026-07-18 00:40:18.388 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:40:18.391 | INFO     | models.cognitive_monitoring.cognitive_monitor:_get_config:202 - Loaded cognitive monitoring config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml
+2026-07-18 00:40:18.392 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s7 state=UNAVAILABLE attention=0.00 distraction=0.00 fatigue=0.00 confusion=0.00 confidence=0.075 risk_flags=['NO_FACE', 'LOW_ATTENTION', 'LOW_CONFIDENCE'] time=2.99ms
+2026-07-18 00:40:18.393 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:40:18.397 | INFO     | models.cognitive_monitoring.cognitive_monitor:_get_config:202 - Loaded cognitive monitoring config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml
+2026-07-18 00:40:18.398 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s8 state=FOCUSED attention=85.00 distraction=0.00 fatigue=0.00 confusion=0.00 confidence=0.275 risk_flags=['UNKNOWN_FACE', 'LOW_CONFIDENCE'] time=4.08ms
+2026-07-18 00:40:18.399 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:40:18.402 | INFO     | models.cognitive_monitoring.cognitive_monitor:_get_config:202 - Loaded cognitive monitoring config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml
+2026-07-18 00:40:18.402 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s9 state=FOCUSED attention=85.00 distraction=0.00 fatigue=0.00 confusion=0.00 confidence=0.275 risk_flags=['LOW_CONFIDENCE'] time=3.04ms
+2026-07-18 00:40:18.404 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:40:18.404 | ERROR    | models.cognitive_monitoring.cognitive_monitor:predict_safe:373 - Cognitive prediction degraded gracefully: Expected a CognitiveMonitoringInput, got <class 'dict'>.
+2026-07-18 00:40:18.405 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:40:18.409 | INFO     | models.cognitive_monitoring.cognitive_monitor:_get_config:202 - Loaded cognitive monitoring config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml
+2026-07-18 00:40:18.409 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s10 state=DISTRACTED attention=57.00 distraction=100.00 fatigue=100.00 confusion=0.00 confidence=0.275 risk_flags=['PHONE_USAGE', 'MULTIPLE_PERSON', 'LOOKING_AWAY', 'HIGH_DISTRACTION', 'FATIGUE_DETECTED', 'LOW_CONFIDENCE'] time=3.37ms
+2026-07-18 00:40:18.410 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:40:18.413 | INFO     | models.cognitive_monitoring.cognitive_monitor:_get_config:202 - Loaded cognitive monitoring config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml
+2026-07-18 00:40:18.414 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s11 state=FOCUSED attention=85.00 distraction=0.00 fatigue=0.00 confusion=0.00 confidence=0.275 risk_flags=['LOW_CONFIDENCE'] time=3.26ms
+2026-07-18 00:40:18.415 | INFO     | models.cognitive_monitoring.cognitive_monitor:__init__:190 - RuleBasedCognitiveMonitor instance created.
+2026-07-18 00:40:18.418 | INFO     | models.cognitive_monitoring.cognitive_monitor:_get_config:202 - Loaded cognitive monitoring config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\cognitive_monitoring.yaml
+2026-07-18 00:40:18.418 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=s12 state=FOCUSED attention=93.10 distraction=0.00 fatigue=0.00 confusion=0.00 confidence=0.275 risk_flags=['LOW_CONFIDENCE'] time=2.94ms
+2026-07-18 00:40:19.214 | INFO     | models.engagement_prediction.engagement_predictor:__init__:196 - RuleBasedEngagementPredictor instance created.
+2026-07-18 00:40:19.228 | INFO     | models.engagement_prediction.engagement_predictor:_get_config:208 - Loaded engagement prediction config from C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\configs\engagement_prediction.yaml
+2026-07-18 00:40:19.230 | INFO     | models.engagement_prediction.engagement_predictor:predict:332 - Engagement prediction: student_id=22CS001 score=85.00 level=EXCELLENT confidence=0.740 risk_flags=[] time=0.30ms
+2026-07-18 00:40:19.232 | INFO     | models.engagement_prediction.engagement_predictor:predict:340 - Distraction score (informational): 100.00
+2026-07-18 00:40:19.233 | INFO     | models.cognitive_monitoring.cognitive_monitor:predict:353 - Cognitive prediction: student_id=22CS001 state=FOCUSED attention=95.50 distraction=0.00 fatigue=0.00 confusion=0.00 confidence=0.806 risk_flags=[] time=0.18ms
+2026-07-19 01:10:31.939 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\tmpmd97zacm\configs\dashboard.yaml
+2026-07-19 01:10:31.953 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=SMOKE_TEST_001
+2026-07-19 01:19:38.648 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-1\test_append_and_read0\configs\dashboard.yaml
+2026-07-19 01:19:38.649 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:19:38.652 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-1\test_compute_summary_empty0\configs\dashboard.yaml
+2026-07-19 01:19:38.656 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-1\test_compute_summary_with_even0\configs\dashboard.yaml
+2026-07-19 01:19:38.658 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:19:38.660 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S2
+2026-07-19 01:19:38.662 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-1\test_compute_timeline_numeric_0\configs\dashboard.yaml
+2026-07-19 01:19:38.664 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:19:38.665 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:19:38.669 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-1\test_compute_timeline_category0\configs\dashboard.yaml
+2026-07-19 01:19:38.672 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:19:38.673 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:19:38.677 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-1\test_compute_timeline_invalid_0\configs\dashboard.yaml
+2026-07-19 01:19:38.682 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-1\test_compute_student_table0\configs\dashboard.yaml
+2026-07-19 01:19:38.683 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:19:38.684 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S2
+2026-07-19 01:19:38.687 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-1\test_compute_alerts_filters_by0\configs\dashboard.yaml
+2026-07-19 01:19:38.689 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:19:38.690 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:19:38.693 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-1\test_compute_report_daily0\configs\dashboard.yaml
+2026-07-19 01:19:38.695 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:19:38.698 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-1\test_export_csv_contains_heade0\configs\dashboard.yaml
+2026-07-19 01:19:38.699 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:19:38.702 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-1\test_singleton_pattern0\configs\dashboard.yaml
+2026-07-19 01:19:39.477 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=R1
+2026-07-19 01:19:39.520 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=R2
+2026-07-19 01:19:39.585 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=AAA1
+2026-07-19 01:19:39.591 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=BBB2
+2026-07-19 01:19:39.608 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=C1
+2026-07-19 01:19:39.624 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=D1
+2026-07-19 01:19:39.661 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=E1
+2026-07-19 01:38:26.039 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-2\test_append_and_read0\configs\dashboard.yaml
+2026-07-19 01:38:26.041 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:38:26.051 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-2\test_compute_summary_empty0\configs\dashboard.yaml
+2026-07-19 01:38:26.056 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-2\test_compute_summary_with_even0\configs\dashboard.yaml
+2026-07-19 01:38:26.057 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:38:26.058 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S2
+2026-07-19 01:38:26.061 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-2\test_compute_timeline_numeric_0\configs\dashboard.yaml
+2026-07-19 01:38:26.063 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:38:26.064 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:38:26.068 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-2\test_compute_timeline_category0\configs\dashboard.yaml
+2026-07-19 01:38:26.070 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:38:26.071 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:38:26.074 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-2\test_compute_timeline_invalid_0\configs\dashboard.yaml
+2026-07-19 01:38:26.078 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-2\test_compute_student_table0\configs\dashboard.yaml
+2026-07-19 01:38:26.080 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:38:26.081 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S2
+2026-07-19 01:38:26.085 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-2\test_compute_alerts_filters_by0\configs\dashboard.yaml
+2026-07-19 01:38:26.088 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:38:26.090 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:38:26.095 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-2\test_compute_report_daily0\configs\dashboard.yaml
+2026-07-19 01:38:26.098 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:38:26.102 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-2\test_export_csv_contains_heade0\configs\dashboard.yaml
+2026-07-19 01:38:26.104 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-07-19 01:38:26.107 | WARNING  | models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-2\test_singleton_pattern0\configs\dashboard.yaml
+2026-07-19 01:38:26.891 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=R1
+2026-07-19 01:38:26.917 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=R2
+2026-07-19 01:38:26.985 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=AAA1
+2026-07-19 01:38:26.991 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=BBB2
+2026-07-19 01:38:27.011 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=C1
+2026-07-19 01:38:27.036 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=D1
+2026-07-19 01:38:27.083 | INFO     | models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=E1
+2026-08-10 04:06:07.207 | INFO     | app.services.database:connect_to_database:28 - MongoDB client created for database 'student_engagement_db'
+2026-08-10 04:06:10.243 | WARNING  | app.services.database:ping_database:53 - MongoDB ping failed: ServerSelectionTimeoutError: localhost:27017: [WinError 10061] No connection could be made because the target machine actively refused it (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 3.0s, Topology Description: <TopologyDescription id: 6a7900d7101a9ce5a43f15ef, topology_type: Unknown, servers: [<ServerDescription ('localhost', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('localhost:27017: [WinError 10061] No connection could be made because the target machine actively refused it (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>

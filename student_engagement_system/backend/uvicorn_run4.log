@@ -1,0 +1,31 @@
+﻿python : WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+At line:1 char:398
++ ... m\backend"; python -m uvicorn app.main:app --port 8000 *> uvicorn_run ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (WARNING: All lo...itten to STDERR:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+I0000 00:00:1786370782.882547    7260 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1786370784.857437    7260 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+W0000 00:00:1786370788.667795    4760 face_landmarker_graph.cc:180] Sets FaceBlendshapesGraph acceleration to xnnpack by default.
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+W0000 00:00:1786370788.674426   15004 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+W0000 00:00:1786370788.685385    8220 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+INFO:     Started server process [24924]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+Loading Face Recognition Model...
+WARNING: Face recognition model not found. Face authentication disabled.
+Loading Emotion Model...
+WARNING: Emotion model not found. Emotion recognition disabled.
+Loading YOLO...
+INFO:     127.0.0.1:49948 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49949 - "GET /live-monitor HTTP/1.1" 200 OK

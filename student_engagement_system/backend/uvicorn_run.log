@@ -1,0 +1,58 @@
+﻿python : Traceback (most recent call last):
+At line:1 char:398
++ ... m\backend"; python -m uvicorn app.main:app --port 8000 *> uvicorn_run ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\disha\AppData\Local\Programs\Python\Python313\Lib\site-packages\uvicorn\__main__.py", line 4, in <module>
+    uvicorn.main()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\disha\AppData\Local\Programs\Python\Python313\Lib\site-packages\click\core.py", line 1514, in __call__
+    return self.main(*args, **kwargs)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\disha\AppData\Local\Programs\Python\Python313\Lib\site-packages\click\core.py", line 1435, in main
+    rv = self.invoke(ctx)
+  File "C:\Users\disha\AppData\Local\Programs\Python\Python313\Lib\site-packages\click\core.py", line 1298, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\disha\AppData\Local\Programs\Python\Python313\Lib\site-packages\click\core.py", line 853, in invoke
+    return callback(*args, **kwargs)
+  File "C:\Users\disha\AppData\Local\Programs\Python\Python313\Lib\site-packages\uvicorn\main.py", line 440, in main
+    run(
+    ~~~^
+        app,
+        ^^^^
+    ...<48 lines>...
+        reset_contextvars=reset_contextvars,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\disha\AppData\Local\Programs\Python\Python313\Lib\site-packages\uvicorn\main.py", line 609, in run
+    config.load_app()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\disha\AppData\Local\Programs\Python\Python313\Lib\site-packages\uvicorn\config.py", line 427, in load_app
+    return import_from_string(self.app)
+  File "C:\Users\disha\AppData\Local\Programs\Python\Python313\Lib\site-packages\uvicorn\importer.py", line 22, in 
+import_from_string
+    raise exc from None
+  File "C:\Users\disha\AppData\Local\Programs\Python\Python313\Lib\site-packages\uvicorn\importer.py", line 19, in 
+import_from_string
+    module = importlib.import_module(module_str)
+  File "C:\Users\disha\AppData\Local\Programs\Python\Python313\Lib\importlib\__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 1026, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\app\main.py", line 24, in <module>
+    from app.routers import monitoring
+  File "C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\app\routers\monitoring.py", line 
+2, in <module>
+    from database.database import SessionLocal
+ModuleNotFoundError: No module named 'database.database'

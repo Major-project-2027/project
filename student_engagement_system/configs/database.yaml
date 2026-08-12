@@ -1,0 +1,11 @@
+uri_env_var: MONGO_URI
+database_name_env_var: MONGO_DB_NAME
+collections:
+  students: students
+  sessions: sessions
+  attendance: attendance
+  authentication: authentication
+  engagement: engagement
+  predictions: predictions
+  alerts: alerts
+  system_logs: system_logs

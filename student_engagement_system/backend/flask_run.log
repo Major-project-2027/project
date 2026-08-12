@@ -1,0 +1,203 @@
+﻿python : WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+At line:1 char:398
++ ... udent_engagement_system\backend"; python app.py *> flask_run.log 2>&1
++                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (WARNING: All lo...itten to STDERR:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+I0000 00:00:1786370185.042712    5140 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1786370187.361146    5140 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+W0000 00:00:1786370191.088476   24904 face_landmarker_graph.cc:180] Sets FaceBlendshapesGraph acceleration to xnnpack by default.
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+W0000 00:00:1786370191.096010   11324 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+W0000 00:00:1786370191.106248   11324 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+==================================================
+DATABASE: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\student_engagement.db
+==================================================
+Loading Face Recognition Model...
+WARNING: Face recognition model not found. Face authentication disabled.
+Loading Emotion Model...
+WARNING: Emotion model not found. Emotion recognition disabled.
+Loading YOLO...
+JWT FILE: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\services\jwt_service.py
+
+========== ROUTES ==========
+/static/<path:filename>
+/register
+/login
+/join-class
+/my-classes
+/dashboard
+/live-monitor
+/history/class/<int:class_id>
+/teacher/register
+/teacher/login
+/teacher/create-classroom
+/teacher/classrooms
+/teacher/classroom/<int:class_id>
+/teacher/classroom/<int:class_id>
+/teacher/classroom/<int:class_id>
+/dashboard
+/teacher/start-session/<int:class_id>
+/teacher/end-session/<int:class_id>
+/teacher/classroom/<int:class_id>/history
+/
+============================
+
+ * Serving Flask app 'app'
+ * Debug mode: on
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+ * Restarting with stat
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1786370194.394346    1672 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1786370196.288434    1672 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+W0000 00:00:1786370200.061250   20988 face_landmarker_graph.cc:180] Sets FaceBlendshapesGraph acceleration to xnnpack by default.
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+W0000 00:00:1786370200.070367    4760 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+W0000 00:00:1786370200.081649   22744 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+ * Debugger is active!
+ * Debugger PIN: 532-749-780
+ * Detected change in 
+'C:\\Users\\disha\\Predictive_Multimodal_Student_Engagement\\student_engagement_system\\backend\\app\\routers\\monitoring.py', 
+reloading
+==================================================
+DATABASE: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\student_engagement.db
+==================================================
+Loading Face Recognition Model...
+WARNING: Face recognition model not found. Face authentication disabled.
+Loading Emotion Model...
+WARNING: Emotion model not found. Emotion recognition disabled.
+Loading YOLO...
+JWT FILE: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\services\jwt_service.py
+
+========== ROUTES ==========
+/static/<path:filename>
+/register
+/login
+/join-class
+/my-classes
+/dashboard
+/live-monitor
+/history/class/<int:class_id>
+/teacher/register
+/teacher/login
+/teacher/create-classroom
+/teacher/classrooms
+/teacher/classroom/<int:class_id>
+/teacher/classroom/<int:class_id>
+/teacher/classroom/<int:class_id>
+/dashboard
+/teacher/start-session/<int:class_id>
+/teacher/end-session/<int:class_id>
+/teacher/classroom/<int:class_id>/history
+/
+============================
+
+ * Restarting with stat
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1786370589.440813    8176 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1786370591.618379    8176 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+W0000 00:00:1786370601.503742   11568 face_landmarker_graph.cc:180] Sets FaceBlendshapesGraph acceleration to xnnpack by default.
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+W0000 00:00:1786370601.533767   27620 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+W0000 00:00:1786370601.574886     284 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+ * Debugger is active!
+ * Debugger PIN: 532-749-780
+ * Detected change in 
+'C:\\Users\\disha\\Predictive_Multimodal_Student_Engagement\\student_engagement_system\\backend\\models\\engagement.py', reloading
+==================================================
+DATABASE: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\student_engagement.db
+==================================================
+Loading Face Recognition Model...
+WARNING: Face recognition model not found. Face authentication disabled.
+Loading Emotion Model...
+WARNING: Emotion model not found. Emotion recognition disabled.
+Loading YOLO...
+JWT FILE: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\services\jwt_service.py
+
+========== ROUTES ==========
+/static/<path:filename>
+/register
+/login
+/join-class
+/my-classes
+/dashboard
+/live-monitor
+/history/class/<int:class_id>
+/teacher/register
+/teacher/login
+/teacher/create-classroom
+/teacher/classrooms
+/teacher/classroom/<int:class_id>
+/teacher/classroom/<int:class_id>
+/teacher/classroom/<int:class_id>
+/dashboard
+/teacher/start-session/<int:class_id>
+/teacher/end-session/<int:class_id>
+/teacher/classroom/<int:class_id>/history
+/
+============================
+
+ * Restarting with stat
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1786370707.579841   28724 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1786370709.575844   28724 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+W0000 00:00:1786370713.080735   29188 face_landmarker_graph.cc:180] Sets FaceBlendshapesGraph acceleration to xnnpack by default.
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+W0000 00:00:1786370713.088560   23204 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+W0000 00:00:1786370713.097799   22468 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+==================================================
+DATABASE: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\student_engagement.db
+==================================================
+Loading Face Recognition Model...
+WARNING: Face recognition model not found. Face authentication disabled.
+Loading Emotion Model...
+WARNING: Emotion model not found. Emotion recognition disabled.
+Loading YOLO...
+Traceback (most recent call last):
+  File "C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\app.py", line 9, in <module>
+    from routes.student import student_bp
+  File "C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\routes\student.py", line 6, in 
+<module>
+    from services.student_service import StudentService
+  File "C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\services\student_service.py", 
+line 1, in <module>
+    from repositories.student_repository import StudentRepository
+  File 
+"C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\repositories\student_repository.py", 
+line 3, in <module>
+    from models.student import Student
+  File "C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\models\student.py", line 4, in 
+<module>
+    from backend.database.base import Base
+ModuleNotFoundError: No module named 'backend'

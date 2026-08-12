@@ -1,0 +1,7 @@
+random_seed: 42
+batch_size: 32
+epochs: 50
+learning_rate: 0.001
+validation_split: 0.15
+test_split: 0.15
+early_stopping_patience: 5

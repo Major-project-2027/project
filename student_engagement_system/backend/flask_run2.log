@@ -1,0 +1,1752 @@
+﻿python : WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+At line:1 char:398
++ ... dent_engagement_system\backend"; python app.py *> flask_run2.log 2>&1
++                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (WARNING: All lo...itten to STDERR:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+I0000 00:00:1786371045.260599   17320 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1786371047.176036   17320 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+W0000 00:00:1786371050.869382   18340 face_landmarker_graph.cc:180] Sets FaceBlendshapesGraph acceleration to xnnpack by default.
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+W0000 00:00:1786371050.879032   25500 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+W0000 00:00:1786371050.894801   25500 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+==================================================
+DATABASE: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\student_engagement.db
+==================================================
+Loading Face Recognition Model...
+WARNING: Face recognition model not found. Face authentication disabled.
+Loading Emotion Model...
+WARNING: Emotion model not found. Emotion recognition disabled.
+Loading YOLO...
+JWT FILE: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\services\jwt_service.py
+
+========== ROUTES ==========
+/static/<path:filename>
+/register
+/login
+/join-class
+/my-classes
+/dashboard
+/live-monitor
+/history/class/<int:class_id>
+/teacher/register
+/teacher/login
+/teacher/create-classroom
+/teacher/classrooms
+/teacher/classroom/<int:class_id>
+/teacher/classroom/<int:class_id>
+/teacher/classroom/<int:class_id>
+/dashboard
+/teacher/start-session/<int:class_id>
+/teacher/end-session/<int:class_id>
+/teacher/classroom/<int:class_id>/history
+/
+============================
+
+ * Serving Flask app 'app'
+ * Debug mode: on
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+ * Restarting with stat
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1786371054.087955   21108 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1786371056.039472   21108 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+W0000 00:00:1786371059.690361    7612 face_landmarker_graph.cc:180] Sets FaceBlendshapesGraph acceleration to xnnpack by default.
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+W0000 00:00:1786371059.697571    2752 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+W0000 00:00:1786371059.709786   16516 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+ * Debugger is active!
+ * Debugger PIN: 532-749-780
+127.0.0.1 - - [10/Aug/2026 19:41:38] "GET / HTTP/1.1" 200 -
+ * Detected change in 
+'C:\\Users\\disha\\Predictive_Multimodal_Student_Engagement\\student_engagement_system\\backend\\app\\routers\\monitoring.py', 
+reloading
+==================================================
+DATABASE: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\student_engagement.db
+==================================================
+Loading Face Recognition Model...
+WARNING: Face recognition model not found. Face authentication disabled.
+Loading Emotion Model...
+WARNING: Emotion model not found. Emotion recognition disabled.
+Loading YOLO...
+JWT FILE: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\services\jwt_service.py
+
+========== ROUTES ==========
+/static/<path:filename>
+/register
+/login
+/join-class
+/my-classes
+/dashboard
+/live-monitor
+/history/class/<int:class_id>
+/teacher/register
+/teacher/login
+/teacher/create-classroom
+/teacher/classrooms
+/teacher/classroom/<int:class_id>
+/teacher/classroom/<int:class_id>
+/teacher/classroom/<int:class_id>
+/dashboard
+/teacher/start-session/<int:class_id>
+/teacher/end-session/<int:class_id>
+/teacher/classroom/<int:class_id>/history
+/
+============================
+
+ * Restarting with stat
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1786371724.730114   10268 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1786371727.032890   10268 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+W0000 00:00:1786371730.863365   12136 face_landmarker_graph.cc:180] Sets FaceBlendshapesGraph acceleration to xnnpack by default.
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+W0000 00:00:1786371730.870211    5712 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+W0000 00:00:1786371730.882438    5712 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+ * Debugger is active!
+ * Debugger PIN: 532-749-780
+ * Detected change in 
+'C:\\Users\\disha\\Predictive_Multimodal_Student_Engagement\\student_engagement_system\\backend\\app\\routers\\monitoring.py', 
+reloading
+==================================================
+DATABASE: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\student_engagement.db
+==================================================
+Loading Face Recognition Model...
+WARNING: Face recognition model not found. Face authentication disabled.
+Loading Emotion Model...
+WARNING: Emotion model not found. Emotion recognition disabled.
+Loading YOLO...
+JWT FILE: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\services\jwt_service.py
+
+========== ROUTES ==========
+/static/<path:filename>
+/register
+/login
+/join-class
+/my-classes
+/dashboard
+/live-monitor
+/history/class/<int:class_id>
+/teacher/register
+/teacher/login
+/teacher/create-classroom
+/teacher/classrooms
+/teacher/classroom/<int:class_id>
+/teacher/classroom/<int:class_id>
+/teacher/classroom/<int:class_id>
+/dashboard
+/teacher/start-session/<int:class_id>
+/teacher/end-session/<int:class_id>
+/teacher/classroom/<int:class_id>/history
+/
+============================
+
+ * Restarting with stat
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1786372037.179589    1940 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1786372039.018649    1940 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+W0000 00:00:1786372042.565326   21360 face_landmarker_graph.cc:180] Sets FaceBlendshapesGraph acceleration to xnnpack by default.
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+W0000 00:00:1786372042.570881    5284 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+W0000 00:00:1786372042.579856    5284 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+ * Debugger is active!
+ * Debugger PIN: 532-749-780
+==================================================
+DATABASE: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\student_engagement.db
+==================================================
+Loading Face Recognition Model...
+WARNING: Face recognition model not found. Face authentication disabled.
+Loading Emotion Model...
+WARNING: Emotion model not found. Emotion recognition disabled.
+Loading YOLO...
+JWT FILE: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\services\jwt_service.py
+
+========== ROUTES ==========
+/static/<path:filename>
+/register
+/login
+/join-class
+/my-classes
+/dashboard
+/live-monitor
+/history/class/<int:class_id>
+/teacher/register
+/teacher/login
+/teacher/create-classroom
+/teacher/classrooms
+/teacher/classroom/<int:class_id>
+/teacher/classroom/<int:class_id>
+/teacher/classroom/<int:class_id>
+/dashboard
+/teacher/start-session/<int:class_id>
+/teacher/end-session/<int:class_id>
+/teacher/classroom/<int:class_id>/history
+/
+============================
+
+2026-08-10 20:00:39,805 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:00:39,810 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:00:39,810 INFO sqlalchemy.engine.Engine [generated in 0.00018s] ('demo.teacher@test.com', 1, 0)
+2026-08-10 20:00:40,033 INFO sqlalchemy.engine.Engine INSERT INTO teachers (name, email, password_hash, department) VALUES (?, ?, ?, ?) RETURNING teacher_id, created_at
+2026-08-10 20:00:40,033 INFO sqlalchemy.engine.Engine [generated in 0.00019s] ('Demo Teacher', 'demo.teacher@test.com', '$2b$12$dm4.zWb1szzyvmyy/4zu8OfuRywLCX.ZwZ0NeSPcTtv3VQbgmzlXu', 'CSE')
+2026-08-10 20:00:40,036 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:00:40,041 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:00:40,042 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id, teachers.name, teachers.email, teachers.password_hash, teachers.department, teachers.created_at 
+FROM teachers 
+WHERE teachers.teacher_id = ?
+2026-08-10 20:00:40,042 INFO sqlalchemy.engine.Engine [generated in 0.00020s] (4,)
+2026-08-10 20:00:40,043 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:00:40] "POST /teacher/register HTTP/1.1" 201 -
+2026-08-10 20:00:40,112 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:00:40,114 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:00:40,114 INFO sqlalchemy.engine.Engine [generated in 0.00015s] ('demo.student@test.com', 1, 0)
+2026-08-10 20:00:40,115 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.usn = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:00:40,115 INFO sqlalchemy.engine.Engine [generated in 0.00013s] ('STUDENT100', 1, 0)
+2026-08-10 20:00:40,332 INFO sqlalchemy.engine.Engine INSERT INTO students (usn, name, email, password_hash, department, semester, section) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING student_id, created_at
+2026-08-10 20:00:40,332 INFO sqlalchemy.engine.Engine [generated in 0.00023s] ('STUDENT100', 'Demo Student', 'demo.student@test.com', '$2b$12$HErMngcjJ101PnKALvZ0Neh0t0kIZP2BLhxWzsYhmetd0mmwuf6DS', 'CSE', 1, 'A')
+2026-08-10 20:00:40,335 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:00:40,339 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:00:40,339 INFO sqlalchemy.engine.Engine SELECT students.student_id, students.usn, students.name, students.email, students.password_hash, students.department, students.semester, students.section, students.created_at 
+FROM students 
+WHERE students.student_id = ?
+2026-08-10 20:00:40,339 INFO sqlalchemy.engine.Engine [generated in 0.00012s] (4,)
+2026-08-10 20:00:40,340 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:00:40] "POST /register HTTP/1.1" 201 -
+2026-08-10 20:01:16,793 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:01:16,794 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:01:16,794 INFO sqlalchemy.engine.Engine [cached since 36.98s ago] ('demo.teacher@test.com', 1, 0)
+C:\Users\disha\AppData\Local\Programs\Python\Python313\Lib\site-packages\jwt\api_jwt.py:147: InsecureKeyLengthWarning: The HMAC key 
+is 29 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  return self._jws.encode(
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo0LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ1ODY3N30.GmbB-tz-gjeTNYdj4Nxv2Msjf3cS27S1HvgLpd5pkn4
+2026-08-10 20:01:17,024 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:01:17] "POST /teacher/login HTTP/1.1" 200 -
+2026-08-10 20:01:17,220 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:01:17,220 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:01:17,220 INFO sqlalchemy.engine.Engine [cached since 37.11s ago] ('demo.student@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo0LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ1ODY3N30.dz2FPHq0lErtKTXcZNtUmneUMS0YPwMCnt0DXT7qICo
+2026-08-10 20:01:17,455 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:01:17] "POST /login HTTP/1.1" 200 -
+C:\Users\disha\AppData\Local\Programs\Python\Python313\Lib\site-packages\jwt\api_jwt.py:368: InsecureKeyLengthWarning: The HMAC key 
+is 29 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  decoded = self.decode_complete(
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo0LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ1ODY3N30.GmbB-tz-gjeTNYdj4Nxv2Msjf3cS27S1HvgLpd5pkn4
+2026-08-10 20:01:50,634 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:01:50,635 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_code = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:01:50,635 INFO sqlalchemy.engine.Engine [generated in 0.00015s] ('3RFCET', 1, 0)
+2026-08-10 20:01:50,637 INFO sqlalchemy.engine.Engine INSERT INTO classrooms (classroom_name, subject, semester, section, teacher_id, class_code, meeting_link) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING class_id, created_at
+2026-08-10 20:01:50,637 INFO sqlalchemy.engine.Engine [generated in 0.00013s] ('Demo Class', 'AI Basics', 1, 'A', 4, '3RFCET', None)
+2026-08-10 20:01:50,638 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:01:50,640 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:01:50,641 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id, classrooms.classroom_name, classrooms.subject, classrooms.semester, classrooms.section, classrooms.teacher_id, classrooms.class_code, classrooms.meeting_link, classrooms.created_at 
+FROM classrooms 
+WHERE classrooms.class_id = ?
+2026-08-10 20:01:50,641 INFO sqlalchemy.engine.Engine [generated in 0.00011s] (10,)
+2026-08-10 20:01:50,641 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:01:50] "POST /teacher/create-classroom HTTP/1.1" 201 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo0LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ1ODY3N30.dz2FPHq0lErtKTXcZNtUmneUMS0YPwMCnt0DXT7qICo
+2026-08-10 20:02:25,993 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:02:25,995 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms JOIN enrollments ON enrollments.class_id = classrooms.class_id 
+WHERE enrollments.student_id = ?
+2026-08-10 20:02:25,995 INFO sqlalchemy.engine.Engine [generated in 0.00019s] (4,)
+2026-08-10 20:02:25,996 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:02:25] "GET /my-classes HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo0LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ1ODY3N30.dz2FPHq0lErtKTXcZNtUmneUMS0YPwMCnt0DXT7qICo
+2026-08-10 20:02:26,066 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+127.0.0.1 - - [10/Aug/2026 20:02:26] "POST /join-class HTTP/1.1" 201 -
+2026-08-10 20:02:26,067 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_code = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:02:26,067 INFO sqlalchemy.engine.Engine [cached since 35.43s ago] ('3RFCET', 1, 0)
+2026-08-10 20:02:26,069 INFO sqlalchemy.engine.Engine SELECT enrollments.enrollment_id AS enrollments_enrollment_id, enrollments.student_id AS enrollments_student_id, enrollments.class_id AS enrollments_class_id, enrollments.joined_at AS enrollments_joined_at 
+FROM enrollments 
+WHERE enrollments.student_id = ? AND enrollments.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:02:26,069 INFO sqlalchemy.engine.Engine [generated in 0.00019s] (4, 10, 1, 0)
+2026-08-10 20:02:26,070 INFO sqlalchemy.engine.Engine INSERT INTO enrollments (student_id, class_id) VALUES (?, ?) RETURNING enrollment_id, joined_at
+2026-08-10 20:02:26,070 INFO sqlalchemy.engine.Engine [generated in 0.00013s] (4, 10)
+2026-08-10 20:02:26,071 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:02:26,075 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:02:26,075 INFO sqlalchemy.engine.Engine SELECT enrollments.enrollment_id, enrollments.student_id, enrollments.class_id, enrollments.joined_at 
+FROM enrollments 
+WHERE enrollments.enrollment_id = ?
+2026-08-10 20:02:26,075 INFO sqlalchemy.engine.Engine [generated in 0.00010s] (4,)
+2026-08-10 20:02:26,076 INFO sqlalchemy.engine.Engine ROLLBACK
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo0LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ1ODY3N30.dz2FPHq0lErtKTXcZNtUmneUMS0YPwMCnt0DXT7qICo
+2026-08-10 20:02:26,135 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:02:26,135 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms JOIN enrollments ON enrollments.class_id = classrooms.class_id 
+WHERE enrollments.student_id = ?
+2026-08-10 20:02:26,135 INFO sqlalchemy.engine.Engine [cached since 0.1405s ago] (4,)
+2026-08-10 20:02:26,136 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:02:26] "GET /my-classes HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo0LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ1ODY3N30.GmbB-tz-gjeTNYdj4Nxv2Msjf3cS27S1HvgLpd5pkn4
+2026-08-10 20:02:26,212 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:02:26,213 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:02:26,214 INFO sqlalchemy.engine.Engine [generated in 0.00020s] (10, 1, 0)
+2026-08-10 20:02:26,217 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:02:26,217 INFO sqlalchemy.engine.Engine [generated in 0.00018s] (10, 1, 0)
+2026-08-10 20:02:26,218 INFO sqlalchemy.engine.Engine INSERT INTO sessions (class_id, teacher_id, end_time, is_active) VALUES (?, ?, ?, ?) RETURNING session_id, start_time
+2026-08-10 20:02:26,218 INFO sqlalchemy.engine.Engine [generated in 0.00018s] (10, 4, None, 1)
+2026-08-10 20:02:26,219 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:02:26,224 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:02:26,224 INFO sqlalchemy.engine.Engine SELECT sessions.session_id, sessions.class_id, sessions.teacher_id, sessions.start_time, sessions.end_time, sessions.is_active 
+FROM sessions 
+WHERE sessions.session_id = ?
+2026-08-10 20:02:26,225 INFO sqlalchemy.engine.Engine [generated in 0.00017s] (10,)
+2026-08-10 20:02:26,225 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:02:26] "POST /teacher/start-session/10 HTTP/1.1" 201 -
+ * Detected change in 
+'C:\\Users\\disha\\Predictive_Multimodal_Student_Engagement\\student_engagement_system\\backend\\services\\enrollment_service.py', 
+reloading
+ * Restarting with stat
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1786372447.103811   11808 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1786372448.802353   11808 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+W0000 00:00:1786372452.072329    7964 face_landmarker_graph.cc:180] Sets FaceBlendshapesGraph acceleration to xnnpack by default.
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+W0000 00:00:1786372452.078122   10548 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+W0000 00:00:1786372452.087085    9464 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature 
+inference. Disabling support for feedback tensors.
+ * Debugger is active!
+ * Debugger PIN: 532-749-780
+E0000 00:00:1786372525.828362   10512 portable_clearcut_uploader.cc:90] Failed to send to clearcut: INTERNAL: ResponseInfo[id: 1, 
+type: 0, code: 2, description: "Status_ConnectFailed: 12030", headers: ]
+=== Source Location Trace: === 
+wireless/android/play/playlog/cplusplus/ion_http_client.cc:44
+==================================================
+DATABASE: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\student_engagement.db
+==================================================
+Loading Face Recognition Model...
+WARNING: Face recognition model not found. Face authentication disabled.
+Loading Emotion Model...
+WARNING: Emotion model not found. Emotion recognition disabled.
+Loading YOLO...
+JWT FILE: C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\services\jwt_service.py
+
+========== ROUTES ==========
+/static/<path:filename>
+/register
+/login
+/join-class
+/my-classes
+/dashboard
+/live-monitor
+/history/class/<int:class_id>
+/teacher/register
+/teacher/login
+/teacher/create-classroom
+/teacher/classrooms
+/teacher/classroom/<int:class_id>
+/teacher/classroom/<int:class_id>
+/teacher/classroom/<int:class_id>
+/dashboard
+/teacher/start-session/<int:class_id>
+/teacher/end-session/<int:class_id>
+/teacher/classroom/<int:class_id>/history
+/
+============================
+
+2026-08-10 20:05:36,285 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:05:36,290 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:05:36,291 INFO sqlalchemy.engine.Engine [generated in 0.00022s] ('demo.student2@test.com', 1, 0)
+2026-08-10 20:05:36,292 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.usn = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:05:36,292 INFO sqlalchemy.engine.Engine [generated in 0.00017s] ('STUDENT101', 1, 0)
+2026-08-10 20:05:36,548 INFO sqlalchemy.engine.Engine INSERT INTO students (usn, name, email, password_hash, department, semester, section) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING student_id, created_at
+2026-08-10 20:05:36,548 INFO sqlalchemy.engine.Engine [generated in 0.00017s] ('STUDENT101', 'Demo Student Two', 'demo.student2@test.com', '$2b$12$KVYrNp9KuI0z2g8MhdFPkeSHlTzZmaEY1nQlGYRejnqpjH4lA4H1q', 'CSE', 1, 'A')
+2026-08-10 20:05:36,549 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:05:36,555 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:05:36,557 INFO sqlalchemy.engine.Engine SELECT students.student_id, students.usn, students.name, students.email, students.password_hash, students.department, students.semester, students.section, students.created_at 
+FROM students 
+WHERE students.student_id = ?
+2026-08-10 20:05:36,557 INFO sqlalchemy.engine.Engine [generated in 0.00018s] (5,)
+2026-08-10 20:05:36,557 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:05:36] "POST /register HTTP/1.1" 201 -
+2026-08-10 20:05:36,660 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:05:36,660 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:05:36,661 INFO sqlalchemy.engine.Engine [cached since 0.3702s ago] ('demo.student2@test.com', 1, 0)
+C:\Users\disha\AppData\Local\Programs\Python\Python313\Lib\site-packages\jwt\api_jwt.py:147: InsecureKeyLengthWarning: The HMAC key 
+is 29 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  return self._jws.encode(
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ1ODkzNn0.yiSDqVI5B7ZG773tHNI2K3DlduKFfuAJehrSQXKBAeY
+2026-08-10 20:05:36,887 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:05:36] "POST /login HTTP/1.1" 200 -
+C:\Users\disha\AppData\Local\Programs\Python\Python313\Lib\site-packages\jwt\api_jwt.py:368: InsecureKeyLengthWarning: The HMAC key 
+is 29 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  decoded = self.decode_complete(
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ1ODkzNn0.yiSDqVI5B7ZG773tHNI2K3DlduKFfuAJehrSQXKBAeY
+2026-08-10 20:05:37,121 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:05:37,123 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_code = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:05:37,123 INFO sqlalchemy.engine.Engine [generated in 0.00036s] ('10', 1, 0)
+2026-08-10 20:05:37,125 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:05:37,125 INFO sqlalchemy.engine.Engine [generated in 0.00014s] (10, 1, 0)
+2026-08-10 20:05:37,127 INFO sqlalchemy.engine.Engine SELECT enrollments.enrollment_id AS enrollments_enrollment_id, enrollments.student_id AS enrollments_student_id, enrollments.class_id AS enrollments_class_id, enrollments.joined_at AS enrollments_joined_at 
+FROM enrollments 
+WHERE enrollments.student_id = ? AND enrollments.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:05:37,127 INFO sqlalchemy.engine.Engine [generated in 0.00020s] (5, 10, 1, 0)
+2026-08-10 20:05:37,129 INFO sqlalchemy.engine.Engine INSERT INTO enrollments (student_id, class_id) VALUES (?, ?) RETURNING enrollment_id, joined_at
+2026-08-10 20:05:37,129 INFO sqlalchemy.engine.Engine [generated in 0.00017s] (5, 10)
+2026-08-10 20:05:37,130 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:05:37,133 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:05:37,134 INFO sqlalchemy.engine.Engine SELECT enrollments.enrollment_id, enrollments.student_id, enrollments.class_id, enrollments.joined_at 
+FROM enrollments 
+WHERE enrollments.enrollment_id = ?
+2026-08-10 20:05:37,134 INFO sqlalchemy.engine.Engine [generated in 0.00017s] (5,)
+2026-08-10 20:05:37,134 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:05:37] "POST /join-class HTTP/1.1" 201 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo0LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ1ODY3N30.GmbB-tz-gjeTNYdj4Nxv2Msjf3cS27S1HvgLpd5pkn4
+2026-08-10 20:10:17,722 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:10:17,725 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:10:17,726 INFO sqlalchemy.engine.Engine [generated in 0.00020s] (10, 1, 0)
+2026-08-10 20:10:17,730 INFO sqlalchemy.engine.Engine UPDATE sessions SET end_time=CURRENT_TIMESTAMP, is_active=? WHERE sessions.session_id = ?
+2026-08-10 20:10:17,730 INFO sqlalchemy.engine.Engine [generated in 0.00016s] (0, 10)
+2026-08-10 20:10:17,731 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:10:17,733 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:10:17,734 INFO sqlalchemy.engine.Engine SELECT sessions.session_id, sessions.class_id, sessions.teacher_id, sessions.start_time, sessions.end_time, sessions.is_active 
+FROM sessions 
+WHERE sessions.session_id = ?
+2026-08-10 20:10:17,734 INFO sqlalchemy.engine.Engine [generated in 0.00011s] (10,)
+2026-08-10 20:10:17,734 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:10:17] "POST /teacher/end-session/10 HTTP/1.1" 200 -
+2026-08-10 20:13:17,895 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:13:17,896 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:13:17,896 INFO sqlalchemy.engine.Engine [generated in 0.00015s] ('e2e.teacher@test.com', 1, 0)
+2026-08-10 20:13:18,107 INFO sqlalchemy.engine.Engine INSERT INTO teachers (name, email, password_hash, department) VALUES (?, ?, ?, ?) RETURNING teacher_id, created_at
+2026-08-10 20:13:18,107 INFO sqlalchemy.engine.Engine [generated in 0.00017s] ('E2E Teacher', 'e2e.teacher@test.com', '$2b$12$HGiTMHgS5UFeA2CYvJ9ZEunPxXDnJDg6I.VggXH5KRm19GDSvi23a', 'CSE')
+2026-08-10 20:13:18,108 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:13:18,111 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:13:18,111 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id, teachers.name, teachers.email, teachers.password_hash, teachers.department, teachers.created_at 
+FROM teachers 
+WHERE teachers.teacher_id = ?
+2026-08-10 20:13:18,111 INFO sqlalchemy.engine.Engine [generated in 0.00011s] (5,)
+2026-08-10 20:13:18,112 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:13:18] "POST /teacher/register HTTP/1.1" 201 -
+2026-08-10 20:13:18,172 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:13:18,173 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:13:18,173 INFO sqlalchemy.engine.Engine [cached since 0.2769s ago] ('e2e.teacher@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ1OTM5OH0.5fhWl4029ZOXoZxbGnFiv3ApibuCCBLNOOZ7Va4aop4
+2026-08-10 20:13:18,393 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:13:18] "POST /teacher/login HTTP/1.1" 200 -
+2026-08-10 20:13:18,559 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:13:18,559 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:13:18,559 INFO sqlalchemy.engine.Engine [cached since 462.3s ago] ('e2e.student@test.com', 1, 0)
+2026-08-10 20:13:18,560 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.usn = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:13:18,560 INFO sqlalchemy.engine.Engine [cached since 462.3s ago] ('E2E001', 1, 0)
+2026-08-10 20:13:18,781 INFO sqlalchemy.engine.Engine INSERT INTO students (usn, name, email, password_hash, department, semester, section) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING student_id, created_at
+2026-08-10 20:13:18,781 INFO sqlalchemy.engine.Engine [cached since 462.2s ago] ('E2E001', 'E2E Student', 'e2e.student@test.com', '$2b$12$wDV.EO9voauG4kiaJm008.RuI39OBdP6dU4wW1QOJJ6Bx4h0BzW9O', 'CSE', 1, 'A')
+2026-08-10 20:13:18,783 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:13:18,786 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:13:18,786 INFO sqlalchemy.engine.Engine SELECT students.student_id, students.usn, students.name, students.email, students.password_hash, students.department, students.semester, students.section, students.created_at 
+FROM students 
+WHERE students.student_id = ?
+2026-08-10 20:13:18,786 INFO sqlalchemy.engine.Engine [cached since 462.2s ago] (6,)
+2026-08-10 20:13:18,787 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:13:18] "POST /register HTTP/1.1" 201 -
+2026-08-10 20:13:18,837 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:13:18,837 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:13:18,837 INFO sqlalchemy.engine.Engine [cached since 462.5s ago] ('e2e.student@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo2LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ1OTM5OX0.9x4IZ5YbQZKtAFdYDLyVV7RSvF0abTdFSctxMP2fVkY
+2026-08-10 20:13:19,063 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:13:19] "POST /login HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ1OTM5OH0.5fhWl4029ZOXoZxbGnFiv3ApibuCCBLNOOZ7Va4aop4
+2026-08-10 20:13:19,290 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:13:19,291 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_code = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:13:19,291 INFO sqlalchemy.engine.Engine [cached since 462.2s ago] ('PLSJPR', 1, 0)
+2026-08-10 20:13:19,292 INFO sqlalchemy.engine.Engine INSERT INTO classrooms (classroom_name, subject, semester, section, teacher_id, class_code, meeting_link) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING class_id, created_at
+2026-08-10 20:13:19,292 INFO sqlalchemy.engine.Engine [generated in 0.00013s] ('E2E Class', 'Demo', 1, 'A', 5, 'PLSJPR', None)
+2026-08-10 20:13:19,293 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:13:19,295 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:13:19,296 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id, classrooms.classroom_name, classrooms.subject, classrooms.semester, classrooms.section, classrooms.teacher_id, classrooms.class_code, classrooms.meeting_link, classrooms.created_at 
+FROM classrooms 
+WHERE classrooms.class_id = ?
+2026-08-10 20:13:19,296 INFO sqlalchemy.engine.Engine [generated in 0.00011s] (11,)
+2026-08-10 20:13:19,296 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:13:19] "POST /teacher/create-classroom HTTP/1.1" 201 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo2LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ1OTM5OX0.9x4IZ5YbQZKtAFdYDLyVV7RSvF0abTdFSctxMP2fVkY
+2026-08-10 20:13:19,461 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:13:19,461 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_code = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:13:19,461 INFO sqlalchemy.engine.Engine [cached since 462.3s ago] ('11', 1, 0)
+2026-08-10 20:13:19,462 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:13:19,462 INFO sqlalchemy.engine.Engine [cached since 462.3s ago] (11, 1, 0)
+2026-08-10 20:13:19,463 INFO sqlalchemy.engine.Engine SELECT enrollments.enrollment_id AS enrollments_enrollment_id, enrollments.student_id AS enrollments_student_id, enrollments.class_id AS enrollments_class_id, enrollments.joined_at AS enrollments_joined_at 
+FROM enrollments 
+WHERE enrollments.student_id = ? AND enrollments.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:13:19,463 INFO sqlalchemy.engine.Engine [cached since 462.3s ago] (6, 11, 1, 0)
+2026-08-10 20:13:19,463 INFO sqlalchemy.engine.Engine INSERT INTO enrollments (student_id, class_id) VALUES (?, ?) RETURNING enrollment_id, joined_at
+2026-08-10 20:13:19,463 INFO sqlalchemy.engine.Engine [cached since 462.3s ago] (6, 11)
+2026-08-10 20:13:19,464 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:13:19,466 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:13:19,466 INFO sqlalchemy.engine.Engine SELECT enrollments.enrollment_id, enrollments.student_id, enrollments.class_id, enrollments.joined_at 
+FROM enrollments 
+WHERE enrollments.enrollment_id = ?
+2026-08-10 20:13:19,466 INFO sqlalchemy.engine.Engine [cached since 462.3s ago] (6,)
+2026-08-10 20:13:19,467 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:13:19] "POST /join-class HTTP/1.1" 201 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo2LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ1OTM5OX0.9x4IZ5YbQZKtAFdYDLyVV7RSvF0abTdFSctxMP2fVkY
+2026-08-10 20:13:19,530 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:13:19,531 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms JOIN enrollments ON enrollments.class_id = classrooms.class_id 
+WHERE enrollments.student_id = ?
+2026-08-10 20:13:19,531 INFO sqlalchemy.engine.Engine [generated in 0.00013s] (6,)
+2026-08-10 20:13:19,532 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:13:19] "GET /my-classes HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ1OTM5OH0.5fhWl4029ZOXoZxbGnFiv3ApibuCCBLNOOZ7Va4aop4
+2026-08-10 20:13:19,595 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:13:19,595 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:13:19,595 INFO sqlalchemy.engine.Engine [cached since 462.5s ago] (11, 1, 0)
+2026-08-10 20:13:19,596 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:13:19,596 INFO sqlalchemy.engine.Engine [cached since 181.9s ago] (11, 1, 0)
+2026-08-10 20:13:19,597 INFO sqlalchemy.engine.Engine INSERT INTO sessions (class_id, teacher_id, end_time, is_active) VALUES (?, ?, ?, ?) RETURNING session_id, start_time
+2026-08-10 20:13:19,597 INFO sqlalchemy.engine.Engine [generated in 0.00013s] (11, 5, None, 1)
+2026-08-10 20:13:19,598 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:13:19,600 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:13:19,600 INFO sqlalchemy.engine.Engine SELECT sessions.session_id, sessions.class_id, sessions.teacher_id, sessions.start_time, sessions.end_time, sessions.is_active 
+FROM sessions 
+WHERE sessions.session_id = ?
+2026-08-10 20:13:19,600 INFO sqlalchemy.engine.Engine [cached since 181.9s ago] (11,)
+2026-08-10 20:13:19,601 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:13:19] "POST /teacher/start-session/11 HTTP/1.1" 201 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ1OTM5OH0.5fhWl4029ZOXoZxbGnFiv3ApibuCCBLNOOZ7Va4aop4
+2026-08-10 20:13:19,934 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:13:19,935 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:13:19,935 INFO sqlalchemy.engine.Engine [cached since 182.2s ago] (11, 1, 0)
+2026-08-10 20:13:19,936 INFO sqlalchemy.engine.Engine UPDATE sessions SET end_time=CURRENT_TIMESTAMP, is_active=? WHERE sessions.session_id = ?
+2026-08-10 20:13:19,936 INFO sqlalchemy.engine.Engine [cached since 182.2s ago] (0, 11)
+2026-08-10 20:13:19,938 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:13:19,941 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:13:19,942 INFO sqlalchemy.engine.Engine SELECT sessions.session_id, sessions.class_id, sessions.teacher_id, sessions.start_time, sessions.end_time, sessions.is_active 
+FROM sessions 
+WHERE sessions.session_id = ?
+2026-08-10 20:13:19,942 INFO sqlalchemy.engine.Engine [cached since 182.2s ago] (11,)
+2026-08-10 20:13:19,943 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:13:19] "POST /teacher/end-session/11 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 20:32:15] "OPTIONS /teacher/login HTTP/1.1" 200 -
+2026-08-10 20:32:15,912 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:32:15,913 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:32:15,913 INFO sqlalchemy.engine.Engine [cached since 1138s ago] ('e2e.teacher@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:32:16,156 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:32:16] "POST /teacher/login HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 20:32:16] "OPTIONS /my-classes HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:32:16,805 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:32:16,805 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms JOIN enrollments ON enrollments.class_id = classrooms.class_id 
+WHERE enrollments.student_id = ?
+2026-08-10 20:32:16,805 INFO sqlalchemy.engine.Engine [cached since 1137s ago] (5,)
+2026-08-10 20:32:16,807 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:32:16] "GET /my-classes HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 20:34:55] "OPTIONS /my-classes HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:34:55,589 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:34:55,590 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms JOIN enrollments ON enrollments.class_id = classrooms.class_id 
+WHERE enrollments.student_id = ?
+2026-08-10 20:34:55,590 INFO sqlalchemy.engine.Engine [cached since 1296s ago] (5,)
+2026-08-10 20:34:55,593 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:34:55] "GET /my-classes HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 20:35:57] "OPTIONS /teacher/classrooms HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:35:57,607 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:35:57,609 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.teacher_id = ?
+2026-08-10 20:35:57,609 INFO sqlalchemy.engine.Engine [generated in 0.00028s] (5,)
+2026-08-10 20:35:57,610 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:35:57] "GET /teacher/classrooms HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 20:36:31] "OPTIONS /teacher/end-session/11 HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:36:31,875 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:36:31,876 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:36:31,876 INFO sqlalchemy.engine.Engine [cached since 1574s ago] (11, 1, 0)
+2026-08-10 20:36:31,878 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:36:31] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:36:33,393 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:36:33,394 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:36:33,394 INFO sqlalchemy.engine.Engine [cached since 1576s ago] (11, 1, 0)
+2026-08-10 20:36:33,396 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:36:33] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:36:34,273 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:36:34,274 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:36:34,274 INFO sqlalchemy.engine.Engine [cached since 1577s ago] (11, 1, 0)
+2026-08-10 20:36:34,276 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:36:34] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:36:34,462 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:36:34,463 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:36:34,463 INFO sqlalchemy.engine.Engine [cached since 1577s ago] (11, 1, 0)
+2026-08-10 20:36:34,465 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:36:34] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:36:34,663 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:36:34,664 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:36:34,664 INFO sqlalchemy.engine.Engine [cached since 1577s ago] (11, 1, 0)
+2026-08-10 20:36:34,666 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:36:34] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:36:34,848 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:36:34,849 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:36:34,849 INFO sqlalchemy.engine.Engine [cached since 1577s ago] (11, 1, 0)
+2026-08-10 20:36:34,852 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:36:34] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:36:35,063 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:36:35,064 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:36:35,065 INFO sqlalchemy.engine.Engine [cached since 1577s ago] (11, 1, 0)
+2026-08-10 20:36:35,066 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:36:35] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:36:35,267 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:36:35,268 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:36:35,269 INFO sqlalchemy.engine.Engine [cached since 1578s ago] (11, 1, 0)
+2026-08-10 20:36:35,271 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:36:35] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:36:35,442 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:36:35,444 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:36:35,445 INFO sqlalchemy.engine.Engine [cached since 1578s ago] (11, 1, 0)
+2026-08-10 20:36:35,446 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:36:35] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:36:35,630 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:36:35,632 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:36:35,632 INFO sqlalchemy.engine.Engine [cached since 1578s ago] (11, 1, 0)
+2026-08-10 20:36:35,634 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:36:35] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:36:35,803 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:36:35,804 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:36:35,805 INFO sqlalchemy.engine.Engine [cached since 1578s ago] (11, 1, 0)
+2026-08-10 20:36:35,808 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:36:35] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:36:35,959 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:36:35,960 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:36:35,961 INFO sqlalchemy.engine.Engine [cached since 1578s ago] (11, 1, 0)
+2026-08-10 20:36:35,962 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:36:35] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:36:36,178 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:36:36,180 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:36:36,181 INFO sqlalchemy.engine.Engine [cached since 1578s ago] (11, 1, 0)
+2026-08-10 20:36:36,183 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:36:36] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+127.0.0.1 - - [10/Aug/2026 20:36:43] "OPTIONS /teacher/end-session/11 HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:36:43,597 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:36:43,599 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:36:43,601 INFO sqlalchemy.engine.Engine [cached since 1586s ago] (11, 1, 0)
+2026-08-10 20:36:43,603 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:36:43] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+127.0.0.1 - - [10/Aug/2026 20:39:43] "OPTIONS /teacher/end-session/11 HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:39:43,088 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:39:43,088 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:39:43,089 INFO sqlalchemy.engine.Engine [cached since 1765s ago] (11, 1, 0)
+2026-08-10 20:39:43,089 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:39:43] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+127.0.0.1 - - [10/Aug/2026 20:47:17] "OPTIONS /teacher/end-session/11 HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:47:17,611 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:47:17,612 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:47:17,612 INFO sqlalchemy.engine.Engine [cached since 2220s ago] (11, 1, 0)
+2026-08-10 20:47:17,613 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:47:17] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo0LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ1ODY3N30.GmbB-tz-gjeTNYdj4Nxv2Msjf3cS27S1HvgLpd5pkn4
+2026-08-10 20:50:57,583 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:50:57,584 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:50:57,584 INFO sqlalchemy.engine.Engine [cached since 2720s ago] (11, 1, 0)
+2026-08-10 20:50:57,586 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:50:57] "POST /teacher/start-session/11 HTTP/1.1" 400 -
+2026-08-10 20:51:32,007 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:51:32,008 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:51:32,008 INFO sqlalchemy.engine.Engine [cached since 2294s ago] ('e2e.teacher@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MTY5Mn0.mRuwTJcFVawBFZdLExSYVfXyXz8DS3bW9Q6WvtOk3aM
+2026-08-10 20:51:32,340 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:51:32] "POST /teacher/login HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MTY5Mn0.mRuwTJcFVawBFZdLExSYVfXyXz8DS3bW9Q6WvtOk3aM
+2026-08-10 20:51:32,652 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:51:32,653 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:51:32,653 INFO sqlalchemy.engine.Engine [cached since 2756s ago] (11, 1, 0)
+2026-08-10 20:51:32,654 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:51:32,654 INFO sqlalchemy.engine.Engine [cached since 2475s ago] (11, 1, 0)
+2026-08-10 20:51:32,657 INFO sqlalchemy.engine.Engine INSERT INTO sessions (class_id, teacher_id, end_time, is_active) VALUES (?, ?, ?, ?) RETURNING session_id, start_time
+2026-08-10 20:51:32,657 INFO sqlalchemy.engine.Engine [cached since 2293s ago] (11, 5, None, 1)
+2026-08-10 20:51:32,660 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:51:32,666 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:51:32,666 INFO sqlalchemy.engine.Engine SELECT sessions.session_id, sessions.class_id, sessions.teacher_id, sessions.start_time, sessions.end_time, sessions.is_active 
+FROM sessions 
+WHERE sessions.session_id = ?
+2026-08-10 20:51:32,666 INFO sqlalchemy.engine.Engine [cached since 2475s ago] (12,)
+2026-08-10 20:51:32,667 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:51:32] "POST /teacher/start-session/11 HTTP/1.1" 201 -
+2026-08-10 20:52:37,409 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:52:37,410 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:52:37,410 INFO sqlalchemy.engine.Engine [cached since 2360s ago] ('e2e.teacher@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MTc1N30.jUqiux7DhQqcGCZ6PQaWSreDN1cOwptLVlcI-Zc49cA
+2026-08-10 20:52:37,674 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:52:37] "POST /teacher/login HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MTc1N30.jUqiux7DhQqcGCZ6PQaWSreDN1cOwptLVlcI-Zc49cA
+2026-08-10 20:52:37,856 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:52:37,857 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.teacher_id = ?
+2026-08-10 20:52:37,857 INFO sqlalchemy.engine.Engine [cached since 1000s ago] (5,)
+2026-08-10 20:52:37,857 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:52:37] "GET /teacher/classrooms HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MTc1N30.jUqiux7DhQqcGCZ6PQaWSreDN1cOwptLVlcI-Zc49cA
+2026-08-10 20:52:37,925 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:52:37,925 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:52:37,925 INFO sqlalchemy.engine.Engine [cached since 2540s ago] (11, 1, 0)
+2026-08-10 20:52:37,926 INFO sqlalchemy.engine.Engine UPDATE sessions SET end_time=CURRENT_TIMESTAMP, is_active=? WHERE sessions.session_id = ?
+2026-08-10 20:52:37,926 INFO sqlalchemy.engine.Engine [cached since 2540s ago] (0, 12)
+2026-08-10 20:52:37,928 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:52:37,931 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:52:37,931 INFO sqlalchemy.engine.Engine SELECT sessions.session_id, sessions.class_id, sessions.teacher_id, sessions.start_time, sessions.end_time, sessions.is_active 
+FROM sessions 
+WHERE sessions.session_id = ?
+2026-08-10 20:52:37,931 INFO sqlalchemy.engine.Engine [cached since 2540s ago] (12,)
+2026-08-10 20:52:37,932 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:52:37] "POST /teacher/end-session/11 HTTP/1.1" 200 -
+2026-08-10 20:52:53,809 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:52:53,809 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:52:53,809 INFO sqlalchemy.engine.Engine [cached since 2376s ago] ('e2e.teacher@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MTc3NH0.EoIFV-kfW1hLNtLfQ7i73_6rHA4F8yFefxECxSxGV_Y
+2026-08-10 20:52:54,087 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:52:54] "POST /teacher/login HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MTc3NH0.EoIFV-kfW1hLNtLfQ7i73_6rHA4F8yFefxECxSxGV_Y
+2026-08-10 20:52:54,312 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:52:54,313 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:52:54,313 INFO sqlalchemy.engine.Engine [cached since 2837s ago] (11, 1, 0)
+2026-08-10 20:52:54,315 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:52:54,315 INFO sqlalchemy.engine.Engine [cached since 2557s ago] (11, 1, 0)
+2026-08-10 20:52:54,316 INFO sqlalchemy.engine.Engine INSERT INTO sessions (class_id, teacher_id, end_time, is_active) VALUES (?, ?, ?, ?) RETURNING session_id, start_time
+2026-08-10 20:52:54,316 INFO sqlalchemy.engine.Engine [cached since 2375s ago] (11, 5, None, 1)
+2026-08-10 20:52:54,318 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:52:54,322 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:52:54,322 INFO sqlalchemy.engine.Engine SELECT sessions.session_id, sessions.class_id, sessions.teacher_id, sessions.start_time, sessions.end_time, sessions.is_active 
+FROM sessions 
+WHERE sessions.session_id = ?
+2026-08-10 20:52:54,322 INFO sqlalchemy.engine.Engine [cached since 2557s ago] (13,)
+2026-08-10 20:52:54,323 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:52:54] "POST /teacher/start-session/11 HTTP/1.1" 201 -
+2026-08-10 20:54:16,008 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:54:16,009 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:54:16,009 INFO sqlalchemy.engine.Engine [cached since 2458s ago] ('e2e.teacher@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MTg1Nn0.vZSwOtWHzOKAhxqHr9uogjYlUpLjANJ9xXNzF7JSYNs
+2026-08-10 20:54:16,322 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:54:16] "POST /teacher/login HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MTg1Nn0.vZSwOtWHzOKAhxqHr9uogjYlUpLjANJ9xXNzF7JSYNs
+2026-08-10 20:54:16,486 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:54:16,486 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:54:16,486 INFO sqlalchemy.engine.Engine [cached since 2639s ago] (11, 1, 0)
+2026-08-10 20:54:16,487 INFO sqlalchemy.engine.Engine UPDATE sessions SET end_time=CURRENT_TIMESTAMP, is_active=? WHERE sessions.session_id = ?
+2026-08-10 20:54:16,487 INFO sqlalchemy.engine.Engine [cached since 2639s ago] (0, 13)
+2026-08-10 20:54:16,494 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:54:16,497 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:54:16,497 INFO sqlalchemy.engine.Engine SELECT sessions.session_id, sessions.class_id, sessions.teacher_id, sessions.start_time, sessions.end_time, sessions.is_active 
+FROM sessions 
+WHERE sessions.session_id = ?
+2026-08-10 20:54:16,497 INFO sqlalchemy.engine.Engine [cached since 2639s ago] (13,)
+2026-08-10 20:54:16,497 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:54:16] "POST /teacher/end-session/11 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 20:55:27] "OPTIONS /teacher/end-session/11 HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:55:27,424 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:55:27,425 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:55:27,425 INFO sqlalchemy.engine.Engine [cached since 2710s ago] (11, 1, 0)
+2026-08-10 20:55:27,426 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:55:27] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+127.0.0.1 - - [10/Aug/2026 20:56:41] "OPTIONS /teacher/end-session/11 HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 20:56:41,240 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:56:41,241 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:56:41,241 INFO sqlalchemy.engine.Engine [cached since 2784s ago] (11, 1, 0)
+2026-08-10 20:56:41,242 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:56:41] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+2026-08-10 20:57:34,063 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:57:34,063 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:57:34,064 INFO sqlalchemy.engine.Engine [cached since 2656s ago] ('e2e.teacher@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MjA1NH0.a_o_WF-c24cz-xWj8WeR9bv5r3tVgyx3X7mscjc4-Mk
+2026-08-10 20:57:34,313 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:57:34] "POST /teacher/login HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MjA1NH0.a_o_WF-c24cz-xWj8WeR9bv5r3tVgyx3X7mscjc4-Mk
+2026-08-10 20:57:34,489 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:57:34,489 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:57:34,489 INFO sqlalchemy.engine.Engine [cached since 2837s ago] (11, 1, 0)
+2026-08-10 20:57:34,490 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:57:34] "POST /teacher/end-session/11 HTTP/1.1" 400 -
+2026-08-10 20:58:20,428 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:58:20,429 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:58:20,429 INFO sqlalchemy.engine.Engine [cached since 2703s ago] ('e2e.teacher@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MjEwMH0.Oft2ReYIbACahX1Ls0MEx-xqwZMVi4TWPavqfzeJsZw
+2026-08-10 20:58:20,681 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:58:20] "POST /teacher/login HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MjEwMH0.Oft2ReYIbACahX1Ls0MEx-xqwZMVi4TWPavqfzeJsZw
+2026-08-10 20:58:20,883 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:58:20,883 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:58:20,883 INFO sqlalchemy.engine.Engine [cached since 3164s ago] (11, 1, 0)
+2026-08-10 20:58:20,884 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:58:20,884 INFO sqlalchemy.engine.Engine [cached since 2883s ago] (11, 1, 0)
+2026-08-10 20:58:20,885 INFO sqlalchemy.engine.Engine INSERT INTO sessions (class_id, teacher_id, end_time, is_active) VALUES (?, ?, ?, ?) RETURNING session_id, start_time
+2026-08-10 20:58:20,885 INFO sqlalchemy.engine.Engine [cached since 2701s ago] (11, 5, None, 1)
+2026-08-10 20:58:20,887 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:58:20,890 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:58:20,891 INFO sqlalchemy.engine.Engine SELECT sessions.session_id, sessions.class_id, sessions.teacher_id, sessions.start_time, sessions.end_time, sessions.is_active 
+FROM sessions 
+WHERE sessions.session_id = ?
+2026-08-10 20:58:20,891 INFO sqlalchemy.engine.Engine [cached since 2883s ago] (14,)
+2026-08-10 20:58:20,891 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:58:20] "POST /teacher/start-session/11 HTTP/1.1" 201 -
+2026-08-10 20:58:59,987 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:58:59,988 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:58:59,988 INFO sqlalchemy.engine.Engine [cached since 2742s ago] ('e2e.teacher@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MjE0MH0.bSxQDphbwJ7CyhorRJKo06RDIrBe8DoytKYoWixV2iI
+2026-08-10 20:59:00,246 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:59:00] "POST /teacher/login HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MjE0MH0.bSxQDphbwJ7CyhorRJKo06RDIrBe8DoytKYoWixV2iI
+2026-08-10 20:59:00,429 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:59:00,429 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:59:00,429 INFO sqlalchemy.engine.Engine [cached since 2923s ago] (11, 1, 0)
+2026-08-10 20:59:00,430 INFO sqlalchemy.engine.Engine UPDATE sessions SET end_time=CURRENT_TIMESTAMP, is_active=? WHERE sessions.session_id = ?
+2026-08-10 20:59:00,430 INFO sqlalchemy.engine.Engine [cached since 2923s ago] (0, 14)
+2026-08-10 20:59:00,431 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:59:00,435 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:59:00,435 INFO sqlalchemy.engine.Engine SELECT sessions.session_id, sessions.class_id, sessions.teacher_id, sessions.start_time, sessions.end_time, sessions.is_active 
+FROM sessions 
+WHERE sessions.session_id = ?
+2026-08-10 20:59:00,435 INFO sqlalchemy.engine.Engine [cached since 2923s ago] (14,)
+2026-08-10 20:59:00,436 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:59:00] "POST /teacher/end-session/11 HTTP/1.1" 200 -
+2026-08-10 20:59:36,730 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:59:36,731 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:59:36,731 INFO sqlalchemy.engine.Engine [cached since 2779s ago] ('e2e.teacher@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MjE3Nn0.3JM3jAqXwsy8O19KGIx8MOmODJwWLNn_O9xPD939Gy0
+2026-08-10 20:59:36,977 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:59:36] "POST /teacher/login HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MjE3Nn0.3JM3jAqXwsy8O19KGIx8MOmODJwWLNn_O9xPD939Gy0
+2026-08-10 20:59:37,170 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:59:37,170 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 20:59:37,170 INFO sqlalchemy.engine.Engine [cached since 3240s ago] (11, 1, 0)
+2026-08-10 20:59:37,171 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 20:59:37,171 INFO sqlalchemy.engine.Engine [cached since 2959s ago] (11, 1, 0)
+2026-08-10 20:59:37,172 INFO sqlalchemy.engine.Engine INSERT INTO sessions (class_id, teacher_id, end_time, is_active) VALUES (?, ?, ?, ?) RETURNING session_id, start_time
+2026-08-10 20:59:37,172 INFO sqlalchemy.engine.Engine [cached since 2778s ago] (11, 5, None, 1)
+2026-08-10 20:59:37,173 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 20:59:37,176 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 20:59:37,176 INFO sqlalchemy.engine.Engine SELECT sessions.session_id, sessions.class_id, sessions.teacher_id, sessions.start_time, sessions.end_time, sessions.is_active 
+FROM sessions 
+WHERE sessions.session_id = ?
+2026-08-10 20:59:37,176 INFO sqlalchemy.engine.Engine [cached since 2959s ago] (15,)
+2026-08-10 20:59:37,177 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 20:59:37] "POST /teacher/start-session/11 HTTP/1.1" 201 -
+127.0.0.1 - - [10/Aug/2026 21:01:01] "OPTIONS /teacher/end-session/11 HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 21:01:01,470 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:01:01,470 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 21:01:01,470 INFO sqlalchemy.engine.Engine [cached since 3044s ago] (11, 1, 0)
+2026-08-10 21:01:01,471 INFO sqlalchemy.engine.Engine UPDATE sessions SET end_time=CURRENT_TIMESTAMP, is_active=? WHERE sessions.session_id = ?
+2026-08-10 21:01:01,471 INFO sqlalchemy.engine.Engine [cached since 3044s ago] (0, 15)
+2026-08-10 21:01:01,472 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 21:01:01,475 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:01:01,476 INFO sqlalchemy.engine.Engine SELECT sessions.session_id, sessions.class_id, sessions.teacher_id, sessions.start_time, sessions.end_time, sessions.is_active 
+FROM sessions 
+WHERE sessions.session_id = ?
+2026-08-10 21:01:01,476 INFO sqlalchemy.engine.Engine [cached since 3044s ago] (15,)
+2026-08-10 21:01:01,476 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:01:01] "POST /teacher/end-session/11 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 21:01:01] "OPTIONS /teacher/classrooms HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MDUzNn0.D-hSCcQK0jfCA7izW15A-FK-sU7RgFAqzD7OmLwouq8
+2026-08-10 21:01:01,965 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:01:01,966 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.teacher_id = ?
+2026-08-10 21:01:01,966 INFO sqlalchemy.engine.Engine [cached since 1504s ago] (5,)
+2026-08-10 21:01:01,966 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:01:01] "GET /teacher/classrooms HTTP/1.1" 200 -
+2026-08-10 21:02:02,087 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:02:02,087 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:02:02,088 INFO sqlalchemy.engine.Engine [cached since 3386s ago] ('e2e.student@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo2LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ2MjMyMn0.6pXKKgpUHrYnhDBJuq4U5-5Na7IFxJaKdJ8gNI62t4A
+2026-08-10 21:02:02,314 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:02:02] "POST /login HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 21:05:22] "OPTIONS /login HTTP/1.1" 200 -
+2026-08-10 21:05:22,749 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:05:22,750 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:05:22,750 INFO sqlalchemy.engine.Engine [cached since 3586s ago] ('e2e.student@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo2LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ2MjUyM30.w-pMDPwKFNT0WJ9n21N9Qpb5v636w-1Gvm66Q-HJBjw
+2026-08-10 21:05:23,035 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:05:23] "POST /login HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 21:05:23] "OPTIONS /my-classes HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo2LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ2MjUyM30.w-pMDPwKFNT0WJ9n21N9Qpb5v636w-1Gvm66Q-HJBjw
+2026-08-10 21:05:23,288 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:05:23,289 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms JOIN enrollments ON enrollments.class_id = classrooms.class_id 
+WHERE enrollments.student_id = ?
+2026-08-10 21:05:23,289 INFO sqlalchemy.engine.Engine [cached since 3124s ago] (6,)
+2026-08-10 21:05:23,289 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:05:23] "GET /my-classes HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 21:07:34] "OPTIONS /join-class HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo2LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ2MjUyM30.w-pMDPwKFNT0WJ9n21N9Qpb5v636w-1Gvm66Q-HJBjw
+2026-08-10 21:07:34,742 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:07:34,743 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_code = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:07:34,743 INFO sqlalchemy.engine.Engine [cached since 3718s ago] ('11', 1, 0)
+2026-08-10 21:07:34,745 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:07:34,745 INFO sqlalchemy.engine.Engine [cached since 3718s ago] (11, 1, 0)
+2026-08-10 21:07:34,748 INFO sqlalchemy.engine.Engine SELECT enrollments.enrollment_id AS enrollments_enrollment_id, enrollments.student_id AS enrollments_student_id, enrollments.class_id AS enrollments_class_id, enrollments.joined_at AS enrollments_joined_at 
+FROM enrollments 
+WHERE enrollments.student_id = ? AND enrollments.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:07:34,748 INFO sqlalchemy.engine.Engine [cached since 3718s ago] (6, 11, 1, 0)
+2026-08-10 21:07:34,749 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:07:34] "POST /join-class HTTP/1.1" 400 -
+127.0.0.1 - - [10/Aug/2026 21:10:02] "OPTIONS /teacher/login HTTP/1.1" 200 -
+2026-08-10 21:10:02,448 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:10:02,449 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:10:02,449 INFO sqlalchemy.engine.Engine [cached since 3405s ago] ('e2e.teacher@test.com', 1, 0)
+127.0.0.1 - - [10/Aug/2026 21:10:02] "POST /teacher/login HTTP/1.1" 200 -
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MjgwMn0._4o1NZrF83NIoYqbifnag-RxPPSP35K7n4rcfkZ8pLI
+2026-08-10 21:10:02,729 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:10:03] "OPTIONS /teacher/classrooms HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MjgwMn0._4o1NZrF83NIoYqbifnag-RxPPSP35K7n4rcfkZ8pLI
+2026-08-10 21:10:03,132 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:10:03,132 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.teacher_id = ?
+2026-08-10 21:10:03,133 INFO sqlalchemy.engine.Engine [cached since 2046s ago] (5,)
+2026-08-10 21:10:03,134 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:10:03] "GET /teacher/classrooms HTTP/1.1" 200 -
+2026-08-10 21:14:45,870 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:14:45,870 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:14:45,871 INFO sqlalchemy.engine.Engine [cached since 3688s ago] ('e2e.teacher@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MzA4Nn0.X5OR80ClofLeSp5vKevRKghEO4gCctjE-tELxzaRkTY
+2026-08-10 21:14:46,107 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:14:46] "POST /teacher/login HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MzA4Nn0.X5OR80ClofLeSp5vKevRKghEO4gCctjE-tELxzaRkTY
+2026-08-10 21:14:46,270 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:14:46,270 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:14:46,270 INFO sqlalchemy.engine.Engine [cached since 4149s ago] (11, 1, 0)
+2026-08-10 21:14:46,271 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 21:14:46,271 INFO sqlalchemy.engine.Engine [cached since 3869s ago] (11, 1, 0)
+2026-08-10 21:14:46,272 INFO sqlalchemy.engine.Engine INSERT INTO sessions (class_id, teacher_id, end_time, is_active) VALUES (?, ?, ?, ?) RETURNING session_id, start_time
+2026-08-10 21:14:46,272 INFO sqlalchemy.engine.Engine [cached since 3687s ago] (11, 5, None, 1)
+2026-08-10 21:14:46,273 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 21:14:46,276 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:14:46,276 INFO sqlalchemy.engine.Engine SELECT sessions.session_id, sessions.class_id, sessions.teacher_id, sessions.start_time, sessions.end_time, sessions.is_active 
+FROM sessions 
+WHERE sessions.session_id = ?
+2026-08-10 21:14:46,276 INFO sqlalchemy.engine.Engine [cached since 3869s ago] (16,)
+2026-08-10 21:14:46,277 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:14:46] "POST /teacher/start-session/11 HTTP/1.1" 201 -
+127.0.0.1 - - [10/Aug/2026 21:16:09] "OPTIONS /login HTTP/1.1" 200 -
+2026-08-10 21:16:09,031 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:16:09,031 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:16:09,031 INFO sqlalchemy.engine.Engine [cached since 4233s ago] ('e2e.student@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo2LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ2MzE2OX0.HrGLZaLalEaZesvW-vNvHPcA2IsJ73VZPoBEHIc5aPU
+2026-08-10 21:16:09,305 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:16:09] "POST /login HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 21:16:09] "OPTIONS /my-classes HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo2LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ2MzE2OX0.HrGLZaLalEaZesvW-vNvHPcA2IsJ73VZPoBEHIc5aPU
+2026-08-10 21:16:09,487 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:16:09,487 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms JOIN enrollments ON enrollments.class_id = classrooms.class_id 
+WHERE enrollments.student_id = ?
+2026-08-10 21:16:09,487 INFO sqlalchemy.engine.Engine [cached since 3770s ago] (6,)
+2026-08-10 21:16:09,488 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:16:09] "GET /my-classes HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 21:16:21] "OPTIONS /join-class HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo2LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ2MzE2OX0.HrGLZaLalEaZesvW-vNvHPcA2IsJ73VZPoBEHIc5aPU
+2026-08-10 21:16:21,498 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:16:21,498 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_code = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:16:21,499 INFO sqlalchemy.engine.Engine [cached since 4244s ago] ('11', 1, 0)
+2026-08-10 21:16:21,499 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:16:21,499 INFO sqlalchemy.engine.Engine [cached since 4244s ago] (11, 1, 0)
+2026-08-10 21:16:21,500 INFO sqlalchemy.engine.Engine SELECT enrollments.enrollment_id AS enrollments_enrollment_id, enrollments.student_id AS enrollments_student_id, enrollments.class_id AS enrollments_class_id, enrollments.joined_at AS enrollments_joined_at 
+FROM enrollments 
+WHERE enrollments.student_id = ? AND enrollments.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:16:21,500 INFO sqlalchemy.engine.Engine [cached since 4244s ago] (6, 11, 1, 0)
+2026-08-10 21:16:21,500 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:16:21] "POST /join-class HTTP/1.1" 400 -
+127.0.0.1 - - [10/Aug/2026 21:17:39] "OPTIONS /teacher/login HTTP/1.1" 200 -
+2026-08-10 21:17:39,533 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:17:39,533 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:17:39,534 INFO sqlalchemy.engine.Engine [cached since 3862s ago] ('e2e.teacher@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MzI1OX0.5c8lBUHB02A3mAMufVu2Ubqipjv3pKqSVVT0tI2fssk
+2026-08-10 21:17:39,806 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:17:39] "POST /teacher/login HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 21:17:40] "OPTIONS /teacher/classrooms HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MzI1OX0.5c8lBUHB02A3mAMufVu2Ubqipjv3pKqSVVT0tI2fssk
+2026-08-10 21:17:40,243 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:17:40,243 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.teacher_id = ?
+2026-08-10 21:17:40,243 INFO sqlalchemy.engine.Engine [cached since 2503s ago] (5,)
+2026-08-10 21:17:40,244 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:17:40] "GET /teacher/classrooms HTTP/1.1" 200 -
+2026-08-10 21:19:22,491 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:19:22,492 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:19:22,492 INFO sqlalchemy.engine.Engine [cached since 3965s ago] ('e2e.teacher@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MzM2Mn0.lNHGEpBN_I55lmShgW0zhOJ5h-biD5QGLkLwlM9kjGM
+2026-08-10 21:19:22,742 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:19:22] "POST /teacher/login HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MzM2Mn0.lNHGEpBN_I55lmShgW0zhOJ5h-biD5QGLkLwlM9kjGM
+2026-08-10 21:19:22,930 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:19:22,930 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 21:19:22,930 INFO sqlalchemy.engine.Engine [cached since 4145s ago] (11, 1, 0)
+2026-08-10 21:19:22,931 INFO sqlalchemy.engine.Engine UPDATE sessions SET end_time=CURRENT_TIMESTAMP, is_active=? WHERE sessions.session_id = ?
+2026-08-10 21:19:22,931 INFO sqlalchemy.engine.Engine [cached since 4145s ago] (0, 16)
+2026-08-10 21:19:22,938 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 21:19:22,941 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:19:22,941 INFO sqlalchemy.engine.Engine SELECT sessions.session_id, sessions.class_id, sessions.teacher_id, sessions.start_time, sessions.end_time, sessions.is_active 
+FROM sessions 
+WHERE sessions.session_id = ?
+2026-08-10 21:19:22,941 INFO sqlalchemy.engine.Engine [cached since 4145s ago] (16,)
+2026-08-10 21:19:22,942 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:19:22] "POST /teacher/end-session/11 HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MzM2Mn0.lNHGEpBN_I55lmShgW0zhOJ5h-biD5QGLkLwlM9kjGM
+2026-08-10 21:19:23,019 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:19:23,020 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:19:23,020 INFO sqlalchemy.engine.Engine [cached since 4426s ago] (11, 1, 0)
+2026-08-10 21:19:23,021 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 21:19:23,021 INFO sqlalchemy.engine.Engine [cached since 4145s ago] (11, 1, 0)
+2026-08-10 21:19:23,021 INFO sqlalchemy.engine.Engine INSERT INTO sessions (class_id, teacher_id, end_time, is_active) VALUES (?, ?, ?, ?) RETURNING session_id, start_time
+2026-08-10 21:19:23,021 INFO sqlalchemy.engine.Engine [cached since 3963s ago] (11, 5, None, 1)
+2026-08-10 21:19:23,022 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 21:19:23,026 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:19:23,026 INFO sqlalchemy.engine.Engine SELECT sessions.session_id, sessions.class_id, sessions.teacher_id, sessions.start_time, sessions.end_time, sessions.is_active 
+FROM sessions 
+WHERE sessions.session_id = ?
+2026-08-10 21:19:23,026 INFO sqlalchemy.engine.Engine [cached since 4145s ago] (17,)
+2026-08-10 21:19:23,027 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:19:23] "POST /teacher/start-session/11 HTTP/1.1" 201 -
+127.0.0.1 - - [10/Aug/2026 21:20:10] "OPTIONS /login HTTP/1.1" 200 -
+2026-08-10 21:20:10,887 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:20:10,887 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:20:10,887 INFO sqlalchemy.engine.Engine [cached since 4475s ago] ('e2e.student@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo2LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ2MzQxMX0.v8x411YRyLkiKgUojYdzlMH6wuoic7zFZOHVW_x1DoU
+2026-08-10 21:20:11,151 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:20:11] "POST /login HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 21:20:11] "OPTIONS /my-classes HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo2LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ2MzQxMX0.v8x411YRyLkiKgUojYdzlMH6wuoic7zFZOHVW_x1DoU
+2026-08-10 21:20:11,289 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:20:11,290 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms JOIN enrollments ON enrollments.class_id = classrooms.class_id 
+WHERE enrollments.student_id = ?
+2026-08-10 21:20:11,290 INFO sqlalchemy.engine.Engine [cached since 4012s ago] (6,)
+2026-08-10 21:20:11,291 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:20:11] "GET /my-classes HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 21:20:36] "OPTIONS /join-class HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo2LCJyb2xlIjoic3R1ZGVudCIsImV4cCI6MTc4NjQ2MzQxMX0.v8x411YRyLkiKgUojYdzlMH6wuoic7zFZOHVW_x1DoU
+2026-08-10 21:20:36,591 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:20:36,592 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_code = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:20:36,592 INFO sqlalchemy.engine.Engine [cached since 4499s ago] ('11', 1, 0)
+2026-08-10 21:20:36,593 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:20:36,594 INFO sqlalchemy.engine.Engine [cached since 4499s ago] (11, 1, 0)
+2026-08-10 21:20:36,595 INFO sqlalchemy.engine.Engine SELECT enrollments.enrollment_id AS enrollments_enrollment_id, enrollments.student_id AS enrollments_student_id, enrollments.class_id AS enrollments_class_id, enrollments.joined_at AS enrollments_joined_at 
+FROM enrollments 
+WHERE enrollments.student_id = ? AND enrollments.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:20:36,595 INFO sqlalchemy.engine.Engine [cached since 4499s ago] (6, 11, 1, 0)
+2026-08-10 21:20:36,596 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:20:36] "POST /join-class HTTP/1.1" 400 -
+2026-08-10 21:25:04,004 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:25:04,005 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:25:04,005 INFO sqlalchemy.engine.Engine [cached since 4306s ago] ('e2e.teacher@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MzcwNH0.VVf8rvKIMvTacgM9I3YFPFHDE7a8dmCXIZWIfDxtExU
+2026-08-10 21:25:04,243 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:25:04] "POST /teacher/login HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2MzcwNH0.VVf8rvKIMvTacgM9I3YFPFHDE7a8dmCXIZWIfDxtExU
+2026-08-10 21:25:04,409 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:25:04,410 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 21:25:04,410 INFO sqlalchemy.engine.Engine [cached since 4487s ago] (11, 1, 0)
+2026-08-10 21:25:04,412 INFO sqlalchemy.engine.Engine UPDATE sessions SET end_time=CURRENT_TIMESTAMP, is_active=? WHERE sessions.session_id = ?
+2026-08-10 21:25:04,412 INFO sqlalchemy.engine.Engine [cached since 4487s ago] (0, 17)
+2026-08-10 21:25:04,419 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 21:25:04,423 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:25:04,423 INFO sqlalchemy.engine.Engine SELECT sessions.session_id, sessions.class_id, sessions.teacher_id, sessions.start_time, sessions.end_time, sessions.is_active 
+FROM sessions 
+WHERE sessions.session_id = ?
+2026-08-10 21:25:04,423 INFO sqlalchemy.engine.Engine [cached since 4487s ago] (17,)
+2026-08-10 21:25:04,423 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:25:04] "POST /teacher/end-session/11 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 21:38:37] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 21:43:44] "OPTIONS /teacher/register HTTP/1.1" 200 -
+2026-08-10 21:43:44,638 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:43:44,639 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:43:44,639 INFO sqlalchemy.engine.Engine [cached since 5427s ago] ('demo.teacher.manual@gmail.com', 1, 0)
+2026-08-10 21:43:44,915 INFO sqlalchemy.engine.Engine INSERT INTO teachers (name, email, password_hash, department) VALUES (?, ?, ?, ?) RETURNING teacher_id, created_at
+2026-08-10 21:43:44,916 INFO sqlalchemy.engine.Engine [cached since 5427s ago] ('Demo Teacher', 'demo.teacher.manual@gmail.com', '$2b$12$MLsMfkONCRmkbYGjLw6.t.xc6IqE5MfbPhlqmnTjN9cL0E.EADYjC', 'CSE')
+2026-08-10 21:43:44,919 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 21:43:44,924 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:43:44,925 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id, teachers.name, teachers.email, teachers.password_hash, teachers.department, teachers.created_at 
+FROM teachers 
+WHERE teachers.teacher_id = ?
+2026-08-10 21:43:44,925 INFO sqlalchemy.engine.Engine [cached since 5427s ago] (4,)
+2026-08-10 21:43:44,925 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:43:44] "POST /teacher/register HTTP/1.1" 201 -
+127.0.0.1 - - [10/Aug/2026 21:44:08] "OPTIONS /teacher/login HTTP/1.1" 200 -
+2026-08-10 21:44:08,109 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:44:08,109 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:44:08,110 INFO sqlalchemy.engine.Engine [cached since 5450s ago] ('demo.teacher.manual@gmail.com', 1, 0)
+Traceback (most recent call last):
+  File "C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\routes\teacher.py", line 58, in 
+login_teacher
+    result = TeacherService.login_teacher(db, data)
+  File "C:\Users\disha\Predictive_Multimodal_Student_Engagement\student_engagement_system\backend\services\teacher_service.py", 
+line 47, in login_teacher
+    raise Exception("Incorrect password.")
+Exception: Incorrect password.
+2026-08-10 21:44:08,467 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:44:08] "POST /teacher/login HTTP/1.1" 400 -
+127.0.0.1 - - [10/Aug/2026 21:45:16] "OPTIONS /teacher/register HTTP/1.1" 200 -
+2026-08-10 21:45:16,244 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:45:16,245 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:45:16,246 INFO sqlalchemy.engine.Engine [cached since 5518s ago] ('manual.teacher@test.com', 1, 0)
+2026-08-10 21:45:16,506 INFO sqlalchemy.engine.Engine INSERT INTO teachers (name, email, password_hash, department) VALUES (?, ?, ?, ?) RETURNING teacher_id, created_at
+2026-08-10 21:45:16,506 INFO sqlalchemy.engine.Engine [cached since 5518s ago] ('Demo Teacher', 'manual.teacher@test.com', '$2b$12$SW2U9cf2O.njpyTQHF8f0eAuKB50bO1Uk3Xs4G5jY4IpUno98BxN.', 'CSE')
+2026-08-10 21:45:16,509 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 21:45:16,513 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:45:16,513 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id, teachers.name, teachers.email, teachers.password_hash, teachers.department, teachers.created_at 
+FROM teachers 
+WHERE teachers.teacher_id = ?
+2026-08-10 21:45:16,513 INFO sqlalchemy.engine.Engine [cached since 5518s ago] (5,)
+2026-08-10 21:45:16,514 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:45:16] "POST /teacher/register HTTP/1.1" 201 -
+127.0.0.1 - - [10/Aug/2026 21:45:30] "OPTIONS /teacher/login HTTP/1.1" 200 -
+2026-08-10 21:45:30,390 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:45:30,390 INFO sqlalchemy.engine.Engine SELECT teachers.teacher_id AS teachers_teacher_id, teachers.name AS teachers_name, teachers.email AS teachers_email, teachers.password_hash AS teachers_password_hash, teachers.department AS teachers_department, teachers.created_at AS teachers_created_at 
+FROM teachers 
+WHERE teachers.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:45:30,391 INFO sqlalchemy.engine.Engine [cached since 5532s ago] ('manual.teacher@test.com', 1, 0)
+GENERATING TOKEN
+SECRET: student_engagement_secret_key
+TOKEN GENERATED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2NDkzMH0.sfgyz99gxPpLE79aOcA0Phym928NY39zYx9snm7OcJw
+2026-08-10 21:45:30,742 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:45:30] "POST /teacher/login HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 21:45:30] "OPTIONS /teacher/classrooms HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2NDkzMH0.sfgyz99gxPpLE79aOcA0Phym928NY39zYx9snm7OcJw
+2026-08-10 21:45:30,857 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:45:30,858 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.teacher_id = ?
+2026-08-10 21:45:30,858 INFO sqlalchemy.engine.Engine [cached since 4173s ago] (5,)
+2026-08-10 21:45:30,859 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:45:30] "GET /teacher/classrooms HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 21:46:36] "OPTIONS /register HTTP/1.1" 200 -
+2026-08-10 21:46:36,921 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:46:36,922 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:46:36,922 INFO sqlalchemy.engine.Engine [cached since 6061s ago] ('manual.student@test.com', 1, 0)
+2026-08-10 21:46:36,923 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.usn = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:46:36,923 INFO sqlalchemy.engine.Engine [cached since 6061s ago] ('STUDENT001', 1, 0)
+2026-08-10 21:46:36,923 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:46:36] "POST /register HTTP/1.1" 400 -
+2026-08-10 21:46:40,266 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:46:40,266 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:46:40,267 INFO sqlalchemy.engine.Engine [cached since 6064s ago] ('manual.student@test.com', 1, 0)
+2026-08-10 21:46:40,268 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.usn = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:46:40,268 INFO sqlalchemy.engine.Engine [cached since 6064s ago] ('STUDENT001', 1, 0)
+2026-08-10 21:46:40,269 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:46:40] "POST /register HTTP/1.1" 400 -
+127.0.0.1 - - [10/Aug/2026 21:46:46] "OPTIONS /register HTTP/1.1" 200 -
+2026-08-10 21:46:46,587 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:46:46,588 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:46:46,588 INFO sqlalchemy.engine.Engine [cached since 6070s ago] ('manual.student@test.com', 1, 0)
+2026-08-10 21:46:46,589 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.usn = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:46:46,589 INFO sqlalchemy.engine.Engine [cached since 6070s ago] ('STUDENT001', 1, 0)
+2026-08-10 21:46:46,589 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:46:46] "POST /register HTTP/1.1" 400 -
+2026-08-10 21:46:47,230 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:46:47,230 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:46:47,230 INFO sqlalchemy.engine.Engine [cached since 6071s ago] ('manual.student@test.com', 1, 0)
+2026-08-10 21:46:47,231 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.usn = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:46:47,231 INFO sqlalchemy.engine.Engine [cached since 6071s ago] ('STUDENT001', 1, 0)
+2026-08-10 21:46:47,232 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:46:47] "POST /register HTTP/1.1" 400 -
+2026-08-10 21:46:47,431 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:46:47,431 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:46:47,432 INFO sqlalchemy.engine.Engine [cached since 6071s ago] ('manual.student@test.com', 1, 0)
+2026-08-10 21:46:47,433 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.usn = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:46:47,433 INFO sqlalchemy.engine.Engine [cached since 6071s ago] ('STUDENT001', 1, 0)
+2026-08-10 21:46:47,434 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:46:47] "POST /register HTTP/1.1" 400 -
+127.0.0.1 - - [10/Aug/2026 21:46:53] "OPTIONS /register HTTP/1.1" 200 -
+2026-08-10 21:46:53,480 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:46:53,481 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:46:53,481 INFO sqlalchemy.engine.Engine [cached since 6077s ago] ('manual.student@test.com', 1, 0)
+2026-08-10 21:46:53,482 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.usn = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:46:53,482 INFO sqlalchemy.engine.Engine [cached since 6077s ago] ('STUDENT001', 1, 0)
+2026-08-10 21:46:53,483 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:46:53] "POST /register HTTP/1.1" 400 -
+127.0.0.1 - - [10/Aug/2026 21:47:41] "OPTIONS /teacher/create-classroom HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2NDkzMH0.sfgyz99gxPpLE79aOcA0Phym928NY39zYx9snm7OcJw
+2026-08-10 21:47:41,094 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:47:41,095 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_code = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:47:41,095 INFO sqlalchemy.engine.Engine [cached since 6124s ago] ('8XF35M', 1, 0)
+2026-08-10 21:47:41,096 INFO sqlalchemy.engine.Engine INSERT INTO classrooms (classroom_name, subject, semester, section, teacher_id, class_code, meeting_link) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING class_id, created_at
+2026-08-10 21:47:41,097 INFO sqlalchemy.engine.Engine [cached since 5662s ago] ('AI Engagement Demo', 'Machine Learning', 1, 'A', 5, '8XF35M', None)
+2026-08-10 21:47:41,101 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 21:47:41,109 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:47:41,110 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id, classrooms.classroom_name, classrooms.subject, classrooms.semester, classrooms.section, classrooms.teacher_id, classrooms.class_code, classrooms.meeting_link, classrooms.created_at 
+FROM classrooms 
+WHERE classrooms.class_id = ?
+2026-08-10 21:47:41,110 INFO sqlalchemy.engine.Engine [cached since 5662s ago] (10,)
+2026-08-10 21:47:41,111 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:47:41] "POST /teacher/create-classroom HTTP/1.1" 201 -
+127.0.0.1 - - [10/Aug/2026 21:47:41] "OPTIONS /teacher/start-session/10 HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2NDkzMH0.sfgyz99gxPpLE79aOcA0Phym928NY39zYx9snm7OcJw
+2026-08-10 21:47:41,130 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:47:41,131 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.class_id = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:47:41,131 INFO sqlalchemy.engine.Engine [cached since 6124s ago] (10, 1, 0)
+2026-08-10 21:47:41,136 INFO sqlalchemy.engine.Engine SELECT sessions.session_id AS sessions_session_id, sessions.class_id AS sessions_class_id, sessions.teacher_id AS sessions_teacher_id, sessions.start_time AS sessions_start_time, sessions.end_time AS sessions_end_time, sessions.is_active AS sessions_is_active 
+FROM sessions 
+WHERE sessions.class_id = ? AND sessions.is_active = 1
+ LIMIT ? OFFSET ?
+2026-08-10 21:47:41,136 INFO sqlalchemy.engine.Engine [cached since 5843s ago] (10, 1, 0)
+2026-08-10 21:47:41,139 INFO sqlalchemy.engine.Engine INSERT INTO sessions (class_id, teacher_id, end_time, is_active) VALUES (?, ?, ?, ?) RETURNING session_id, start_time
+2026-08-10 21:47:41,139 INFO sqlalchemy.engine.Engine [cached since 5662s ago] (10, 5, None, 1)
+2026-08-10 21:47:41,141 INFO sqlalchemy.engine.Engine COMMIT
+2026-08-10 21:47:41,147 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:47:41,147 INFO sqlalchemy.engine.Engine SELECT sessions.session_id, sessions.class_id, sessions.teacher_id, sessions.start_time, sessions.end_time, sessions.is_active 
+FROM sessions 
+WHERE sessions.session_id = ?
+2026-08-10 21:47:41,148 INFO sqlalchemy.engine.Engine [cached since 5843s ago] (10,)
+2026-08-10 21:47:41,148 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:47:41] "POST /teacher/start-session/10 HTTP/1.1" 201 -
+127.0.0.1 - - [10/Aug/2026 21:47:41] "OPTIONS /teacher/classrooms HTTP/1.1" 200 -
+VERIFY SECRET: student_engagement_secret_key
+TOKEN RECEIVED: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1LCJyb2xlIjoidGVhY2hlciIsImV4cCI6MTc4NjQ2NDkzMH0.sfgyz99gxPpLE79aOcA0Phym928NY39zYx9snm7OcJw
+2026-08-10 21:47:41,170 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:47:41,171 INFO sqlalchemy.engine.Engine SELECT classrooms.class_id AS classrooms_class_id, classrooms.classroom_name AS classrooms_classroom_name, classrooms.subject AS classrooms_subject, classrooms.semester AS classrooms_semester, classrooms.section AS classrooms_section, classrooms.teacher_id AS classrooms_teacher_id, classrooms.class_code AS classrooms_class_code, classrooms.meeting_link AS classrooms_meeting_link, classrooms.created_at AS classrooms_created_at 
+FROM classrooms 
+WHERE classrooms.teacher_id = ?
+2026-08-10 21:47:41,171 INFO sqlalchemy.engine.Engine [cached since 4304s ago] (5,)
+2026-08-10 21:47:41,171 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:47:41] "GET /teacher/classrooms HTTP/1.1" 200 -
+127.0.0.1 - - [10/Aug/2026 21:50:13] "OPTIONS /register HTTP/1.1" 200 -
+2026-08-10 21:50:13,257 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:50:13,257 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:50:13,257 INFO sqlalchemy.engine.Engine [cached since 6277s ago] ('manual.student@test.com', 1, 0)
+2026-08-10 21:50:13,260 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.usn = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:50:13,260 INFO sqlalchemy.engine.Engine [cached since 6277s ago] ('STUDENT001', 1, 0)
+2026-08-10 21:50:13,261 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:50:13] "POST /register HTTP/1.1" 400 -
+127.0.0.1 - - [10/Aug/2026 21:52:03] "OPTIONS /register HTTP/1.1" 200 -
+2026-08-10 21:52:03,175 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:52:03,176 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:52:03,176 INFO sqlalchemy.engine.Engine [cached since 6387s ago] ('manual.student@test.com', 1, 0)
+2026-08-10 21:52:03,178 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.usn = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:52:03,178 INFO sqlalchemy.engine.Engine [cached since 6387s ago] ('STUDENT001', 1, 0)
+2026-08-10 21:52:03,180 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:52:03] "POST /register HTTP/1.1" 400 -
+127.0.0.1 - - [10/Aug/2026 21:53:14] "OPTIONS /register HTTP/1.1" 200 -
+2026-08-10 21:53:14,634 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:53:14,635 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:53:14,635 INFO sqlalchemy.engine.Engine [cached since 6458s ago] ('manual.student@test.com', 1, 0)
+2026-08-10 21:53:14,637 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.usn = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:53:14,637 INFO sqlalchemy.engine.Engine [cached since 6458s ago] ('STUDENT001', 1, 0)
+2026-08-10 21:53:14,639 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:53:14] "POST /register HTTP/1.1" 400 -
+2026-08-10 21:53:16,057 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:53:16,057 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:53:16,059 INFO sqlalchemy.engine.Engine [cached since 6460s ago] ('manual.student@test.com', 1, 0)
+2026-08-10 21:53:16,062 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.usn = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:53:16,064 INFO sqlalchemy.engine.Engine [cached since 6460s ago] ('STUDENT001', 1, 0)
+2026-08-10 21:53:16,066 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:53:16] "POST /register HTTP/1.1" 400 -
+127.0.0.1 - - [10/Aug/2026 21:54:05] "OPTIONS /login HTTP/1.1" 200 -
+2026-08-10 21:54:05,203 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-08-10 21:54:05,203 INFO sqlalchemy.engine.Engine SELECT students.student_id AS students_student_id, students.usn AS students_usn, students.name AS students_name, students.email AS students_email, students.password_hash AS students_password_hash, students.department AS students_department, students.semester AS students_semester, students.section AS students_section, students.created_at AS students_created_at 
+FROM students 
+WHERE students.email = ?
+ LIMIT ? OFFSET ?
+2026-08-10 21:54:05,203 INFO sqlalchemy.engine.Engine [cached since 6509s ago] ('manual.student@test.com', 1, 0)
+2026-08-10 21:54:05,204 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [10/Aug/2026 21:54:05] "POST /login HTTP/1.1" 400 -
+ * Detected change in 
+'C:\\Users\\disha\\Predictive_Multimodal_Student_Engagement\\student_engagement_system\\backend\\schemas\\student_schema.py', 
+reloading

@@ -1,0 +1,96 @@
+/*
+  Phase 8 Dashboard -- design tokens.
+  Every color, radius, shadow, spacing, and font value used anywhere in
+  the dashboard is defined here as a CSS variable so a future redesign
+  only ever touches this one file.
+*/
+:root,
+[data-theme="dark"] {
+  --bg-canvas: #0b0e14;
+  --bg-surface: rgba(255, 255, 255, 0.04);
+  --bg-surface-solid: #12151d;
+  --bg-elevated: rgba(255, 255, 255, 0.06);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  --text-primary: #eef1f8;
+  --text-secondary: #9aa3b5;
+  --text-muted: #6b7386;
+
+  --accent: #6d8bff;
+  --accent-strong: #4f6bf0;
+  --accent-soft: rgba(109, 139, 255, 0.16);
+
+  --success: #35d492;
+  --success-soft: rgba(53, 212, 146, 0.14);
+  --warning: #f5b94a;
+  --warning-soft: rgba(245, 185, 74, 0.14);
+  --danger: #f0596b;
+  --danger-soft: rgba(240, 89, 107, 0.14);
+  --info: #4bc3f5;
+  --info-soft: rgba(75, 195, 245, 0.14);
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.24), 0 8px 24px rgba(0, 0, 0, 0.28);
+  --shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.3), 0 16px 40px rgba(0, 0, 0, 0.35);
+  --glass-blur: blur(16px);
+}
+
+[data-theme="light"] {
+  --bg-canvas: #f5f6fa;
+  --bg-surface: rgba(255, 255, 255, 0.7);
+  --bg-surface-solid: #ffffff;
+  --bg-elevated: rgba(255, 255, 255, 0.9);
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.14);
+
+  --text-primary: #131722;
+  --text-secondary: #565f75;
+  --text-muted: #8791a5;
+
+  --accent: #4f6bf0;
+  --accent-strong: #3a52d6;
+  --accent-soft: rgba(79, 107, 240, 0.1);
+
+  --success: #17a06b;
+  --success-soft: rgba(23, 160, 107, 0.1);
+  --warning: #c9821a;
+  --warning-soft: rgba(201, 130, 26, 0.12);
+  --danger: #d63a4c;
+  --danger-soft: rgba(214, 58, 76, 0.1);
+  --info: #1f8fd6;
+  --info-soft: rgba(31, 143, 214, 0.1);
+
+  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.06);
+  --shadow-elevated: 0 4px 12px rgba(15, 23, 42, 0.08), 0 16px 40px rgba(15, 23, 42, 0.1);
+  --glass-blur: blur(16px);
+}
+
+:root {
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 26px;
+
+  --sidebar-width: 236px;
+  --navbar-height: 64px;
+  --transition-fast: 140ms ease;
+  --transition-med: 220ms ease;
+}

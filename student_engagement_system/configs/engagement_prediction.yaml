@@ -1,0 +1,41 @@
+weights:
+  emotion: 0.25
+  head_pose: 0.2
+  gaze: 0.25
+penalties:
+  phone_usage: 20.0
+  multiple_person: 15.0
+bonuses:
+  face_authenticated: 10.0
+  attendance: 5.0
+thresholds:
+  yaw_norm_deg: 45.0
+  pitch_norm_deg: 45.0
+  roll_norm_deg: 30.0
+  yaw_classification_deg: 15.0
+  pitch_classification_deg: 15.0
+  head_down_pitch_threshold_deg: 15.0
+  low_confidence_threshold: 0.5
+engagement_ranges:
+  VERY_LOW:
+  - 0
+  - 20
+  LOW:
+  - 21
+  - 40
+  MEDIUM:
+  - 41
+  - 60
+  HIGH:
+  - 61
+  - 80
+  EXCELLENT:
+  - 81
+  - 100
+confidence_weights:
+  emotion: 0.2
+  face: 0.2
+  gaze: 0.2
+  head_pose: 0.2
+  phone: 0.2
+backend: rule_based

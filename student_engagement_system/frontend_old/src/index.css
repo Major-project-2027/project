@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-body: "Inter", "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Core brand */
+  --color-focus-50: #eef0ff;
+  --color-focus-100: #dfe2ff;
+  --color-focus-300: #a8b0ff;
+  --color-focus-400: #7c86ff;
+  --color-focus-500: #4f5dff;
+  --color-focus-600: #3d47e0;
+  --color-focus-700: #2f38b3;
+  --color-focus-900: #1c2170;
+
+  /* Engagement states */
+  --color-engaged-400: #4ade80;
+  --color-engaged-500: #22c55e;
+  --color-engaged-600: #16a34a;
+
+  --color-attention-400: #fbbf24;
+  --color-attention-500: #f5a524;
+  --color-attention-600: #d98a0f;
+
+  --color-critical-400: #fb6f92;
+  --color-critical-500: #f0466e;
+  --color-critical-600: #d02659;
+
+  /* Neutrals - light */
+  --color-surface-light: #ffffff;
+  --color-bg-light: #f7f8fb;
+  --color-border-light: #e4e7ef;
+  --color-text-light: #0f1222;
+  --color-textmuted-light: #5b6274;
+
+  /* Neutrals - dark */
+  --color-surface-dark: #141826;
+  --color-bg-dark: #0a0c14;
+  --color-border-dark: #242a3d;
+  --color-text-dark: #e9ebf5;
+  --color-textmuted-dark: #8b91ab;
+
+  --animate-pulse-line: pulse-line 2.4s ease-in-out infinite;
+  --animate-fade-up: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes pulse-line {
+  0%, 100% { transform: scaleY(1); opacity: 0.7; }
+  50% { transform: scaleY(1.6); opacity: 1; }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@layer base {
+  html {
+    font-family: var(--font-body);
+  }
+  body {
+    @apply bg-bg-light text-text-light dark:bg-bg-dark dark:text-text-dark antialiased;
+  }
+  ::selection {
+    @apply bg-focus-400/30;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-focus-500);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-light);
+  border-radius: 8px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--color-border-dark);
+}

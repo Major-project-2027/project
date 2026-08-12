@@ -1,0 +1,2 @@
+2026-07-09 13:16:23.378 | DEBUG    | __main__:<module>:21 - Sample training-stream log entry (real entries begin Phase 5).
+2026-07-09 13:58:16.657 | INFO     | tests.test_phase1_foundation:test_logging_creates_all_four_log_files:102 - pytest log check -- stream=training
