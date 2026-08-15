@@ -1,6 +1,6 @@
 import { API_BASE_URL, FLASK_API_BASE_URL, simulateNetwork } from './client'
 import {
-  generateLiveStudents, generateAlerts, generateAttendance,
+  generateLiveStudents, generateAlerts,
   generateEngagementTrend, generateNotifications, generateTests,
   currentTeacher, currentStudent, behaviorBreakdown,
   getClassesStore, createClassInStore, startClassInStore, endClassInStore,
@@ -14,20 +14,8 @@ import type {
 // AUTH        POST /auth/login · POST /auth/register · POST /auth/forgot-password
 // ----------------------------------------------------------------------------
 export const authApi = {
-  login: async (email: string, password: string) => {
+  login: async (email: string, password: string, role: 'student' | 'teacher') => {
   const normalizedEmail = email.toLowerCase().trim()
-
-  const role = normalizedEmail.includes('teacher')
-    ? 'teacher'
-    : normalizedEmail.includes('student')
-      ? 'student'
-      : null
-
-  if (!role) {
-    throw new Error(
-      "Demo login: use an email containing 'teacher' or 'student'."
-    )
-  }
 
   const endpoint =
     role === 'teacher'
@@ -56,12 +44,10 @@ export const authApi = {
     )
   }
 
-  localStorage.setItem(
-    'access_token',
+  sessionStorage.setItem('access_token',
     result.token
   )
-  localStorage.setItem(
-  'user_id',
+  sessionStorage.setItem('user_id',
   String(
     role === 'teacher'
       ? result.teacher_id
@@ -69,13 +55,11 @@ export const authApi = {
   )
 )
 
-localStorage.setItem(
-  'user_name',
+sessionStorage.setItem('user_name',
   result.name
 )
 
-localStorage.setItem(
-  'user_role',
+sessionStorage.setItem('user_role',
   role
 )
 
@@ -141,8 +125,8 @@ register: async (values: {
 // ----------------------------------------------------------------------------
 export const classesApi = {
   list: async (): Promise<ClassSession[]> => {
-  const token = localStorage.getItem('access_token')
-  const role = localStorage.getItem('user_role')
+  const token = sessionStorage.getItem('access_token')
+  const role = sessionStorage.getItem('user_role')
 
   if (!token) {
     throw new Error('Please login again.')
@@ -182,18 +166,23 @@ export const classesApi = {
     subject: c.subject,
     teacherId: '',
     teacherName: '',
-    scheduledStart: new Date().toISOString(),
-    scheduledEnd: new Date().toISOString(),
-    status: 'live',
-    studentsEnrolled: 0,
-    studentsPresent: 0,
-    avgEngagement: 0,
+    scheduledStart: c.start_time ?? new Date().toISOString(),
+    scheduledEnd: c.end_time ?? new Date().toISOString(),
+    // Real status computed server-side from the classroom's latest
+    // session: no session yet -> scheduled, session still open -> live,
+    // session ended -> completed. Previously this was hard-coded to
+    // 'live' for every class regardless of real state.
+    status: (c.status ?? 'scheduled') as ClassSession['status'],
+    studentsEnrolled: c.students_enrolled ?? 0,
+    studentsPresent: c.students_present ?? 0,
+    avgEngagement: c.avg_engagement ?? undefined,
     coverColor: '#6366f1',
+    recordingAvailable: c.status === 'completed',
   }))
 },
 
 join: async (classCode: string) => {
-  const token = localStorage.getItem('access_token')
+  const token = sessionStorage.getItem('access_token')
 
   if (!token) {
     throw new Error('Please login again.')
@@ -234,7 +223,7 @@ get: (id: string) =>
   scheduledStart: string
   startNow: boolean
 }): Promise<ClassSession> => {
-  const token = localStorage.getItem('access_token')
+  const token = sessionStorage.getItem('access_token')
 
   if (!token) {
     throw new Error('Please login again.')
@@ -305,14 +294,17 @@ get: (id: string) =>
   return newClass
 },
   start: async (id: string) => {
-  const token = localStorage.getItem('access_token')
+  const token = sessionStorage.getItem('access_token')
 
   if (!token) {
     throw new Error('Authentication token missing. Please login again.')
   }
 
+  // Starts the EXISTING class's session. This previously called
+  // /teacher/create-classroom, which ignored `id` entirely and created a
+  // brand new (empty) classroom every time "Start class" was clicked.
   const response = await fetch(
-    `http://127.0.0.1:5000/teacher/create-classroom`,
+    `${FLASK_API_BASE_URL}/teacher/start-session/${id}`,
     {
       method: 'POST',
       headers: {
@@ -330,11 +322,12 @@ get: (id: string) =>
     )
   }
 
-  // Keep the existing frontend class state in sync.
+  // Keep the legacy mock/localStorage class list (still used by
+  // classesApi.get) in sync too.
   return startClassInStore(id)
 },
   end: async (id: string) => {
-  const token = localStorage.getItem('access_token')
+  const token = sessionStorage.getItem('access_token')
 
   if (!token) {
     throw new Error('Authentication token missing. Please login again.')
@@ -368,9 +361,15 @@ get: (id: string) =>
 // MONITORING  GET /classes/:id/live-students · WS /ws/classes/:id/engagement
 // ----------------------------------------------------------------------------
 export const monitoringApi = {
-  liveStudents: async () => {
+  // classId scopes the result to one class's current live session so a
+  // teacher watching class A never sees class B's (or another teacher's)
+  // students, and results never linger after a session ends. Omitting it
+  // returns an empty list rather than falling back to global state.
+  liveStudents: async (classId?: string) => {
+    const query = classId ? `?class_id=${encodeURIComponent(classId)}` : ''
+
     const response = await fetch(
-      `${API_BASE_URL}/live-monitor`,
+      `${API_BASE_URL}/live-monitor${query}`,
       {
         cache: 'no-store',
       },
@@ -491,10 +490,166 @@ export const monitoringApi = {
 }
 
 // ----------------------------------------------------------------------------
-// ATTENDANCE  GET /attendance?classId=&studentId=&date=
+// ATTENDANCE  GET /teacher/attendance · GET /student/attendance
 // ----------------------------------------------------------------------------
 export const attendanceApi = {
-    list: () => simulateNetwork<AttendanceRecord[]>(generateAttendance()),
+  list: async (): Promise<AttendanceRecord[]> => {
+    const token = sessionStorage.getItem('access_token')
+    const role = sessionStorage.getItem('user_role')
+
+    if (!token) {
+      throw new Error('Please login again.')
+    }
+
+    const endpoint =
+      role === 'teacher' ? '/teacher/attendance' : '/student/attendance'
+
+    const response = await fetch(`${FLASK_API_BASE_URL}${endpoint}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    const result = await response.json()
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || 'Unable to fetch attendance')
+    }
+
+    return (result.attendance ?? []).map((r: any) => ({
+      id: r.id,
+      studentId: String(r.studentId),
+      studentName: r.studentName ?? '',
+      classId: String(r.classId),
+      className: r.className,
+      date: r.date ?? new Date().toISOString(),
+      status: r.status,
+      joinTime: r.startTime ?? undefined,
+      leaveTime: r.endTime ?? undefined,
+      engagementAvg: r.engagementAvg ?? undefined,
+    }))
+  },
+}
+
+// ----------------------------------------------------------------------------
+// CLASS HISTORY   GET /teacher/classroom/:id/history · GET /history/class/:id
+// ----------------------------------------------------------------------------
+export const historyApi = {
+  // Teacher: every student who joined the class's most recent session,
+  // with their real per-session summary + full snapshot timeline.
+  teacherClassReport: async (classId: string) => {
+    const token = sessionStorage.getItem('access_token')
+
+    if (!token) {
+      throw new Error('Please login again.')
+    }
+
+    const response = await fetch(
+      `${FLASK_API_BASE_URL}/teacher/classroom/${classId}/history`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    )
+
+    const result = await response.json()
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || 'Unable to fetch class report')
+    }
+
+    return result as {
+      class: {
+        class_id: number
+        class_name: string
+        subject: string
+        session_id: number | null
+        start_time: string | null
+        end_time: string | null
+        is_active?: boolean
+      }
+      students: Array<{
+        studentId: number
+        studentName: string
+        usn: string | null
+        attendanceStatus: 'present' | 'absent' | 'unknown'
+        averageEngagement: number
+        finalEngagement: number
+        minEngagement: number
+        maxEngagement: number
+        sampleCount: number
+        phoneDetections: number
+        multiplePersonDetections: number
+        lookingAwayCount: number
+        attentionDropCount: number
+        totalAlerts: number
+        blinkCount: number
+        snapshots: Array<{
+          timestamp: string
+          engagementScore: number
+          emotion: string
+          blinkCount: number
+          headPose: string
+          gaze: string
+          phoneDetected: boolean
+          multiplePerson: boolean
+          engagementStatus: string
+        }>
+      }>
+    }
+  },
+
+  // Student: their OWN history for this class only -- the backend derives
+  // the student from the auth token, never from a client-supplied id.
+  studentClassReport: async (classId: string) => {
+    const token = sessionStorage.getItem('access_token')
+
+    if (!token) {
+      throw new Error('Please login again.')
+    }
+
+    const response = await fetch(
+      `${FLASK_API_BASE_URL}/history/class/${classId}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    )
+
+    const result = await response.json()
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || 'Unable to fetch class report')
+    }
+
+    return result.history as {
+      studentId: number
+      studentName: string
+      usn: string | null
+      classId: number
+      className: string
+      subject: string
+      sessionId: number
+      startTime: string | null
+      endTime: string | null
+      attendanceStatus: 'present' | 'absent' | 'unknown'
+      lookingAwayCount: number
+      attentionDropCount: number
+      totalAlerts: number
+      blinkCount: number
+      averageEngagement: number
+      finalEngagement: number
+      minEngagement: number
+      maxEngagement: number
+      sampleCount: number
+      phoneDetections: number
+      multiplePersonDetections: number
+      snapshots: Array<{
+        timestamp: string
+        engagementScore: number
+        emotion: string
+        blinkCount: number
+        headPose: string
+        gaze: string
+        phoneDetected: boolean
+        multiplePerson: boolean
+        engagementStatus: string
+      }>
+    } | null
+  },
 }
 
 // ----------------------------------------------------------------------------

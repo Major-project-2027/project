@@ -22,6 +22,7 @@ const StudentTestTakingPage = lazy(() => import('@/pages/test/StudentTestTakingP
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })))
 
 const AttendancePage = lazy(() => import('@/pages/shared/AttendancePage').then((m) => ({ default: m.AttendancePage })))
+const ClassReportPage = lazy(() => import('@/pages/shared/ClassReportPage').then((m) => ({ default: m.ClassReportPage })))
 const ReportsPage = lazy(() => import('@/pages/shared/ReportsPage').then((m) => ({ default: m.ReportsPage })))
 const NotificationsPage = lazy(() => import('@/pages/shared/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
 const ProfilePage = lazy(() => import('@/pages/shared/ProfilePage').then((m) => ({ default: m.ProfilePage })))
@@ -72,6 +73,7 @@ function App() {
         <Route path="/teacher/profile" element={<ProtectedRoute role="teacher"><ProfilePage role="teacher" /></ProtectedRoute>} />
         <Route path="/teacher/live/:classId" element={<ProtectedRoute role="teacher"><TeacherLiveClassroomPage /></ProtectedRoute>} />
         <Route path="/teacher/lobby/:classId" element={<ProtectedRoute role="teacher"><PreJoinLobbyPage role="teacher" /></ProtectedRoute>} />
+        <Route path="/teacher/classroom/:classId/report" element={<ProtectedRoute role="teacher"><ClassReportPage role="teacher" /></ProtectedRoute>} />
 
         {/* Student */}
         <Route path="/student" element={<ProtectedRoute role="student"><StudentDashboardPage /></ProtectedRoute>} />
@@ -86,6 +88,7 @@ function App() {
         <Route path="/student/profile" element={<ProtectedRoute role="student"><ProfilePage role="student" /></ProtectedRoute>} />
         <Route path="/student/live/:classId" element={<ProtectedRoute role="student"><StudentLiveClassroomPage /></ProtectedRoute>} />
         <Route path="/student/lobby/:classId" element={<ProtectedRoute role="student"><PreJoinLobbyPage role="student" /></ProtectedRoute>} />
+        <Route path="/student/classroom/:classId/report" element={<ProtectedRoute role="student"><ClassReportPage role="student" /></ProtectedRoute>} />
 
         {/* Admin */}
         <Route path="/admin" element={<ProtectedRoute role="admin"><AdminDashboardPage /></ProtectedRoute>} />

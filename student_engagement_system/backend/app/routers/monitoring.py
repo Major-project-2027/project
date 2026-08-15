@@ -1,18 +1,23 @@
 import base64
+from typing import Optional
+
 try:
     from database.database import SessionLocal
 except ModuleNotFoundError:
     from backend.database.database import SessionLocal
 from models.engagement import EngagementRecord
 from models.student import Student  # noqa: F401 -- registers `students` table for EngagementRecord's FK
+from models.classroom import Classroom  # noqa: F401 -- registers `classrooms` table for Alert's FK
+from models.teacher import Teacher  # noqa: F401 -- registers `teachers` table for Session's FK
 from repositories.session_repository import SessionRepository
+from repositories.alert_repository import AlertRepository
+from services import ai_state
 import cv2
 import numpy as np
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from pydantic import BaseModel
 
-from services.monitoring_service import MonitoringService
 from services.ai_service import process_frame
 
 
@@ -21,7 +26,13 @@ router = APIRouter(
     tags=["monitoring"]
 )
 
-latest_ai_result = None
+# class_id -> { student_id: latest_result_dict }
+# In-memory cache used only to serve /live-monitor between polls. It is
+# always read alongside a fresh "is this class's session still active?"
+# check, and is dropped as soon as that check fails, so a class that has
+# ended (or a class belonging to a different teacher) can never leak
+# results here.
+_latest_results: dict[int, dict[int, dict]] = {}
 
 
 def get_active_alert(result):
@@ -53,134 +64,69 @@ def get_active_alert(result):
 
 
 @router.get("/live-monitor")
-def live_monitor():
+def live_monitor(class_id: Optional[int] = Query(default=None)):
+    """Latest known AI result per student, scoped to ONE class's current
+    live session. Without a class_id (legacy callers) nothing is returned
+    rather than falling back to some other class's data."""
 
-    global latest_ai_result
+    if class_id is None:
+        return {"success": True, "data": []}
 
-    if latest_ai_result is None:
-        return {
-            "success": True,
-            "data": []
-        }
+    db = SessionLocal()
+    try:
+        active_session = SessionRepository.get_active_session(db, class_id)
+    finally:
+        db.close()
 
-    data = latest_ai_result
+    if not active_session:
+        # No live session for this class right now -- drop any cached
+        # results so a later session never inherits stale data.
+        _latest_results.pop(class_id, None)
+        return {"success": True, "data": []}
 
-    emotion = str(
-        data.get("emotion", "neutral")
-    ).lower()
+    students_for_class = _latest_results.get(class_id, {})
 
-    engagement = int(
-        data.get("engagement_score", 0)
-    )
+    data = []
 
-    head_pose = str(
-        data.get("head_pose", "Forward")
-    )
+    for student_id, result in students_for_class.items():
 
-    gaze = str(
-        data.get("gaze", "Center")
-    )
+        emotion = str(result.get("emotion", "neutral")).lower()
+        engagement = int(result.get("engagement_score", 0))
+        head_pose = str(result.get("head_pose", "Forward"))
+        gaze = str(result.get("gaze", "Center"))
+        phone_detected = bool(result.get("phone_detected", False))
+        person_count = int(result.get("person_count", 1))
+        active_alert = result.get("active_alert")
 
-    phone_detected = bool(
-        data.get("phone_detected", False)
-    )
+        if engagement < 40:
+            cognitive_state = "drowsy"
+        elif (
+            gaze.lower() not in ["center", "forward", "unknown"]
+            or head_pose.lower() not in ["forward", "looking forward", "unknown"]
+        ):
+            cognitive_state = "distracted"
+        else:
+            cognitive_state = "focused"
 
-    person_count = int(
-        data.get("person_count", 1)
-    )
+        data.append({
+            "studentId": student_id,
+            "studentName": result.get("name", "Student"),
+            "currentEmotion": emotion,
+            "currentEngagement": engagement,
+            "authenticated": True,
+            "cognitiveState": cognitive_state,
+            "activeAlert": active_alert,
+            "history": [engagement],
+            "micOn": False,
+            "blinkCount": result.get("blink_count", 0),
+            "headPose": head_pose,
+            "gaze": gaze,
+            "phoneDetected": phone_detected,
+            "personCount": person_count,
+        })
 
-    active_alert = None
+    return {"success": True, "data": data}
 
-    if phone_detected:
-        active_alert = "phone_detected"
-
-    elif person_count > 1:
-        active_alert = "multiple_person"
-
-    elif gaze.lower() not in [
-        "center",
-        "forward",
-        "unknown"
-    ]:
-        active_alert = "looking_away"
-
-    elif head_pose.lower() not in [
-        "forward",
-        "looking forward",
-        "unknown"
-    ]:
-        active_alert = "looking_away"
-
-    elif engagement < 40:
-        active_alert = "attention_drop_predicted"
-
-    if engagement < 40:
-        cognitive_state = "drowsy"
-
-    elif (
-        gaze.lower() not in [
-            "center",
-            "forward",
-            "unknown"
-        ]
-        or head_pose.lower() not in [
-            "forward",
-            "looking forward",
-            "unknown"
-        ]
-    ):
-        cognitive_state = "distracted"
-
-    else:
-        cognitive_state = "focused"
-
-    student = {
-        "studentId": data.get(
-            "student_id",
-            "Disha"
-        ),
-
-        "studentName": data.get(
-            "name",
-            "Disha"
-        ),
-
-        "currentEmotion": emotion,
-
-        "currentEngagement": engagement,
-
-        "authenticated": True,
-
-        "cognitiveState": cognitive_state,
-
-        "activeAlert": active_alert,
-
-        "history": [
-            engagement
-        ],
-
-        "micOn": False,
-
-        "blinkCount": data.get(
-            "blink_count",
-            0
-        ),
-
-        "headPose": head_pose,
-
-        "gaze": gaze,
-
-        "phoneDetected": phone_detected,
-
-        "personCount": person_count,
-    }
-
-    return {
-        "success": True,
-        "data": [
-            student
-        ]
-    }
 
 # ---------------------------------------------------------------------------
 # WebRTC signaling
@@ -252,13 +198,28 @@ class AIFrameRequest(BaseModel):
 @router.post("/ai/analyze-frame")
 def analyze_frame(request: AIFrameRequest):
 
-    global latest_ai_result
-
-    db = None
+    db = SessionLocal()
 
     try:
         # ----------------------------------------------------
-        # REMOVE DATA URL PREFIX
+        # A session must be live for this class, or there is
+        # nothing to analyze -- and nothing further should run.
+        # ----------------------------------------------------
+
+        active_session = SessionRepository.get_active_session(
+            db,
+            request.class_id,
+        )
+
+        if not active_session:
+            return {
+                "success": True,
+                "session_active": False,
+                "data": None,
+            }
+
+        # ----------------------------------------------------
+        # REMOVE DATA URL PREFIX, DECODE TO AN OPENCV FRAME
         # ----------------------------------------------------
 
         encoded = request.frame
@@ -266,24 +227,12 @@ def analyze_frame(request: AIFrameRequest):
         if "," in encoded:
             encoded = encoded.split(",", 1)[1]
 
-        # ----------------------------------------------------
-        # BASE64 -> BYTES
-        # ----------------------------------------------------
-
         image_bytes = base64.b64decode(encoded)
-
-        # ----------------------------------------------------
-        # BYTES -> NUMPY ARRAY
-        # ----------------------------------------------------
 
         image_array = np.frombuffer(
             image_bytes,
             dtype=np.uint8
         )
-
-        # ----------------------------------------------------
-        # NUMPY ARRAY -> OPENCV FRAME
-        # ----------------------------------------------------
 
         frame = cv2.imdecode(
             image_array,
@@ -293,138 +242,93 @@ def analyze_frame(request: AIFrameRequest):
         if frame is None:
             return {
                 "success": False,
-                "error": "Unable to decode camera frame"
+                "session_active": True,
+                "error": "Unable to decode camera frame",
             }
 
         # ----------------------------------------------------
-        # RUN EXISTING AI PIPELINE
+        # RUN THE AI PIPELINE -- using THIS student's own
+        # per-session state, never shared with any other
+        # student or session.
         # ----------------------------------------------------
 
-        (
-            result,
-            MonitoringService.blink_counter,
-            MonitoringService.blink_total,
-        ) = process_frame(
-            frame,
-            MonitoringService.blink_counter,
-            MonitoringService.blink_total,
+        state = ai_state.get_state(
+            active_session.session_id,
+            request.student_id,
         )
+
+        result = process_frame(frame, state)
 
         # ----------------------------------------------------
         # SAVE AI RESULT TO DATABASE
         # ----------------------------------------------------
 
-        db = SessionLocal()
+        engagement_record = EngagementRecord(
+            session_id=active_session.session_id,
+            student_id=request.student_id,
 
-        active_session = SessionRepository.get_active_session(
-            db,
-            request.class_id
+            emotion=str(result.get("emotion", "Unknown")),
+            blink_count=int(result.get("blink_count", 0)),
+            head_pose=str(result.get("head_pose", "Unknown")),
+            gaze=str(result.get("gaze", "Unknown")),
+            phone_detected=bool(result.get("phone_detected", False)),
+            multiple_person=bool(result.get("person_count", 1) > 1),
+            engagement_score=float(result.get("engagement_score", 0)),
+            engagement_status=str(
+                result.get("engagement_status", "unknown")
+            ),
         )
 
-        if active_session:
-
-            engagement_record = EngagementRecord(
-                session_id=active_session.session_id,
-                student_id=request.student_id,
-
-                emotion=str(
-                    result.get("emotion", "Unknown")
-                ),
-
-                blink_count=int(
-                    result.get("blink_count", 0)
-                ),
-
-                head_pose=str(
-                    result.get("head_pose", "Unknown")
-                ),
-
-                gaze=str(
-                    result.get("gaze", "Unknown")
-                ),
-
-                phone_detected=bool(
-                    result.get("phone_detected", False)
-                ),
-
-                multiple_person=bool(
-                    result.get("person_count", 1) > 1
-                ),
-
-                engagement_score=float(
-                    result.get("engagement_score", 0)
-                ),
-
-                engagement_status=str(
-                    result.get(
-                        "engagement_status",
-                        "unknown"
-                    )
-                ),
-            )
-
-            db.add(engagement_record)
-            db.commit()
+        db.add(engagement_record)
+        db.commit()
 
         # ----------------------------------------------------
-        # DETERMINE ACTIVE ALERT
+        # DETERMINE ACTIVE ALERT, AND PERSIST A NEW ALERT
+        # EVENT ROW ONLY ON A STATE TRANSITION (so counts
+        # reflect real discrete incidents, not raw frame
+        # counts).
         # ----------------------------------------------------
 
         active_alert = get_active_alert(result)
 
+        if active_alert != state.get("last_alert_type"):
+
+            if active_alert is not None:
+                AlertRepository.create(
+                    db,
+                    session_id=active_session.session_id,
+                    class_id=request.class_id,
+                    student_id=request.student_id,
+                    alert_type=active_alert,
+                )
+
+            state["last_alert_type"] = active_alert
+
         # ----------------------------------------------------
-        # STORE LATEST RESULT
+        # STORE LATEST RESULT (for /live-monitor), SCOPED TO
+        # THIS CLASS + STUDENT ONLY.
         # ----------------------------------------------------
 
-        latest_ai_result = {
+        latest = {
             "name": request.student_name,
-
-            "emotion": result.get(
-                "emotion",
-                "Unknown"
-            ),
-
-            "blink_count": result.get(
-                "blink_count",
-                0
-            ),
-
-            "head_pose": result.get(
-                "head_pose",
-                "Unknown"
-            ),
-
-            "gaze": result.get(
-                "gaze",
-                "Unknown"
-            ),
-
-            "phone_detected": result.get(
-                "phone_detected",
-                False
-            ),
-
-            "person_count": result.get(
-                "person_count",
-                1
-            ),
-
-            "engagement_score": result.get(
-                "engagement_score",
-                0
-            ),
-
+            "emotion": result.get("emotion", "Unknown"),
+            "blink_count": result.get("blink_count", 0),
+            "head_pose": result.get("head_pose", "Unknown"),
+            "gaze": result.get("gaze", "Unknown"),
+            "phone_detected": result.get("phone_detected", False),
+            "person_count": result.get("person_count", 1),
+            "engagement_score": result.get("engagement_score", 0),
             "engagement_status": result.get(
-                "engagement_status",
-                "unknown"
+                "engagement_status", "unknown"
             ),
-
             "active_alert": active_alert,
-
             "student_id": request.student_id,
-
             "class_id": request.class_id,
         }
+
+        _latest_results.setdefault(request.class_id, {})[
+            request.student_id
+        ] = latest
 
         # ----------------------------------------------------
         # RETURN RESULT
@@ -432,122 +336,37 @@ def analyze_frame(request: AIFrameRequest):
 
         return {
             "success": True,
-            "data": latest_ai_result
+            "session_active": True,
+            "data": latest,
         }
 
     except Exception as exc:
 
-        if db is not None:
-            db.rollback()
+        db.rollback()
 
         return {
             "success": False,
-            "error": str(exc)
+            "session_active": True,
+            "error": str(exc),
         }
 
     finally:
 
-        if db is not None:
-            db.close()
+        db.close()
 
-        # ------------------------------------------------------------
-        # Determine active alert from THIS student's camera frame
-        # ------------------------------------------------------------
 
-        active_alert = None
+@router.post("/ai/clear-session/{session_id}")
+def clear_session(session_id: int):
+    """Drop in-memory per-student AI state for a session that just ended.
 
-        if result.get(
-            "phone_detected"
-        ):
+    Called (best-effort) by the Flask service when a teacher ends a class,
+    since the two processes don't share memory. Safe to call even if the
+    session has no in-memory state (e.g. AI service was restarted).
+    """
 
-            active_alert = "phone_detected"
+    removed = ai_state.clear_session(session_id)
 
-        elif result.get(
-            "person_count",
-            1
-        ) > 1:
-
-            active_alert = "multiple_person"
-
-        elif result.get(
-            "head_pose"
-        ) not in (
-            None,
-            "Looking Forward",
-            "Forward",
-        ):
-
-            active_alert = "looking_away"
-
-        elif result.get(
-            "gaze"
-        ) not in (
-            None,
-            "Center",
-        ):
-
-            active_alert = "looking_away"
-
-        elif result.get(
-            "engagement_score",
-            100
-        ) < 40:
-
-            active_alert = "attention_drop_predicted"
-
-        return {
-
-            "success": True,
-
-            "data": {
-
-                "name": result.get(
-                    "name",
-                    "Unknown"
-                ),
-
-                "emotion": result.get(
-                    "emotion",
-                    "Unknown"
-                ),
-
-                "blink_count": result.get(
-                    "blink_count",
-                    0
-                ),
-
-                "head_pose": result.get(
-                    "head_pose",
-                    "Unknown"
-                ),
-
-                "gaze": result.get(
-                    "gaze",
-                    "Center"
-                ),
-
-                "phone_detected": result.get(
-                    "phone_detected",
-                    False
-                ),
-
-                "person_count": result.get(
-                    "person_count",
-                    1
-                ),
-
-                "engagement_score": result.get(
-                    "engagement_score",
-                    0
-                ),
-
-                "engagement_status": result.get(
-                    "engagement_status",
-                    "unknown"
-                ),
-
-                "active_alert": active_alert,
-            },
-        }
-
-    
+    return {
+        "success": True,
+        "cleared_student_states": removed,
+    }

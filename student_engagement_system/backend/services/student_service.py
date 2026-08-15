@@ -4,6 +4,7 @@ from repositories.student_repository import StudentRepository
 from services.security_service import SecurityService
 from models.student import Student
 from services.jwt_service import JWTService
+from services.class_status_service import ClassStatusService
 from repositories.enrollment_repository import EnrollmentRepository
 
 
@@ -105,17 +106,25 @@ class StudentService:
             student_id
         )
 
-        return [
-            {
-                "class_id": c.class_id,
-                "class_name": c.classroom_name,
-                "subject": c.subject,
-                "semester": c.semester,
-                "section": c.section,
-                "class_code": c.class_code
+        def serialize(classroom):
+            summary = ClassStatusService.summarize(db, classroom)
+
+            return {
+                "class_id": classroom.class_id,
+                "class_name": classroom.classroom_name,
+                "subject": classroom.subject,
+                "semester": classroom.semester,
+                "section": classroom.section,
+                "class_code": classroom.class_code,
+                "status": summary["status"],
+                "session_id": summary["session_id"],
+                "start_time": summary["start_time"],
+                "end_time": summary["end_time"],
+                "students_enrolled": summary["students_enrolled"],
+                "avg_engagement": summary["avg_engagement"],
             }
-            for c in classes
-        ]
+
+        return [serialize(c) for c in classes]
     @staticmethod
     def get_dashboard(db, student_id):
 

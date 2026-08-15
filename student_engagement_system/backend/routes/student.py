@@ -9,6 +9,8 @@ from services.enrollment_service import EnrollmentService
 from services.jwt_service import JWTService
 from models.session import Session
 from models.student import Student
+from repositories.attendance_repository import AttendanceRepository
+from repositories.alert_repository import AlertRepository
 student_bp = Blueprint("student", __name__)
 
 
@@ -262,6 +264,26 @@ def student_class_history(class_id):
             .first()
         )
 
+        latest_session_id = records[-1].session_id
+
+        attendance = AttendanceRepository.get_by_session_and_student(
+            db,
+            latest_session_id,
+            student_id,
+        )
+
+        alert_counts = AlertRepository.counts_by_type(
+            db,
+            latest_session_id,
+            student_id,
+        )
+
+        session = (
+            db.query(Session)
+            .filter(Session.session_id == latest_session_id)
+            .first()
+        )
+
         return jsonify({
             "success": True,
             "history": {
@@ -271,9 +293,37 @@ def student_class_history(class_id):
                     if student
                     else "Student"
                 ),
+                "usn": student.usn if student else None,
                 "classId": class_id,
                 "className": classroom.classroom_name,
                 "subject": classroom.subject,
+                "sessionId": latest_session_id,
+                "startTime": session.start_time if session else None,
+                "endTime": session.end_time if session else None,
+
+                "attendanceStatus": (
+                    "present"
+                    if attendance and attendance.status == 1
+                    else "absent"
+                    if attendance
+                    else "unknown"
+                ),
+
+                "lookingAwayCount": alert_counts.get(
+                    "looking_away", 0
+                ),
+
+                "attentionDropCount": alert_counts.get(
+                    "attention_drop_predicted", 0
+                ),
+
+                "totalAlerts": sum(alert_counts.values()),
+
+                "blinkCount": (
+                    records[-1].blink_count
+                    if records[-1].blink_count is not None
+                    else 0
+                ),
 
                 "averageEngagement": round(
                     sum(scores) / len(scores)
@@ -320,6 +370,104 @@ def student_class_history(class_id):
                     for r in records
                 ],
             }
+        }), 200
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+
+
+@student_bp.route("/student/attendance", methods=["GET"])
+def student_attendance():
+
+    db = SessionLocal()
+
+    try:
+        auth = request.headers.get("Authorization")
+
+        if not auth:
+            raise Exception("Authorization token missing.")
+
+        token = auth.split(" ")[1]
+        payload = JWTService.verify_token(token)
+        student_id = payload["user_id"]
+
+        from models.classroom import Classroom
+        from models.engagement import EngagementRecord
+
+        records = AttendanceRepository.get_for_student(
+            db,
+            student_id,
+        )
+
+        result = []
+
+        for record in records:
+
+            classroom = (
+                db.query(Classroom)
+                .filter(Classroom.class_id == record.class_id)
+                .first()
+            )
+
+            session = (
+                db.query(Session)
+                .filter(Session.session_id == record.session_id)
+                .first()
+            )
+
+            engagement_scores = [
+                float(r.engagement_score or 0)
+                for r in db.query(EngagementRecord).filter(
+                    EngagementRecord.session_id == record.session_id,
+                    EngagementRecord.student_id == record.student_id,
+                ).all()
+            ]
+
+            avg_engagement = (
+                round(sum(engagement_scores) / len(engagement_scores))
+                if engagement_scores
+                else None
+            )
+
+            result.append({
+                "id": f"attendance-{record.attendance_id}",
+                "studentId": record.student_id,
+                "classId": record.class_id,
+                "className": (
+                    classroom.classroom_name if classroom else "Unknown"
+                ),
+                "sessionId": record.session_id,
+                "date": (
+                    session.start_time.isoformat()
+                    if session and session.start_time
+                    else record.created_at.isoformat()
+                    if record.created_at
+                    else None
+                ),
+                "startTime": (
+                    session.start_time.isoformat()
+                    if session and session.start_time
+                    else None
+                ),
+                "endTime": (
+                    session.end_time.isoformat()
+                    if session and session.end_time
+                    else None
+                ),
+                "status": "present" if record.status == 1 else "absent",
+                "engagementAvg": avg_engagement,
+            })
+
+        return jsonify({
+            "success": True,
+            "attendance": result,
         }), 200
 
     except Exception as e:

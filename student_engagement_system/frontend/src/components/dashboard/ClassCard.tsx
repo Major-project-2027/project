@@ -74,8 +74,8 @@ export function ClassCard({ session, role }: { session: ClassSession; role: 'tea
             </Button>
           )}
           {role === 'teacher' && session.status === 'completed' && (
-            <Button size="sm" variant="secondary" className="w-full" disabled={!session.recordingAvailable}>
-              {session.recordingAvailable ? 'View recording' : 'No recording'}
+            <Button size="sm" variant="secondary" className="w-full" onClick={() => navigate(`/teacher/classroom/${session.id}/report`)}>
+              View report
             </Button>
           )}
 
@@ -91,8 +91,8 @@ export function ClassCard({ session, role }: { session: ClassSession; role: 'tea
             </Button>
           )}
           {role === 'student' && session.status === 'completed' && (
-            <Button size="sm" variant="secondary" className="w-full" disabled={!session.recordingAvailable}>
-              {session.recordingAvailable ? 'View recording' : 'No recording'}
+            <Button size="sm" variant="secondary" className="w-full" onClick={() => navigate(`/student/classroom/${session.id}/report`)}>
+              View my report
             </Button>
           )}
         </div>

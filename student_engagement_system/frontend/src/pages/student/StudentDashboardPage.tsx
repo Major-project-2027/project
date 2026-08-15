@@ -169,6 +169,10 @@ export function StudentDashboardPage() {
 
   const today = upcoming.slice(0, 4);
 
+  const completed = (classesQuery.data ?? []).filter(
+    (c) => c.status === "completed"
+  );
+
   // ------------------------------------------------------------
   // TESTS
   // ------------------------------------------------------------
@@ -330,6 +334,33 @@ export function StudentDashboardPage() {
 
               </CardContent>
             </Card>
+
+            {/* -------------------------------------------------- */}
+            {/* COMPLETED CLASSES                                 */}
+            {/* -------------------------------------------------- */}
+
+            {completed.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle>Completed classes</CardTitle>
+                  <CardDescription>
+                    Open a class to see your monitoring summary
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="pt-3">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {completed.map((c) => (
+                      <ClassCard
+                        key={c.id}
+                        session={c}
+                        role="student"
+                      />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* -------------------------------------------------- */}
             {/* TESTS                                              */}

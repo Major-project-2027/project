@@ -32,12 +32,16 @@ export function StudentLiveClassroomPage() {
   // Real identity of the logged-in student -- must match what /ai/analyze-frame
   // is sent so the teacher's WebRTC tile and AI-monitoring tile merge into one
   // student instead of appearing as two separate (mock vs. real) entries.
-  const realStudentId = localStorage.getItem('user_id') ?? currentStudent.id
-  const realStudentName = localStorage.getItem('user_name') ?? currentStudent.name
+  // sessionStorage (not localStorage) is deliberate: localStorage is shared
+  // across every tab on this origin, so a teacher and a student logged in
+  // in two tabs of the same browser would otherwise silently overwrite each
+  // other's identity here, tagging AI results with the wrong user_id.
+  const realStudentId = sessionStorage.getItem('user_id') ?? currentStudent.id
+  const realStudentName = sessionStorage.getItem('user_name') ?? currentStudent.name
 
   useEffect(() => {
   const joinClass = async () => {
-    const token = localStorage.getItem('access_token')
+    const token = sessionStorage.getItem('access_token')
 
     if (!token || !classId) {
       return
@@ -86,6 +90,15 @@ export function StudentLiveClassroomPage() {
 
   const [aiAlert, setAiAlert] = useState<string | null>(null)
   const [showAiAlert, setShowAiAlert] = useState(false)
+  const [classEnded, setClassEnded] = useState(false)
+  // Interval/WS callbacks below are set up once (empty dependency arrays)
+  // and would otherwise only ever see the `classEnded` value from that
+  // first render via closure capture. The ref gives them a live read.
+  const classEndedRef = useRef(false)
+  const markClassEnded = () => {
+    classEndedRef.current = true
+    setClassEnded(true)
+  }
 
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const aiCanvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -207,6 +220,15 @@ export function StudentLiveClassroomPage() {
               const message = JSON.parse(event.data)
 
               // ------------------------------------------------------
+              // Teacher ended the class
+              // ------------------------------------------------------
+
+              if (message.type === 'class_ended') {
+                markClassEnded()
+                return
+              }
+
+              // ------------------------------------------------------
               // Teacher sent WebRTC answer
               // ------------------------------------------------------
 
@@ -311,6 +333,10 @@ export function StudentLiveClassroomPage() {
 
   useEffect(() => {
     const interval = setInterval(async () => {
+      if (classEndedRef.current) {
+        return
+      }
+
       const video = videoRef.current
 
       // Camera/video is not ready yet.
@@ -376,6 +402,15 @@ export function StudentLiveClassroomPage() {
         )
 
         const result = await response.json()
+
+        // Teacher ended the session server-side (e.g. this tab was
+        // backgrounded and missed the WebSocket 'class_ended' message).
+        // Stop analyzing frames rather than keep posting into a dead
+        // session.
+        if (result.session_active === false) {
+          markClassEnded()
+          return
+        }
 
         if (result.success) {
           console.log(
@@ -456,7 +491,14 @@ export function StudentLiveClassroomPage() {
           error,
         )
       }
-    }, 2000)
+    }, 600)
+    // 600ms (~1.6 fps) instead of the previous 2000ms. A blink only lasts
+    // ~100-400ms, so sampling every 2s almost never caught one -- this is
+    // the main reason the blink counter appeared stuck at 0. The backend
+    // still gates its heavier YOLO/face-recognition inference to run only
+    // every 2nd-6th received frame (see PROCESS_EVERY_YOLO/_FACE in
+    // ai_service.py) so this does not multiply the expensive work by the
+    // same factor, only the cheap MediaPipe landmark pass blink relies on.
 
     return () => {
       clearInterval(interval)
@@ -484,11 +526,44 @@ export function StudentLiveClassroomPage() {
   ).padStart(2, '0')}`
 
   // ---------------------------------------------------------------------------
+  // Leave automatically once the class has ended
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (!classEnded) {
+      return
+    }
+
+    const timeout = setTimeout(() => {
+      navigate('/student')
+    }, 3000)
+
+    return () => clearTimeout(timeout)
+  }, [classEnded, navigate])
+
+  // ---------------------------------------------------------------------------
   // UI
   // ---------------------------------------------------------------------------
 
   return (
     <>
+      {/* ============================================================
+          CLASS ENDED
+         ============================================================ */}
+
+      {classEnded && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="rounded-2xl bg-[#171923] p-6 text-center shadow-2xl">
+            <p className="text-lg font-semibold text-white">
+              This class has ended
+            </p>
+            <p className="mt-1 text-sm text-white/60">
+              Taking you back to your dashboard…
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ============================================================
           AI MONITORING ALERT
          ============================================================ */}

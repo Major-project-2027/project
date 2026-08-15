@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Mail, Lock } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, GraduationCap, User2 } from 'lucide-react'
 import { AuthLayout } from './AuthLayout'
 import { Input, Label } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import { cn } from '@/lib/utils'
 import { loginSchema, type LoginFormValues } from '@/features/auth/schemas'
 import { authApi } from '@/services/api/endpoints'
 import { useAppDispatch } from '@/hooks/useAppStore'
@@ -17,15 +18,16 @@ export function LoginPage() {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormValues>({
+  const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { email: '', password: '', role: 'student' },
   })
+  const role = watch('role')
 
   const onSubmit = async (values: LoginFormValues) => {
     setServerError('')
     try {
-      const { user, token } = await authApi.login(values.email, values.password)
+      const { user, token } = await authApi.login(values.email, values.password, values.role)
       dispatch(setCredentials({ user, token }))
       navigate(user.role === 'teacher' ? '/teacher' : '/student')
     } catch {
@@ -36,6 +38,28 @@ export function LoginPage() {
   return (
     <AuthLayout title="Welcome back" subtitle="Sign in to your Cognivue classroom account.">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <div>
+          <Label>I am a</Label>
+          <div className="grid grid-cols-2 gap-3">
+            {(['student', 'teacher'] as const).map((r) => (
+              <button
+                type="button"
+                key={r}
+                onClick={() => setValue('role', r)}
+                className={cn(
+                  'flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium capitalize transition-colors',
+                  role === r
+                    ? 'border-focus-500 bg-focus-500/10 text-focus-600 dark:text-focus-400'
+                    : 'border-border-light text-textmuted-light dark:border-border-dark dark:text-textmuted-dark',
+                )}
+              >
+                {r === 'teacher' ? <GraduationCap className="h-4 w-4" /> : <User2 className="h-4 w-4" />}
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div>
           <Label htmlFor="email">Email</Label>
           <div className="relative">
@@ -65,9 +89,6 @@ export function LoginPage() {
 
       <p className="mt-6 text-center text-sm text-textmuted-light dark:text-textmuted-dark">
         Don't have an account? <Link to="/register" className="font-medium text-focus-500 hover:underline">Create one</Link>
-      </p>
-      <p className="mt-3 text-center text-xs text-textmuted-light/70 dark:text-textmuted-dark/70">
-        Demo: use any email containing "teacher" or "student"
       </p>
     </AuthLayout>
   )

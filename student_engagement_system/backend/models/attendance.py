@@ -24,6 +24,12 @@ class Attendance(Base):
         nullable=False
     )
 
+    session_id = Column(
+        Integer,
+        ForeignKey("sessions.session_id"),
+        nullable=True
+    )
+
     status = Column(Integer, default=1)   # 1 = Present, 0 = Absent
 
     created_at = Column(

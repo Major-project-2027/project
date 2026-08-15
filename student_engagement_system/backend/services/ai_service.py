@@ -1,11 +1,20 @@
 import cv2
 import time
+import threading
 import numpy as np
 import mediapipe as mp
 
 from scipy.spatial import distance
 from tensorflow.keras.models import load_model
 from ultralytics import YOLO
+
+# The MediaPipe FaceLandmarker (VIDEO mode, monotonic timestamps) and the
+# TensorFlow/YOLO models below are single shared instances used by every
+# request. None of them are safe to call from multiple threads at once, so
+# every actual inference call is serialized through this lock. Per-student
+# STATE (blink counters, caches) is scoped separately in ai_state.py and is
+# NOT protected by this lock -- only the model calls themselves are.
+inference_lock = threading.Lock()
 
 
 # ============================================================
@@ -123,15 +132,14 @@ RIGHT_IRIS = [473, 474, 475, 476]
 EAR_THRESHOLD = 0.25
 CONSEC_FRAMES = 1
 
-last_ear = 0.0
-PROCESS_EVERY = 5
-
-frame_counter = 0
-
-last_name = "Unknown"
-last_emotion = "Unknown"
-last_person_count = 1
-last_phone_detected = False
+# How often (in received frames, PER STUDENT) each expensive step runs.
+# Blink/head-pose/gaze come from the MediaPipe landmarker, which is cheap
+# (~10-30ms) and runs on every frame for responsiveness. YOLO (phone/person
+# detection) is heavier and runs every other frame. Face recognition +
+# emotion are the heaviest (two TensorFlow model calls) and run least often
+# -- neither needs to be instantaneous the way phone detection does.
+PROCESS_EVERY_YOLO = 2
+PROCESS_EVERY_FACE = 6
 
 
 # ============================================================
@@ -356,90 +364,99 @@ def calculate_engagement(
 # PROCESS ONE FRAME
 # ============================================================
 
-def process_frame(
-    frame,
-    blink_counter=0,
-    blink_total=0
-):
+def process_frame(frame, state):
+    """Run the AI pipeline on a single frame for ONE student.
+
+    `state` is that student's own per-session dict from ai_state.py --
+    mutated in place (blink_counter/blink_total/frame_counter/last_*) so
+    the caller's copy stays in sync, and also returned as part of the
+    result for convenience.
+    """
 
     if frame is None:
         return None
 
     height, width = frame.shape[:2]
 
-    PROCESS_EVERY = 5
+    state["frame_counter"] += 1
+    frame_counter = state["frame_counter"]
 
-    global frame_counter
-    global last_name
-    global last_emotion
-    global last_person_count
-    global last_phone_detected
-    global last_ear
+    blink_counter = state["blink_counter"]
+    blink_total = state["blink_total"]
 
-    frame_counter += 1
+    # All calls into the shared MediaPipe/YOLO/TensorFlow model instances
+    # are serialized -- none of them are safe to call concurrently from
+    # multiple request threads.
+    with inference_lock:
 
-    # ========================================================
-    # YOLO
-    # ========================================================
+        # ========================================================
+        # YOLO (phone / person count) -- runs most frequently among the
+        # heavy steps so a phone held up to the camera is flagged quickly.
+        # ========================================================
 
-    if frame_counter % PROCESS_EVERY == 0:
+        if frame_counter % PROCESS_EVERY_YOLO == 0:
 
-        yolo_results, person_count, phone_detected = detect_objects(
-            frame
+            yolo_results, person_count, phone_detected = detect_objects(
+                frame
+            )
+
+            state["last_person_count"] = person_count
+            state["last_phone_detected"] = phone_detected
+
+        else:
+
+            person_count = state["last_person_count"]
+            phone_detected = state["last_phone_detected"]
+
+        # ========================================================
+        # OPENCV FACE DETECTION
+        # ========================================================
+
+        gray = cv2.cvtColor(
+            frame,
+            cv2.COLOR_BGR2GRAY
         )
 
-        last_person_count = person_count
-        last_phone_detected = phone_detected
+        faces = face_detector.detectMultiScale(
+            gray,
+            scaleFactor=1.3,
+            minNeighbors=5
+        )
 
-    else:
+        # ========================================================
+        # MEDIAPIPE -- runs on EVERY frame. This is what blink / head
+        # pose / gaze are derived from, and it is cheap relative to
+        # YOLO/TensorFlow, so there is no reason to skip it. Skipping it
+        # is what previously made blink detection miss almost every
+        # blink (a blink only lasts ~100-400ms; sampling it rarely means
+        # rarely catching it at all).
+        # ========================================================
 
-        person_count = last_person_count
-        phone_detected = last_phone_detected
+        rgb = cv2.cvtColor(
+            frame,
+            cv2.COLOR_BGR2RGB
+        )
 
-    # ========================================================
-    # OPENCV FACE DETECTION
-    # ========================================================
+        mp_image = mp.Image(
+            image_format=mp.ImageFormat.SRGB,
+            data=rgb
+        )
 
-    gray = cv2.cvtColor(
-        frame,
-        cv2.COLOR_BGR2GRAY
-    )
+        timestamp_ms = int(
+            time.time() * 1000
+        )
 
-    faces = face_detector.detectMultiScale(
-        gray,
-        scaleFactor=1.3,
-        minNeighbors=5
-    )
-
-    # ========================================================
-    # MEDIAPIPE
-    # ========================================================
-
-    rgb = cv2.cvtColor(
-        frame,
-        cv2.COLOR_BGR2RGB
-    )
-
-    mp_image = mp.Image(
-        image_format=mp.ImageFormat.SRGB,
-        data=rgb
-    )
-
-    timestamp_ms = int(
-        time.time() * 1000
-    )
-
-    result = landmarker.detect_for_video(
-        mp_image,
-        timestamp_ms
-    )
+        result = landmarker.detect_for_video(
+            mp_image,
+            timestamp_ms
+        )
 
     # ========================================================
     # DEFAULT VALUES
     # ========================================================
 
-    name = last_name
-    emotion = last_emotion
+    name = state["last_name"]
+    emotion = state["last_emotion"]
 
     ear = 0.0
 
@@ -479,7 +496,7 @@ def process_frame(
             rightEAR
         ) / 2.0
 
-        last_ear = ear
+        state["last_ear"] = ear
 
         if ear < EAR_THRESHOLD:
 
@@ -614,50 +631,52 @@ def process_frame(
             axis=0
         )
 
-        if frame_counter % PROCESS_EVERY == 0:
+        if frame_counter % PROCESS_EVERY_FACE == 0:
 
-            if face_model is not None:
-                face_pred = face_model.predict(
-                    face_input,
-                    verbose=0
+            with inference_lock:
+
+                if face_model is not None:
+                    face_pred = face_model.predict(
+                        face_input,
+                        verbose=0
+                    )
+
+                # Current project has one enrolled student
+                state["last_name"] = "Disha"
+
+                # ---------------- Emotion ----------------
+
+                emotion_input = cv2.resize(
+                    face_crop,
+                    (224, 224)
                 )
 
-            # Current project has one enrolled student
-            last_name = "Disha"
+                emotion_input = (
+                    emotion_input.astype("float32")
+                    / 255.0
+                )
 
-            # ---------------- Emotion ----------------
-
-            emotion_input = cv2.resize(
-                face_crop,
-                (224, 224)
-            )
-
-            emotion_input = (
-                emotion_input.astype("float32")
-                / 255.0
-            )
-
-            emotion_input = np.expand_dims(
-                emotion_input,
-                axis=0
-            )
-
-            if emotion_model is not None:
-
-                emotion_pred = emotion_model.predict(
+                emotion_input = np.expand_dims(
                     emotion_input,
-                    verbose=0
+                    axis=0
                 )
 
-                last_emotion = emotion_labels[
-                    np.argmax(emotion_pred)
-                ]
+                if emotion_model is not None:
 
-            else:
-                last_emotion = "Neutral"
+                    emotion_pred = emotion_model.predict(
+                        emotion_input,
+                        verbose=0
+                    )
 
-        name = last_name
-        emotion = last_emotion
+                    state["last_emotion"] = emotion_labels[
+                        np.argmax(emotion_pred)
+                    ]
+
+                else:
+                    state["last_emotion"] = "Neutral"
+
+        name = state["last_name"]
+        emotion = state["last_emotion"]
         # ---------------- Face Box ----------------
 
         cv2.rectangle(
@@ -784,6 +803,12 @@ def process_frame(
         2
     )
 
+    # Write the updated blink state back into the caller's per-student
+    # state dict so the next frame from THIS student (and only this
+    # student) continues from here.
+    state["blink_counter"] = blink_counter
+    state["blink_total"] = blink_total
+
     return {
         "frame": frame,
         "name": name,
@@ -799,4 +824,4 @@ def process_frame(
             "Engaged"
             if engagement_score >= 70
             else "Distracted"
-    }, blink_counter, blink_total
+    }

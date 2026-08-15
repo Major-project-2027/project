@@ -1,7 +1,6 @@
 import type {
   AIAlert,
   AppNotification,
-  AttendanceRecord,
   BehaviorBreakdown,
   ClassSession,
   EngagementTrendPoint,
@@ -62,13 +61,6 @@ export function generateClasses(count = 0): ClassSession[] {
  * phase actually persists instead of resetting on every refetch.
  */
 let classesStore: ClassSession[] = []
-type SessionEngagement = {
-  studentId: string
-  studentName: string
-  history: number[]
-}
-
-const sessionEngagementStore: Record<string, SessionEngagement[]> = {}
 const CLASSES_STORAGE_KEY = "student_engagement_classes"
 
 
@@ -108,33 +100,6 @@ export function getClassesStore(): ClassSession[] {
   classesStore = loadClassesFromStorage()
   return classesStore
 }
-export function recordStudentEngagement(
-  classId: string,
-  studentId: string,
-  studentName: string,
-  engagement: number,
-) {
-  if (!sessionEngagementStore[classId]) {
-    sessionEngagementStore[classId] = []
-  }
-
-  let student = sessionEngagementStore[classId].find(
-    (s) => s.studentId === studentId
-  )
-
-  if (!student) {
-    student = {
-      studentId,
-      studentName,
-      history: [],
-    }
-
-    sessionEngagementStore[classId].push(student)
-  }
-
-  student.history.push(Number(engagement))
-}
-
 export function createClassInStore(input: {
   title: string
   subject: string
@@ -190,6 +155,13 @@ export function startClassInStore(
 export function endClassInStore(
   id: string,
 ): ClassSession | undefined {
+  // Attendance and class-summary data (student count, average engagement)
+  // are now computed and persisted by the backend when the teacher ends a
+  // session (see SessionService.end_session), and read back from there by
+  // classesApi.list / attendanceApi.list. This local store is kept only as
+  // a fallback cache for classesApi.get()'s cosmetic single-class lookup
+  // (e.g. the live classroom header title), so it just marks the class
+  // completed without inventing any attendance/engagement numbers.
   const classSession = getClassesStore().find(
     (c) => c.id === id,
   )
@@ -198,49 +170,16 @@ export function endClassInStore(
     return undefined
   }
 
-  // Finalize attendance ONLY when teacher ends class.
-  const attendanceRecords =
-    finalizeClassAttendance(id)
-
-  const sessionStudents =
-    sessionEngagementStore[id] ?? []
-
-  const classAverage =
-    sessionStudents.length > 0
-      ? sessionStudents.reduce(
-          (sum, student) => {
-            if (student.history.length === 0) {
-              return sum
-            }
-
-            const studentAverage =
-              student.history.reduce(
-                (a, b) => a + b,
-                0,
-              ) / student.history.length
-
-            return sum + studentAverage
-          },
-          0,
-        ) / sessionStudents.length
-      : 0
-
   classesStore = getClassesStore().map((c) =>
     c.id === id
       ? {
           ...c,
           status: 'completed',
-          recordingAvailable: true,
-          studentsPresent: attendanceRecords.length,
-          avgEngagement: Math.round(classAverage),
         }
       : c,
   )
 
   saveClassesToStorage(classesStore)
-
-  // Clear live engagement after the class is finalized.
-  delete sessionEngagementStore[id]
 
   return classesStore.find(
     (c) => c.id === id,
@@ -317,130 +256,10 @@ export function generateAlerts(count = 20): AIAlert[] {
   })
 }
 
-const ATTENDANCE_STORAGE_KEY = 'student_engagement_attendance'
-
-function loadAttendanceFromStorage(): AttendanceRecord[] {
-  try {
-    const stored = localStorage.getItem(ATTENDANCE_STORAGE_KEY)
-
-    if (!stored) {
-      return []
-    }
-
-    const parsed = JSON.parse(stored)
-
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
-
-function saveAttendanceToStorage(
-  records: AttendanceRecord[],
-) {
-  try {
-    localStorage.setItem(
-      ATTENDANCE_STORAGE_KEY,
-      JSON.stringify(records),
-    )
-  } catch {
-    // Ignore storage errors
-  }
-}
-
-export function finalizeClassAttendance(
-  classId: string,
-): AttendanceRecord[] {
-  const classSession = getClassesStore().find(
-    (c) => c.id === classId,
-  )
-
-  if (!classSession) {
-    return []
-  }
-
-  const sessionStudents =
-    sessionEngagementStore[classId] ?? []
-
-  const newRecords: AttendanceRecord[] = []
-
-  for (const student of sessionStudents) {
-    if (student.history.length === 0) {
-      continue
-    }
-
-    // Calculate the student's average engagement
-    // throughout the entire class session.
-    const averageEngagement =
-      student.history.reduce(
-        (sum, value) => sum + value,
-        0,
-      ) / student.history.length
-
-    // Engagement at the moment the teacher ended the class.
-    const latestEngagement =
-      student.history[student.history.length - 1]
-
-    /*
-      ATTENDANCE RULE
-
-      Attendance is awarded ONLY after the teacher
-      ends the class AND:
-
-      1. Latest engagement > 50%
-      2. Average engagement throughout the session > 50%
-
-      If either condition fails, no attendance record
-      is created for that student.
-    */
-    if (
-      latestEngagement > 50 &&
-      averageEngagement > 50
-    ) {
-      newRecords.push({
-        id: `attendance-${classId}-${student.studentId}`,
-        studentId: student.studentId,
-        studentName: student.studentName,
-        classId,
-        className: classSession.title,
-        date: new Date().toISOString(),
-        status: 'present',
-        joinTime: undefined,
-        leaveTime: new Date().toISOString(),
-        engagementAvg: Math.round(averageEngagement),
-      })
-    }
-  }
-
-  /*
-    IMPORTANT:
-
-    Always read the latest attendance from localStorage.
-    Do not use a separate in-memory attendanceStore because
-    teacher and student pages may be running in different
-    browser tabs.
-  */
-  const existingAttendance =
-    loadAttendanceFromStorage()
-
-  const updatedAttendance = [
-    ...existingAttendance.filter(
-      (record) => record.classId !== classId,
-    ),
-    ...newRecords,
-  ]
-
-  saveAttendanceToStorage(updatedAttendance)
-
-  return newRecords
-}
-
-export function generateAttendance(): AttendanceRecord[] {
-  // Always return the latest data from localStorage.
-  // This allows the student dashboard/tab to see attendance
-  // created when the teacher ended the class.
-  return loadAttendanceFromStorage()
-}
+// Attendance is no longer simulated client-side: it is computed and
+// persisted by the backend (SessionService.end_session) when a teacher
+// ends a class, and read back for real via attendanceApi.list() ->
+// GET /teacher/attendance or /student/attendance. See endpoints.ts.
 
 export function generateEngagementTrend(days = 14): EngagementTrendPoint[] {
   return Array.from({ length: days }).map((_, i) => ({

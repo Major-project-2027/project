@@ -19,10 +19,6 @@ import {
   classesApi,
 } from '@/services/api/endpoints'
 
-import {
-  recordStudentEngagement,
-} from '@/mocks/data'
-
 import { Badge } from '@/components/ui/Badge'
 import type { StudentLiveState } from '@/types/domain'
 
@@ -210,8 +206,9 @@ export function TeacherLiveClassroomPage() {
 
   const studentsQuery = useQuery({
   queryKey: ['live-students', classId],
-  queryFn: monitoringApi.liveStudents,
+  queryFn: () => monitoringApi.liveStudents(classId),
   refetchInterval: 8000,
+  enabled: Boolean(classId),
 })
 
   const apiStudents = studentsQuery.data ?? []
@@ -269,6 +266,15 @@ export function TeacherLiveClassroomPage() {
   mutationFn: () => classesApi.end(classId ?? ''),
 
   onSuccess: () => {
+    // Tell every currently-connected student immediately, over the same
+    // signaling socket already used for WebRTC + AI results, instead of
+    // making them wait for their next analyze-frame poll to notice.
+    if (signalingRef.current?.readyState === WebSocket.OPEN) {
+      signalingRef.current.send(
+        JSON.stringify({ type: 'class_ended' }),
+      )
+    }
+
     queryClient.invalidateQueries({
       queryKey: ['classes'],
     })
@@ -350,21 +356,10 @@ export function TeacherLiveClassroomPage() {
             message,
             existing,
           ) as StudentLiveState
-        // ---------------------------------------------------------------
-// RECORD REAL ENGAGEMENT FOR ATTENDANCE
-// ---------------------------------------------------------------
 
-if (
-  classId &&
-  classQuery.data?.status === 'live'
-) {
-  recordStudentEngagement(
-    classId,
-    studentId,
-    studentName,
-    updatedStudent.currentEngagement ?? 0,
-  )
-}
+        // Engagement history used for attendance/history is now persisted
+        // server-side (engagement_records, keyed by session_id + student_id)
+        // by the /ai/analyze-frame endpoint itself -- nothing to record here.
 
         // ---------------------------------------------------------------
         // Student already connected through WebRTC.
