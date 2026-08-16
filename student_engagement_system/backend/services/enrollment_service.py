@@ -2,9 +2,50 @@ from models.enrollment import Enrollment
 
 from repositories.classroom_repository import ClassroomRepository
 from repositories.enrollment_repository import EnrollmentRepository
+from repositories.session_repository import SessionRepository
 
 
 class EnrollmentService:
+
+    @staticmethod
+    def join_live_class(db, student_id, class_id):
+        """Direct join for the "Live Classes" dashboard flow -- no class
+        code required. Only allowed while the class actually has an
+        active session, and never creates a second session or a
+        duplicate enrollment row."""
+
+        classroom = ClassroomRepository.get_by_id(
+            db,
+            class_id
+        )
+
+        if not classroom:
+            raise Exception("Classroom not found.")
+
+        active_session = SessionRepository.get_active_session(
+            db,
+            class_id
+        )
+
+        if not active_session:
+            raise Exception("This class is not currently live.")
+
+        if not EnrollmentRepository.already_joined(
+            db,
+            student_id,
+            class_id
+        ):
+            enrollment = Enrollment(
+                student_id=student_id,
+                class_id=class_id
+            )
+
+            EnrollmentRepository.join_class(
+                db,
+                enrollment
+            )
+
+        return classroom, active_session
 
     @staticmethod
     def join_class(db, student_id, class_code):

@@ -4,11 +4,15 @@ from database.database import SessionLocal
 from schemas.student_schema import StudentRegister
 from schemas.login_schema import StudentLogin
 from services.student_service import StudentService
-from schemas.join_class_schema import JoinClass
+from schemas.join_class_schema import JoinClass, JoinLiveClass
 from services.enrollment_service import EnrollmentService
 from services.jwt_service import JWTService
 from models.session import Session
 from models.student import Student
+from models.classroom import Classroom
+from models.teacher import Teacher
+from models.enrollment import Enrollment
+from repositories.session_repository import SessionRepository
 from repositories.attendance_repository import AttendanceRepository
 from repositories.alert_repository import AlertRepository
 student_bp = Blueprint("student", __name__)
@@ -111,6 +115,123 @@ def join_class():
 
     finally:
         db.close()
+
+
+@student_bp.route("/live-classes", methods=["GET"])
+def live_classes():
+    """Every class with an active session right now, across every
+    teacher -- lets any authenticated student discover and join a live
+    class from the dashboard without needing its code."""
+
+    db = SessionLocal()
+
+    try:
+        auth = request.headers.get("Authorization")
+
+        if not auth:
+            raise Exception("Authorization token missing.")
+
+        token = auth.split(" ")[1]
+
+        JWTService.verify_token(token)
+
+        active_sessions = SessionRepository.get_all_active_sessions(db)
+
+        result = []
+
+        for session in active_sessions:
+
+            classroom = (
+                db.query(Classroom)
+                .filter(Classroom.class_id == session.class_id)
+                .first()
+            )
+
+            if not classroom:
+                continue
+
+            teacher = (
+                db.query(Teacher)
+                .filter(Teacher.teacher_id == session.teacher_id)
+                .first()
+            )
+
+            student_count = (
+                db.query(Enrollment)
+                .filter(Enrollment.class_id == session.class_id)
+                .count()
+            )
+
+            result.append({
+                "session_id": session.session_id,
+                "class_id": session.class_id,
+                "classroom_name": classroom.classroom_name,
+                "subject": classroom.subject,
+                "teacher_id": session.teacher_id,
+                "teacher_name": teacher.name if teacher else "Unknown",
+                "start_time": session.start_time,
+                "student_count": student_count,
+            })
+
+        return jsonify({
+            "success": True,
+            "liveClasses": result,
+        }), 200
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+
+
+@student_bp.route("/join-live-class", methods=["POST"])
+def join_live_class():
+    """Direct join from the "Live Classes" dashboard section -- no class
+    code required. Only succeeds while the class's session is actually
+    active, and never creates a duplicate enrollment or a new session."""
+
+    db = SessionLocal()
+
+    try:
+        auth = request.headers.get("Authorization")
+
+        if not auth:
+            raise Exception("Authorization token missing.")
+
+        token = auth.split(" ")[1]
+
+        payload = JWTService.verify_token(token)
+
+        data = JoinLiveClass(**request.json)
+
+        classroom, session = EnrollmentService.join_live_class(
+            db,
+            payload["user_id"],
+            data.class_id
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "Joined Live Class Successfully",
+            "class_id": classroom.class_id,
+            "class_name": classroom.classroom_name,
+            "session_id": session.session_id,
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+
 
 @student_bp.route("/my-classes", methods=["GET"])
 def my_classes():

@@ -47,10 +47,17 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    # Vite falls back to the next free port (5174, 5175, ...) whenever
+    # 5173 is already taken by another dev-server instance, which
+    # silently broke every /ai/analyze-frame call: Starlette's
+    # CORSMiddleware rejects the preflight OPTIONS request with 400 for
+    # any origin not in the list, the browser's fetch() then fails
+    # before the POST is ever sent, and the frontend's live-monitoring
+    # loop -- which is otherwise running correctly -- just keeps
+    # catching that failure every tick. Matching any localhost/127.0.0.1
+    # port covers this without hand-maintaining a port list; still local
+    # dev origins only, same as before.
+    allow_origin_regex=r"^http://(localhost|127\.0\.0\.1):\d+$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

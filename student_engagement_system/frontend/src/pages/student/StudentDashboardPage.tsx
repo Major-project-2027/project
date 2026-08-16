@@ -12,10 +12,13 @@ import {
   Users,
   Smartphone,
   Plus,
+  Radio,
+  LogIn,
 } from "lucide-react";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -33,6 +36,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Switch } from "@/components/ui/Switch";
 import { Badge } from "@/components/ui/Badge";
+import { Avatar } from "@/components/ui/Avatar";
 
 import {
   classesApi,
@@ -42,10 +46,12 @@ import {
 } from "@/services/api/endpoints";
 
 import { currentStudent } from "@/mocks/data";
-import { relativeTime, formatDateTime } from "@/lib/utils";
+import { relativeTime, formatDateTime, formatTime } from "@/lib/utils";
 
 export function StudentDashboardPage() {
   const [joinOpen, setJoinOpen] = useState(false);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // ------------------------------------------------------------
   // EXISTING API DATA
@@ -58,6 +64,35 @@ export function StudentDashboardPage() {
 });
   console.log("STUDENT CLASSES:", classesQuery.data);
   console.log("STUDENT CLASSES ERROR:", classesQuery.error);
+
+  // ------------------------------------------------------------
+  // LIVE CLASSES (any teacher, no class code required)
+  // ------------------------------------------------------------
+
+  const liveClassesQuery = useQuery({
+    queryKey: ["live-classes"],
+    queryFn: classesApi.liveClasses,
+    refetchInterval: 10000,
+  });
+
+  const [joinLiveError, setJoinLiveError] = useState<string | null>(null);
+
+  const joinLiveMutation = useMutation({
+    mutationFn: (classId: string) => classesApi.joinLive(classId),
+
+    onSuccess: (_result, classId) => {
+      setJoinLiveError(null);
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["live-classes"] });
+      navigate(`/student/lobby/${classId}`);
+    },
+
+    onError: (err) => {
+      setJoinLiveError(
+        err instanceof Error ? err.message : "Unable to join this class"
+      );
+    },
+  });
 
   const notificationsQuery = useQuery({
     queryKey: ["notifications"],
@@ -87,7 +122,7 @@ export function StudentDashboardPage() {
 
   const monitoringQuery = useQuery({
     queryKey: ["live-monitor"],
-    queryFn: monitoringApi.liveStudents,
+    queryFn: () => monitoringApi.liveStudents(),
     refetchInterval: 1000,
   });
 
@@ -276,6 +311,86 @@ export function StudentDashboardPage() {
         <div className="grid gap-6 lg:grid-cols-3">
 
           <div className="lg:col-span-2 space-y-6">
+
+            {/* -------------------------------------------------- */}
+            {/* LIVE CLASSES                                      */}
+            {/* -------------------------------------------------- */}
+
+            <Card>
+              <CardHeader className="pb-3">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="flex h-2 w-2 animate-pulse rounded-full bg-critical-500" />
+                    Live classes
+                  </CardTitle>
+                  <CardDescription>
+                    Any class a teacher has started right now — join with one click, no code needed
+                  </CardDescription>
+                </div>
+              </CardHeader>
+
+              <CardContent className="pt-3">
+                {joinLiveError && (
+                  <p className="mb-3 text-sm text-critical-500">{joinLiveError}</p>
+                )}
+                {liveClassesQuery.isLoading ? (
+                  <div className="space-y-2">
+                    {Array.from({ length: 2 }).map((_, i) => (
+                      <Skeleton key={i} className="h-16" />
+                    ))}
+                  </div>
+                ) : (liveClassesQuery.data ?? []).length === 0 ? (
+                  <EmptyState
+                    icon={Radio}
+                    title="No live classes right now"
+                    description="When a teacher starts a class, it will appear here."
+                  />
+                ) : (
+                  <ul className="space-y-2">
+                    {(liveClassesQuery.data ?? []).map((c) => (
+                      <li
+                        key={c.sessionId}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-border-light p-3 dark:border-border-dark"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar name={c.teacherName || c.title} size={36} />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="truncate text-sm font-medium text-text-light dark:text-text-dark">
+                                {c.title}
+                              </p>
+                              <Badge variant="critical">
+                                <Radio className="h-3 w-3" />
+                                Live
+                              </Badge>
+                            </div>
+                            <p className="truncate text-xs text-textmuted-light dark:text-textmuted-dark">
+                              {c.subject} · {c.teacherName} · started {formatTime(c.startTime)}
+                              {c.studentCount > 0 && ` · ${c.studentCount} joined`}
+                            </p>
+                          </div>
+                        </div>
+
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setJoinLiveError(null);
+                            joinLiveMutation.mutate(c.classId);
+                          }}
+                          loading={
+                            joinLiveMutation.isPending &&
+                            joinLiveMutation.variables === c.classId
+                          }
+                        >
+                          <LogIn className="h-4 w-4" />
+                          Join class
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
 
             {/* -------------------------------------------------- */}
             {/* UPCOMING CLASSES                                  */}

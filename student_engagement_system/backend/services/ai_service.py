@@ -1,8 +1,10 @@
+import os
 import cv2
 import time
 import threading
 import numpy as np
 import mediapipe as mp
+from pathlib import Path
 
 from scipy.spatial import distance
 from tensorflow.keras.models import load_model
@@ -20,9 +22,26 @@ inference_lock = threading.Lock()
 # ============================================================
 # MODEL PATHS
 # ============================================================
+#
+# YOLO_MODEL_PATH / LANDMARKER_PATH are relative to the backend/ working
+# directory (where uvicorn is launched from) and are correct as-is --
+# both files live directly under backend/.
+#
+# FACE_MODEL_PATH / EMOTION_MODEL_PATH previously used the same
+# backend-relative style ("ml_models/...") but those .keras files
+# actually live one level up, under student_engagement_system/ml_models/,
+# not backend/ml_models/ (which doesn't exist). That mismatch, not a
+# missing model, was why face/emotion loading always failed. Resolved
+# relative to this file's own location so it no longer depends on
+# which directory the process happens to be launched from.
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-FACE_MODEL_PATH = "ml_models/face_recognition_model.keras"
-EMOTION_MODEL_PATH = "ml_models/emotion_recognition/emotion_model.keras"
+FACE_MODEL_PATH = str(
+    _PROJECT_ROOT / "ml_models" / "face_recognition_model.keras"
+)
+EMOTION_MODEL_PATH = str(
+    _PROJECT_ROOT / "ml_models" / "emotion_recognition" / "emotion_model.keras"
+)
 YOLO_MODEL_PATH = "yolov8n.pt"
 LANDMARKER_PATH = "face_landmarker.task"
 
@@ -33,19 +52,32 @@ LANDMARKER_PATH = "face_landmarker.task"
 
 print("Loading Face Recognition Model...")
 
-if __import__("os").path.exists(FACE_MODEL_PATH):
-    face_model = load_model(FACE_MODEL_PATH)
+face_model = None
+if os.path.exists(FACE_MODEL_PATH):
+    try:
+        face_model = load_model(FACE_MODEL_PATH)
+    except Exception as exc:
+        # The file exists but failed to deserialize -- e.g. it was saved
+        # with a different Keras version than is installed here. Degrade
+        # gracefully rather than let this crash the whole process: face
+        # recognition just isn't available, the rest of the pipeline
+        # (blink/gaze/head-pose/YOLO/emotion) must keep working.
+        print(f"WARNING: Face recognition model failed to load ({exc}). "
+              f"Face authentication disabled.")
 else:
     print("WARNING: Face recognition model not found. Face authentication disabled.")
-    face_model = None
 
 print("Loading Emotion Model...")
 
-if __import__("os").path.exists(EMOTION_MODEL_PATH):
-    emotion_model = load_model(EMOTION_MODEL_PATH)
+emotion_model = None
+if os.path.exists(EMOTION_MODEL_PATH):
+    try:
+        emotion_model = load_model(EMOTION_MODEL_PATH)
+    except Exception as exc:
+        print(f"WARNING: Emotion model failed to load ({exc}). "
+              f"Emotion recognition disabled.")
 else:
     print("WARNING: Emotion model not found. Emotion recognition disabled.")
-    emotion_model = None
 
 print("Loading YOLO...")
 yolo_model = YOLO(YOLO_MODEL_PATH)

@@ -51,6 +51,19 @@ export interface ClassSession {
   recordingAvailable?: boolean
 }
 
+// Any class with a currently active session, across every teacher --
+// used by the student dashboard's "Live Classes" discovery section
+// (no class code required to join one of these).
+export interface LiveClassSummary {
+  sessionId: string
+  classId: string
+  title: string
+  subject: string
+  teacherName: string
+  startTime: string // ISO
+  studentCount: number
+}
+
 // ---------------------------------------------------------------------------
 // AI Monitoring
 // ---------------------------------------------------------------------------

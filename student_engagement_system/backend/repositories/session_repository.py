@@ -29,6 +29,19 @@ class SessionRepository:
         )
 
     @staticmethod
+    def get_all_active_sessions(db: Session):
+        """Every session currently marked live, across every teacher and
+        class -- used to let any authenticated student discover and join
+        a live class without needing its code."""
+
+        return (
+            db.query(ClassSession)
+            .filter(ClassSession.is_active == True)
+            .order_by(ClassSession.start_time.desc())
+            .all()
+        )
+
+    @staticmethod
     def end_session(db: Session, session):
 
         session.is_active = False

@@ -7,7 +7,7 @@ import {
 } from '@/mocks/data'
 import type {
   ClassSession, StudentLiveState, AIAlert, AttendanceRecord,
-  EngagementTrendPoint, AppNotification, Test, User,
+  EngagementTrendPoint, AppNotification, Test, User, LiveClassSummary,
 } from '@/types/domain'
 
 // ----------------------------------------------------------------------------
@@ -207,6 +207,74 @@ join: async (classCode: string) => {
   if (!response.ok || !result.success) {
     throw new Error(
       result.error || 'Unable to join classroom',
+    )
+  }
+
+  return result
+},
+
+// Every class with an active session right now, across every teacher --
+// lets a student discover and join a live class with no code.
+liveClasses: async (): Promise<LiveClassSummary[]> => {
+  const token = sessionStorage.getItem('access_token')
+
+  if (!token) {
+    throw new Error('Please login again.')
+  }
+
+  const response = await fetch(
+    `${FLASK_API_BASE_URL}/live-classes`,
+    {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    },
+  )
+
+  const result = await response.json()
+
+  if (!response.ok || !result.success) {
+    throw new Error(
+      result.error || 'Unable to fetch live classes',
+    )
+  }
+
+  return (result.liveClasses ?? []).map((c: any) => ({
+    sessionId: String(c.session_id),
+    classId: String(c.class_id),
+    title: c.classroom_name,
+    subject: c.subject,
+    teacherName: c.teacher_name,
+    startTime: c.start_time,
+    studentCount: c.student_count ?? 0,
+  }))
+},
+
+// Direct join from the Live Classes section -- no class code needed.
+joinLive: async (classId: string) => {
+  const token = sessionStorage.getItem('access_token')
+
+  if (!token) {
+    throw new Error('Please login again.')
+  }
+
+  const response = await fetch(
+    `${FLASK_API_BASE_URL}/join-live-class`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ class_id: Number(classId) }),
+    },
+  )
+
+  const result = await response.json()
+
+  if (!response.ok || !result.success) {
+    throw new Error(
+      result.error || 'Unable to join this class',
     )
   }
 
