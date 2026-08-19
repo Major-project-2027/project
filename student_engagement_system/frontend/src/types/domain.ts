@@ -89,6 +89,7 @@ export type AlertType =
   | 'camera_off'
   | 'attention_drop_predicted'
   | 'no_face_detected'
+  | 'no_person_detected'
 
 export type AlertSeverity = 'info' | 'warning' | 'critical'
 
@@ -151,6 +152,84 @@ export interface StudentLiveState {
   phoneDetected?: boolean
   personCount?: number
   engagementStatus?: string
+  noPersonDetected?: boolean
+
+  // Future-engagement prediction (LSTM, per session+student -- see
+  // EngagementPredictionService on the backend). predictedEngagement is
+  // null/undefined whenever a real prediction hasn't actually been
+  // produced (insufficient data, no-person pause, or no model loaded) --
+  // never a fabricated number.
+  predictedEngagement?: number | null
+  predictionStatus?: PredictionStatus
+  attentionDropPredicted?: boolean
+  predictionThreshold?: number
+  predictionTimestamp?: string
+  // Pre-computed by the backend (prediction_state_label()) from its own
+  // centrally-defined thresholds -- the frontend never hardcodes a
+  // predicted-engagement cutoff itself, it just displays this.
+  predictionLabel?: PredictionLabel
+}
+
+// Mirrors the backend's EngagementPredictionService status values exactly
+// (services/engagement_prediction_service.py: STATUS_OK/_INSUFFICIENT_DATA/
+// _UNAVAILABLE/_PAUSED_NO_PERSON).
+export type PredictionStatus =
+  | 'ok'
+  | 'insufficient_data'
+  | 'unavailable'
+  | 'paused_no_person'
+
+// Mirrors prediction_state_label() on the backend exactly.
+export type PredictionLabel =
+  | 'stable'
+  | 'attention_may_decrease'
+  | 'attention_drop_predicted'
+  | 'unavailable'
+
+// ---------------------------------------------------------------------------
+// Future Engagement Prediction (HISTORICAL / cross-session -- a SEPARATE
+// feature from the live, per-session prediction above. Built from a
+// student's own COMPLETED sessions only; see
+// backend/services/engagement_prediction_service.py's
+// get_future_prediction()).
+// ---------------------------------------------------------------------------
+
+// Mirrors get_future_prediction()'s own status values exactly.
+export type FutureEngagementStatus =
+  | 'insufficient_data'
+  | 'ready'
+  | 'unavailable'
+  | 'error'
+
+// Mirrors future_prediction_status_label() on the backend exactly.
+export type FutureEngagementStatusLabel =
+  | 'stable'
+  | 'needs_attention'
+  | 'at_risk'
+  | 'unavailable'
+
+export interface FutureEngagementPrediction {
+  student_id: number
+  status: FutureEngagementStatus
+  prediction_score: number | null
+  historical_sessions_used: number
+  model_version: string | null
+  reason: string | null
+  generated_at: string | null
+  status_label: FutureEngagementStatusLabel
+}
+
+// One row in the teacher's Future Engagement Prediction list.
+export interface FutureEngagementPredictionRow {
+  studentId: number
+  studentName: string
+  usn: string | null
+  status: FutureEngagementStatus
+  predictionScore: number | null
+  statusLabel: FutureEngagementStatusLabel
+  historicalSessionsUsed: number
+  generatedAt: string | null
+  reason: string | null
 }
 
 // ---------------------------------------------------------------------------

@@ -8,6 +8,7 @@ import {
 import type {
   ClassSession, StudentLiveState, AIAlert, AttendanceRecord,
   EngagementTrendPoint, AppNotification, Test, User, LiveClassSummary,
+  FutureEngagementPrediction, FutureEngagementPredictionRow,
 } from '@/types/domain'
 
 // ----------------------------------------------------------------------------
@@ -548,6 +549,45 @@ export const monitoringApi = {
         student.engagementStatus ??
         student.engagement_status ??
         undefined,
+
+      noPersonDetected:
+        Boolean(
+          student.noPersonDetected ??
+          student.no_person_detected ??
+          false,
+        ),
+
+      predictedEngagement:
+        student.predictedEngagement ??
+        student.predicted_engagement ??
+        null,
+
+      predictionStatus:
+        student.predictionStatus ??
+        student.prediction_status ??
+        'unavailable',
+
+      attentionDropPredicted:
+        Boolean(
+          student.attentionDropPredicted ??
+          student.attention_drop_predicted ??
+          false,
+        ),
+
+      predictionThreshold:
+        student.predictionThreshold ??
+        student.prediction_threshold ??
+        undefined,
+
+      predictionTimestamp:
+        student.predictionTimestamp ??
+        student.prediction_timestamp ??
+        undefined,
+
+      predictionLabel:
+        student.predictionLabel ??
+        student.prediction_label ??
+        'unavailable',
     }))
   },
 
@@ -717,6 +757,184 @@ export const historyApi = {
         engagementStatus: string
       }>
     } | null
+  },
+}
+
+// ----------------------------------------------------------------------------
+// FACE        POST /face/validate-sample · POST /face/register · POST /face/verify-live
+// ----------------------------------------------------------------------------
+export const faceApi = {
+  // One captured registration photo -- rejected unless exactly one clear
+  // face is present. Returns the embedding so the caller can hold onto it
+  // (no re-detection) until every pose is captured and register() is
+  // called once with all of them.
+  validateSample: async (imageBase64: string): Promise<number[]> => {
+    const token = sessionStorage.getItem('access_token')
+
+    if (!token) {
+      throw new Error('Please login again.')
+    }
+
+    const response = await fetch(
+      `${FLASK_API_BASE_URL}/face/validate-sample`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ image: imageBase64 }),
+      },
+    )
+
+    const result = await response.json()
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || 'No clear face detected. Please try again.')
+    }
+
+    return result.embedding as number[]
+  },
+
+  // Persists every already-validated sample's embedding for the logged-in
+  // student, associated with their student_id.
+  register: async (embeddings: number[][]) => {
+    const token = sessionStorage.getItem('access_token')
+
+    if (!token) {
+      throw new Error('Please login again.')
+    }
+
+    const response = await fetch(
+      `${FLASK_API_BASE_URL}/face/register`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ embeddings }),
+      },
+    )
+
+    const result = await response.json()
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || 'Unable to save face registration')
+    }
+
+    return result
+  },
+
+  // Live face-verification gate for joining a live class. The backend
+  // identifies the student from the auth token (never from anything this
+  // call sends), compares the live frame against that student's own
+  // registered samples, and -- only on a genuine match -- records a
+  // short-lived server-side flag that the join endpoint requires. This
+  // call itself never "joins" anything.
+  verifyLive: async (
+    imageBase64: string,
+    classId: string,
+  ): Promise<{
+    matched: boolean
+    reason?: 'not_registered' | 'capture_invalid' | 'no_match'
+    message: string
+  }> => {
+    const token = sessionStorage.getItem('access_token')
+
+    if (!token) {
+      throw new Error('Please login again.')
+    }
+
+    const response = await fetch(
+      `${FLASK_API_BASE_URL}/face/verify-live`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ image: imageBase64, class_id: Number(classId) }),
+      },
+    )
+
+    const result = await response.json()
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || 'Unable to verify identity')
+    }
+
+    return {
+      matched: Boolean(result.matched),
+      reason: result.reason,
+      message: result.message ?? (result.matched ? 'Identity verified.' : 'Verification failed.'),
+    }
+  },
+}
+
+// ----------------------------------------------------------------------------
+// FUTURE ENGAGEMENT PREDICTION (HISTORICAL / cross-session -- a SEPARATE
+// feature from monitoringApi's live, per-session prediction above)
+// GET /student/future-engagement-prediction · GET /teacher/future-engagement-predictions
+// ----------------------------------------------------------------------------
+export const futureEngagementApi = {
+  // The logged-in student's own cross-session prediction only -- the
+  // backend derives the student from the auth token, never from a
+  // client-supplied id.
+  student: async (): Promise<FutureEngagementPrediction> => {
+    const token = sessionStorage.getItem('access_token')
+
+    if (!token) {
+      throw new Error('Please login again.')
+    }
+
+    const response = await fetch(
+      `${FLASK_API_BASE_URL}/student/future-engagement-prediction`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    )
+
+    const result = await response.json()
+
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.error || 'Unable to fetch future engagement prediction',
+      )
+    }
+
+    return result.prediction as FutureEngagementPrediction
+  },
+
+  // Every student in the teacher's own classrooms, split into `ready`
+  // (sorted ascending by predictedScore -- lowest first) and
+  // `insufficient` (insufficient_data/unavailable/error -- never
+  // sorted/treated as a 0% prediction).
+  teacherList: async (): Promise<{
+    ready: FutureEngagementPredictionRow[]
+    insufficient: FutureEngagementPredictionRow[]
+  }> => {
+    const token = sessionStorage.getItem('access_token')
+
+    if (!token) {
+      throw new Error('Please login again.')
+    }
+
+    const response = await fetch(
+      `${FLASK_API_BASE_URL}/teacher/future-engagement-predictions`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    )
+
+    const result = await response.json()
+
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.error || 'Unable to fetch future engagement predictions',
+      )
+    }
+
+    return {
+      ready: result.ready ?? [],
+      insufficient: result.insufficient ?? [],
+    }
   },
 }
 

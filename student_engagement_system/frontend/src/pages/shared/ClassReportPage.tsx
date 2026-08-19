@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import {
-  ArrowLeft, Users, Eye, EyeOff, Smartphone, AlertTriangle, Bell,
-} from 'lucide-react'
+import { ArrowLeft, Users, Bell } from 'lucide-react'
 
 import { AppShell } from '@/components/layout/AppShell'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card'
@@ -76,16 +74,15 @@ function StudentReportDetail({ student }: { student: StudentSummary }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Only the two summary cards the report is scoped to now --
+          finalEngagement/minEngagement/maxEngagement/sampleCount/
+          blinkCount/phoneDetections/lookingAwayCount/
+          multiplePersonDetections/attentionDropCount are still returned
+          by the backend (StudentSummary/Snapshot below) and still power
+          the graph and any other consumer -- this component just no
+          longer renders a card for each of them. */}
+      <div className="grid grid-cols-2 gap-3 sm:max-w-xs">
         <StatPill icon={Users} label="Avg. engagement" value={`${student.averageEngagement}%`} />
-        <StatPill icon={Users} label="Final engagement" value={`${student.finalEngagement}%`} />
-        <StatPill icon={Users} label="Min / Max" value={`${student.minEngagement}% / ${student.maxEngagement}%`} />
-        <StatPill icon={Users} label="Samples" value={student.sampleCount} />
-        <StatPill icon={Eye} label="Blink count" value={student.blinkCount} />
-        <StatPill icon={Smartphone} label="Phone detections" value={student.phoneDetections} />
-        <StatPill icon={EyeOff} label="Looking away" value={student.lookingAwayCount} />
-        <StatPill icon={Users} label="Multiple person" value={student.multiplePersonDetections} />
-        <StatPill icon={AlertTriangle} label="Attention drops" value={student.attentionDropCount} />
         <StatPill icon={Bell} label="Total alerts" value={student.totalAlerts} />
       </div>
 
@@ -191,7 +188,17 @@ export function ClassReportPage({ role }: { role: UserRole }) {
 
                   <div>
                     {selectedStudent ? (
-                      <StudentReportDetail student={selectedStudent} />
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={selectedStudent.studentName} size={36} />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-text-light dark:text-text-dark">{selectedStudent.studentName}</p>
+                            <p className="truncate text-xs text-textmuted-light dark:text-textmuted-dark">{selectedStudent.usn ?? '—'}</p>
+                          </div>
+                          <Badge variant={ATTENDANCE_VARIANT[selectedStudent.attendanceStatus]}>{selectedStudent.attendanceStatus}</Badge>
+                        </div>
+                        <StudentReportDetail student={selectedStudent} />
+                      </div>
                     ) : (
                       <EmptyState icon={Users} title="Select a student" description="Click a student on the left to see their session details." />
                     )}
@@ -200,6 +207,9 @@ export function ClassReportPage({ role }: { role: UserRole }) {
               )
             ) : studentQuery.data ? (
               <div className="space-y-3">
+                <p className="text-sm font-medium text-text-light dark:text-text-dark">
+                  {studentQuery.data.studentName}
+                </p>
                 <div className="flex items-center gap-2">
                   <Badge variant={ATTENDANCE_VARIANT[studentQuery.data.attendanceStatus]}>
                     {studentQuery.data.attendanceStatus}

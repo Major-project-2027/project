@@ -9,6 +9,16 @@ python-dotenv==1.1.1
 
 numpy==1.26.4
 opencv-python==4.10.0.84
+# face-recognition depends on dlib, which has no prebuilt wheel on PyPI
+# for Windows (any Python version) -- installing plain `dlib` here means
+# pip tries to build it from source, which needs a C++ toolchain + cmake
+# and will fail on a normal dev machine. dlib-bin ships prebuilt Windows
+# wheels (including cp313) under a different distribution name but
+# installs the same importable `dlib` module, so face-recognition just
+# works against it with no compiler needed. Install dlib-bin BEFORE
+# face-recognition (or use `pip install face-recognition --no-deps` +
+# dlib-bin) so pip never attempts the real `dlib` package on Windows.
+dlib-bin==20.0.1
 face-recognition==1.3.0
 face-recognition-models==0.3.0
 

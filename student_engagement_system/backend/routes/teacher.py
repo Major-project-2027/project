@@ -628,6 +628,88 @@ def class_history(class_id):
         db.close()
 
 
+@teacher_bp.route("/teacher/future-engagement-predictions", methods=["GET"])
+def teacher_future_engagement_predictions():
+    """Every student enrolled in ANY of this teacher's classrooms (same
+    Classroom.teacher_id authorization scoping used everywhere else in
+    this file -- never a different teacher's students), each with their
+    latest cross-session HISTORICAL/FUTURE engagement prediction.
+
+    Returns two separate lists rather than one sortable-by-score list so
+    the frontend never has to invent a sentinel score for "no prediction
+    yet" -- `ready` is sorted ascending by predictedScore (lowest first,
+    per spec); `insufficient` (insufficient_data/unavailable/error) is
+    returned separately and must never be treated as, or sorted as if
+    it were, a 0% prediction.
+    """
+
+    db = SessionLocal()
+
+    try:
+        auth = request.headers.get("Authorization")
+
+        if not auth:
+            raise Exception("Authorization token missing.")
+
+        token = auth.split(" ")[1]
+        payload = JWTService.verify_token(token)
+        teacher_id = payload["user_id"]
+
+        from repositories.enrollment_repository import EnrollmentRepository
+        from services.engagement_prediction_service import (
+            EngagementPredictionService,
+            future_prediction_status_label,
+        )
+
+        students = EnrollmentRepository.get_teacher_students(db, teacher_id)
+
+        ready = []
+        insufficient = []
+
+        for student in students:
+
+            result = EngagementPredictionService.get_future_prediction(
+                db, student.student_id
+            )
+
+            row = {
+                "studentId": student.student_id,
+                "studentName": student.name,
+                "usn": student.usn,
+                "status": result["status"],
+                "predictionScore": result["prediction_score"],
+                "statusLabel": future_prediction_status_label(result),
+                "historicalSessionsUsed": result["historical_sessions_used"],
+                "generatedAt": result["generated_at"],
+                "reason": result["reason"],
+            }
+
+            if result["status"] == "ready" and result["prediction_score"] is not None:
+                ready.append(row)
+            else:
+                insufficient.append(row)
+
+        ready.sort(key=lambda r: r["predictionScore"])
+
+        return jsonify({
+            "success": True,
+            "ready": ready,
+            "insufficient": insufficient,
+        }), 200
+
+    except Exception as e:
+
+        traceback.print_exc()
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+
+
 @teacher_bp.route("/teacher/attendance", methods=["GET"])
 def teacher_attendance():
 

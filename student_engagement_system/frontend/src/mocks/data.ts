@@ -225,6 +225,7 @@ export function generateAlerts(count = 20): AIAlert[] {
     camera_off: 'Camera turned off during a live session',
     attention_drop_predicted: 'LSTM model forecasts an attention drop in the next 5 minutes',
     no_face_detected: 'No face detected in frame',
+    no_person_detected: 'No person in front of camera',
   }
   const severity: Record<AIAlert['type'], AIAlert['severity']> = {
     looking_away: 'warning',
@@ -236,6 +237,7 @@ export function generateAlerts(count = 20): AIAlert[] {
     camera_off: 'info',
     attention_drop_predicted: 'warning',
     no_face_detected: 'info',
+    no_person_detected: 'critical',
   }
   const now = Date.now()
   return Array.from({ length: count }).map((_, i) => {

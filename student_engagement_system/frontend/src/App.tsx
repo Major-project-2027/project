@@ -8,14 +8,18 @@ import { FocusPulse } from '@/components/monitoring/ConfidenceRing'
 const LandingPage = lazy(() => import('@/pages/shared/LandingPage').then((m) => ({ default: m.LandingPage })))
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })))
 const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })))
+const FaceRegistrationPage = lazy(() => import('@/pages/auth/FaceRegistrationPage').then((m) => ({ default: m.FaceRegistrationPage })))
 const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })))
 
 const TeacherDashboardPage = lazy(() => import('@/pages/teacher/TeacherDashboardPage').then((m) => ({ default: m.TeacherDashboardPage })))
+const TeacherClassesPage = lazy(() => import('@/pages/teacher/TeacherClassesPage').then((m) => ({ default: m.TeacherClassesPage })))
 const AnalyticsPage = lazy(() => import('@/pages/teacher/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })))
+const FutureEngagementPredictionPage = lazy(() => import('@/pages/teacher/FutureEngagementPredictionPage').then((m) => ({ default: m.FutureEngagementPredictionPage })))
 const TeacherTestsPage = lazy(() => import('@/pages/test/TeacherTestsPage').then((m) => ({ default: m.TeacherTestsPage })))
 const TeacherTestMonitorPage = lazy(() => import('@/pages/test/TeacherTestMonitorPage').then((m) => ({ default: m.TeacherTestMonitorPage })))
 
 const StudentDashboardPage = lazy(() => import('@/pages/student/StudentDashboardPage').then((m) => ({ default: m.StudentDashboardPage })))
+const StudentClassesPage = lazy(() => import('@/pages/student/StudentClassesPage').then((m) => ({ default: m.StudentClassesPage })))
 const StudentTestsPage = lazy(() => import('@/pages/test/StudentTestsPage').then((m) => ({ default: m.StudentTestsPage })))
 const StudentTestTakingPage = lazy(() => import('@/pages/test/StudentTestTakingPage').then((m) => ({ default: m.StudentTestTakingPage })))
 
@@ -34,6 +38,7 @@ const AboutPage = lazy(() => import('@/pages/shared/AboutPage').then((m) => ({ d
 const TeacherLiveClassroomPage = lazy(() => import('@/pages/live-classroom/TeacherLiveClassroomPage').then((m) => ({ default: m.TeacherLiveClassroomPage })))
 const StudentLiveClassroomPage = lazy(() => import('@/pages/live-classroom/StudentLiveClassroomPage').then((m) => ({ default: m.StudentLiveClassroomPage })))
 const PreJoinLobbyPage = lazy(() => import('@/pages/live-classroom/PreJoinLobbyPage').then((m) => ({ default: m.PreJoinLobbyPage })))
+const FaceVerificationPage = lazy(() => import('@/pages/live-classroom/FaceVerificationPage').then((m) => ({ default: m.FaceVerificationPage })))
 const ResultPage = lazy(() => import('@/pages/test/ResultPage').then((m) => ({ default: m.ResultPage })))
 
 const NotFoundPage = lazy(() => import('@/pages/error/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
@@ -54,6 +59,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/register/face" element={<ProtectedRoute role="student"><FaceRegistrationPage /></ProtectedRoute>} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/help" element={<HelpPage />} />
         <Route path="/support" element={<SupportPage />} />
@@ -61,9 +67,10 @@ function App() {
 
         {/* Teacher */}
         <Route path="/teacher" element={<ProtectedRoute role="teacher"><TeacherDashboardPage /></ProtectedRoute>} />
-        <Route path="/teacher/classes" element={<ProtectedRoute role="teacher"><TeacherDashboardPage /></ProtectedRoute>} />
+        <Route path="/teacher/classes" element={<ProtectedRoute role="teacher"><TeacherClassesPage /></ProtectedRoute>} />
         <Route path="/teacher/attendance" element={<ProtectedRoute role="teacher"><AttendancePage role="teacher" /></ProtectedRoute>} />
         <Route path="/teacher/analytics" element={<ProtectedRoute role="teacher"><AnalyticsPage /></ProtectedRoute>} />
+        <Route path="/teacher/future-engagement-prediction" element={<ProtectedRoute role="teacher"><FutureEngagementPredictionPage /></ProtectedRoute>} />
         <Route path="/teacher/tests" element={<ProtectedRoute role="teacher"><TeacherTestsPage /></ProtectedRoute>} />
         <Route path="/teacher/tests/:testId/monitor" element={<ProtectedRoute role="teacher"><TeacherTestMonitorPage /></ProtectedRoute>} />
         <Route path="/teacher/tests/:testId/results" element={<ProtectedRoute role="teacher"><ResultPage role="teacher" /></ProtectedRoute>} />
@@ -77,7 +84,7 @@ function App() {
 
         {/* Student */}
         <Route path="/student" element={<ProtectedRoute role="student"><StudentDashboardPage /></ProtectedRoute>} />
-        <Route path="/student/classes" element={<ProtectedRoute role="student"><StudentDashboardPage /></ProtectedRoute>} />
+        <Route path="/student/classes" element={<ProtectedRoute role="student"><StudentClassesPage /></ProtectedRoute>} />
         <Route path="/student/attendance" element={<ProtectedRoute role="student"><AttendancePage role="student" /></ProtectedRoute>} />
         <Route path="/student/tests" element={<ProtectedRoute role="student"><StudentTestsPage /></ProtectedRoute>} />
         <Route path="/student/tests/:testId/take" element={<ProtectedRoute role="student"><StudentTestTakingPage /></ProtectedRoute>} />
@@ -88,6 +95,7 @@ function App() {
         <Route path="/student/profile" element={<ProtectedRoute role="student"><ProfilePage role="student" /></ProtectedRoute>} />
         <Route path="/student/live/:classId" element={<ProtectedRoute role="student"><StudentLiveClassroomPage /></ProtectedRoute>} />
         <Route path="/student/lobby/:classId" element={<ProtectedRoute role="student"><PreJoinLobbyPage role="student" /></ProtectedRoute>} />
+        <Route path="/student/verify/:classId" element={<ProtectedRoute role="student"><FaceVerificationPage /></ProtectedRoute>} />
         <Route path="/student/classroom/:classId/report" element={<ProtectedRoute role="student"><ClassReportPage role="student" /></ProtectedRoute>} />
 
         {/* Admin */}

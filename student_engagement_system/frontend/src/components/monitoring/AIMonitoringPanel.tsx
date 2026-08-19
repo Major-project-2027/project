@@ -19,7 +19,7 @@ import {
 import { ConfidenceRing } from './ConfidenceRing'
 import { Badge } from '@/components/ui/Badge'
 import type { StudentLiveState } from '@/types/domain'
-import { cn } from '@/lib/utils'
+import { cn, predictionLabelText, predictionLabelTone } from '@/lib/utils'
 
 const EMOTION_ICON = {
   neutral: Meh,
@@ -136,6 +136,9 @@ export function AIMonitoringPanel({
 
   const multiplePersons =
     personCount > 1
+
+  const noPersonDetected =
+    personCount === 0 || student.activeAlert === 'no_person_detected'
 
   return (
     <div className="flex h-full flex-col gap-3 overflow-y-auto p-3">
@@ -297,9 +300,13 @@ export function AIMonitoringPanel({
         <MetricRow
           icon={Users2}
           label="Persons"
-          value={String(personCount)}
+          value={
+            noPersonDetected
+              ? 'None'
+              : String(personCount)
+          }
           tone={
-            multiplePersons
+            multiplePersons || noPersonDetected
               ? 'critical'
               : 'engaged'
           }
@@ -458,26 +465,44 @@ export function AIMonitoringPanel({
       </div>
 
       {/* ============================================================
-          LSTM PREDICTION
+          ENGAGEMENT PREDICTION
+          Real LSTM-based future-engagement prediction (see
+          EngagementPredictionService on the backend) -- never a
+          fabricated number. predictedEngagement/predictionLabel are
+          undefined/'unavailable' whenever a real prediction hasn't
+          actually been produced this cycle.
       ============================================================ */}
 
       <div className="rounded-xl bg-focus-500/5 p-3 text-xs text-textmuted-light dark:text-textmuted-dark">
 
-        <p className="mb-1 flex items-center gap-1.5 font-medium text-focus-600 dark:text-focus-400">
+        <p className="mb-2 flex items-center gap-1.5 font-medium text-focus-600 dark:text-focus-400">
           <ScanFace className="h-3.5 w-3.5" />
 
-          LSTM prediction
+          Engagement prediction
         </p>
 
-        Attention drop probability in the next 5 minutes:{' '}
+        {typeof student.predictedEngagement === 'number' ? (
+          <>
+            <p className="text-text-light dark:text-text-dark">
+              Predicted engagement:{' '}
+              <strong>{Math.round(student.predictedEngagement)}%</strong>
+            </p>
 
-        <strong className="text-text-light dark:text-text-dark">
-          {student.currentEngagement < 50
-            ? 'High (68%)'
-            : student.currentEngagement < 70
-              ? 'Medium (34%)'
-              : 'Low (9%)'}
-        </strong>
+            <div className="mt-2">
+              <Badge variant={predictionLabelTone(student.predictionLabel)}>
+                {predictionLabelText(student.predictionLabel)}
+              </Badge>
+            </div>
+          </>
+        ) : (
+          <p>
+            {student.predictionStatus === 'paused_no_person'
+              ? 'Prediction paused -- no person currently in frame.'
+              : student.predictionStatus === 'insufficient_data'
+                ? 'Collecting engagement data... prediction will appear once enough history is available.'
+                : 'Prediction unavailable.'}
+          </p>
+        )}
 
       </div>
 

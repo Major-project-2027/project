@@ -1,4 +1,5 @@
 import base64
+import time
 from typing import Optional
 
 try:
@@ -19,6 +20,11 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from pydantic import BaseModel
 
 from services.ai_service import process_frame
+from services.engagement_prediction_service import (
+    PREDICTION_INTERVAL_SECONDS,
+    EngagementPredictionService,
+    prediction_state_label,
+)
 
 
 router = APIRouter(
@@ -36,6 +42,15 @@ _latest_results: dict[int, dict[int, dict]] = {}
 
 
 def get_active_alert(result):
+    # Highest priority: nobody is in frame at all, so every other signal
+    # below (phone/gaze/head-pose) is stale or default and must not be
+    # trusted. `no_person_detected` is the DEBOUNCED flag computed in
+    # ai_service.process_frame (a short streak of confirmed-empty YOLO
+    # reads), not a raw single-frame person_count==0 check, so a brief
+    # camera stutter does not trigger this.
+    if result.get("no_person_detected"):
+        return "no_person_detected"
+
     if result.get("phone_detected"):
         return "phone_detected"
 
@@ -96,7 +111,13 @@ def live_monitor(class_id: Optional[int] = Query(default=None)):
         gaze = str(result.get("gaze", "Center"))
         phone_detected = bool(result.get("phone_detected", False))
         person_count = int(result.get("person_count", 1))
+        no_person_detected = bool(result.get("no_person_detected", False))
         active_alert = result.get("active_alert")
+        engagement_status = result.get("engagement_status", "unknown")
+
+        predicted_engagement = result.get("predicted_engagement")
+        prediction_status = result.get("prediction_status", "unavailable")
+        attention_drop_predicted = bool(result.get("attention_drop_predicted", False))
 
         if engagement < 40:
             cognitive_state = "drowsy"
@@ -123,9 +144,30 @@ def live_monitor(class_id: Optional[int] = Query(default=None)):
             "gaze": gaze,
             "phoneDetected": phone_detected,
             "personCount": person_count,
+            "noPersonDetected": no_person_detected,
+            "engagementStatus": engagement_status,
+
+            "predictedEngagement": predicted_engagement,
+            "predictionStatus": prediction_status,
+            "attentionDropPredicted": attention_drop_predicted,
+            "predictionThreshold": result.get("prediction_threshold"),
+            "predictionHorizonSeconds": result.get("prediction_horizon_seconds"),
+            "predictionSequenceLength": result.get("prediction_sequence_length"),
+            "predictionReason": result.get("prediction_reason"),
+            "predictionTimestamp": result.get("prediction_timestamp"),
+            "predictionLabel": result.get("prediction_label", "unavailable"),
         })
 
     return {"success": True, "data": data}
+
+
+@router.get("/prediction/status")
+def prediction_status():
+    """Whether a real trained LSTM engagement-prediction model is actually
+    loaded, and why not if it isn't -- for manual verification, never
+    fabricated. See services/engagement_prediction_service.py."""
+
+    return {"success": True, **EngagementPredictionService.model_status()}
 
 
 # ---------------------------------------------------------------------------
@@ -305,6 +347,58 @@ def analyze_frame(request: AIFrameRequest):
             state["last_alert_type"] = active_alert
 
         # ----------------------------------------------------
+        # FUTURE ENGAGEMENT PREDICTION (LSTM) -- runs on a fixed
+        # interval (PREDICTION_INTERVAL_SECONDS), NOT on every
+        # frame like the rest of this pipeline. Between cycles,
+        # the last computed prediction is simply reused from this
+        # student's own per-session state -- no re-inference, no
+        # extra DB writes. EngagementPredictionService itself
+        # enforces (session_id, student_id) isolation and excludes
+        # no-person frames from the sequence; see that module for
+        # why no real model is currently loaded.
+        # ----------------------------------------------------
+
+        now = time.time()
+
+        if now - state.get("last_prediction_at", 0.0) >= PREDICTION_INTERVAL_SECONDS:
+
+            prediction = EngagementPredictionService.predict(
+                db,
+                active_session.session_id,
+                request.student_id,
+            )
+
+            state["last_prediction_at"] = now
+            state["last_prediction"] = prediction
+
+            prediction_label = prediction_state_label(prediction)
+
+            # Only a genuine transition INTO the low-prediction tier
+            # creates a new alert row -- never one per prediction
+            # cycle -- so repeated "still predicted low" cycles don't
+            # spam the alerts table.
+            if (
+                prediction_label == "attention_drop_predicted"
+                and state.get("last_prediction_state") != "attention_drop_predicted"
+            ):
+                AlertRepository.create(
+                    db,
+                    session_id=active_session.session_id,
+                    class_id=request.class_id,
+                    student_id=request.student_id,
+                    alert_type="predicted_attention_drop",
+                )
+
+            state["last_prediction_state"] = prediction_label
+
+        prediction = state.get("last_prediction") or {}
+        # Cheap pure computation -- recomputed from the (possibly cached,
+        # possibly just-refreshed) prediction dict either way, so it's
+        # always in sync with whatever `prediction` actually holds this
+        # request, not just on cycles that ran fresh inference.
+        prediction_label = prediction_state_label(prediction)
+
+        # ----------------------------------------------------
         # STORE LATEST RESULT (for /live-monitor), SCOPED TO
         # THIS CLASS + STUDENT ONLY.
         # ----------------------------------------------------
@@ -317,6 +411,7 @@ def analyze_frame(request: AIFrameRequest):
             "gaze": result.get("gaze", "Unknown"),
             "phone_detected": result.get("phone_detected", False),
             "person_count": result.get("person_count", 1),
+            "no_person_detected": result.get("no_person_detected", False),
             "engagement_score": result.get("engagement_score", 0),
             "engagement_status": result.get(
                 "engagement_status", "unknown"
@@ -324,6 +419,25 @@ def analyze_frame(request: AIFrameRequest):
             "active_alert": active_alert,
             "student_id": request.student_id,
             "class_id": request.class_id,
+
+            "predicted_engagement": prediction.get("predicted_engagement"),
+            "prediction_status": prediction.get("status", "unavailable"),
+            "attention_drop_predicted": bool(
+                prediction.get("attention_drop_predicted", False)
+            ),
+            "prediction_threshold": prediction.get("threshold"),
+            "prediction_horizon_seconds": prediction.get(
+                "prediction_horizon_seconds"
+            ),
+            "prediction_sequence_length": prediction.get("sequence_length"),
+            "prediction_reason": prediction.get("reason"),
+            "prediction_timestamp": prediction.get("timestamp"),
+            # Pre-computed 4-tier label ("stable" / "attention_may_decrease"
+            # / "attention_drop_predicted" / "unavailable") using the
+            # service's centrally-defined thresholds -- so the frontend
+            # never needs its own copy of ATTENTION_DROP_THRESHOLD/
+            # STABLE_THRESHOLD to decide what to display.
+            "prediction_label": prediction_label,
         }
 
         _latest_results.setdefault(request.class_id, {})[

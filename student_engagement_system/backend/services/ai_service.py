@@ -173,6 +173,14 @@ CONSEC_FRAMES = 1
 PROCESS_EVERY_YOLO = 2
 PROCESS_EVERY_FACE = 6
 
+# How many consecutive YOLO checks (person_count == 0) must happen before
+# "no person" is treated as real rather than a brief camera hiccup/frame
+# glitch. At PROCESS_EVERY_YOLO=2 and a ~600ms client send interval, YOLO
+# runs roughly every ~1.2s, so a streak of 3 is a ~3.5s grace period --
+# long enough to absorb a momentary camera stutter, short enough that an
+# actually-empty seat is flagged quickly.
+NO_PERSON_CONFIRM_STREAK = 3
+
 
 # ============================================================
 # EAR FUNCTION
@@ -372,8 +380,21 @@ def calculate_engagement(
     head_pose,
     gaze,
     phone_detected,
-    person_count
+    person_count,
+    no_person_confirmed=False
 ):
+
+    # No student in frame -- there is nothing to score. gaze/head_pose
+    # would otherwise still be reporting their last-known (or default
+    # "Center"/"Looking Forward") values, which is exactly why engagement
+    # previously stayed pinned at 100 while the seat was empty: those
+    # stale/default signals looked perfect. 0 is the formula's own floor
+    # (see `max(score, 0)` below) but is never actually reached by any
+    # combination of the other penalties (worst case with all of them is
+    # 100-30-30-10-10=20), so it isn't overloading a meaning that already
+    # exists elsewhere -- it uniquely marks "no one to measure."
+    if no_person_confirmed:
+        return 0
 
     score = 100
 
@@ -435,10 +456,23 @@ def process_frame(frame, state):
             state["last_person_count"] = person_count
             state["last_phone_detected"] = phone_detected
 
+            # ---------------- No-person streak (debounced) ----------------
+            # Only updated on frames where YOLO actually ran, so the streak
+            # counts real consecutive observations rather than being
+            # inflated by cached-frame reads below.
+            if person_count == 0:
+                state["no_person_streak"] = state.get("no_person_streak", 0) + 1
+            else:
+                state["no_person_streak"] = 0
+
         else:
 
             person_count = state["last_person_count"]
             phone_detected = state["last_phone_detected"]
+
+        no_person_confirmed = (
+            state.get("no_person_streak", 0) >= NO_PERSON_CONFIRM_STREAK
+        )
 
         # ========================================================
         # OPENCV FACE DETECTION
@@ -751,7 +785,8 @@ def process_frame(frame, state):
         head_pose,
         gaze,
         phone_detected,
-        person_count
+        person_count,
+        no_person_confirmed
     )
         # ========================================================
     # AI ALERT
@@ -759,7 +794,12 @@ def process_frame(frame, state):
 
     active_alert = None
 
-    if phone_detected:
+    # No person takes priority over every other signal -- phone/gaze/head
+    # pose are all meaningless (stale or default) when nobody is in frame.
+    if no_person_confirmed:
+        active_alert = "no_person_detected"
+
+    elif phone_detected:
         active_alert = "phone_detected"
 
     elif person_count > 1:
@@ -850,10 +890,13 @@ def process_frame(frame, state):
         "gaze": gaze,
         "phone_detected": phone_detected,
         "person_count": person_count,
+        "no_person_detected": no_person_confirmed,
         "active_alert": active_alert,
         "engagement_score": engagement_score,
         "engagement_status":
-            "Engaged"
+            "No Person Detected"
+            if no_person_confirmed
+            else "Engaged"
             if engagement_score >= 70
             else "Distracted"
     }

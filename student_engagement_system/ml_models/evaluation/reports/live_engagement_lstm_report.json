@@ -1,0 +1,240 @@
+{
+  "component": "Live/in-session Engagement LSTM (production model)",
+  "model_path": "C:\\Users\\disha\\Predictive_Multimodal_Student_Engagement\\student_engagement_system\\ml_models\\engagement_prediction\\lstm_engagement_model.keras",
+  "evaluated_at": "2026-08-19T15:33:51.518546+00:00",
+  "dataset": "Real engagement_records, held-out (session_id, student_id) group split reused from train_lstm.py's own build_dataset()",
+  "model_runtime_status": "LOADED_OK",
+  "status": "VALID PROJECT-SPECIFIC METRIC",
+  "sequence_length": 30,
+  "eligible_groups": 45,
+  "train_examples": 2058,
+  "val_examples": 642,
+  "train_students": [
+    4,
+    9,
+    10,
+    12,
+    14,
+    15,
+    16,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23
+  ],
+  "val_students": [
+    6,
+    7,
+    11,
+    14,
+    15,
+    18,
+    22
+  ],
+  "train_groups": [
+    [
+      11,
+      4
+    ],
+    [
+      25,
+      9
+    ],
+    [
+      26,
+      9
+    ],
+    [
+      27,
+      9
+    ],
+    [
+      28,
+      9
+    ],
+    [
+      28,
+      10
+    ],
+    [
+      29,
+      12
+    ],
+    [
+      32,
+      14
+    ],
+    [
+      32,
+      15
+    ],
+    [
+      35,
+      16
+    ],
+    [
+      36,
+      16
+    ],
+    [
+      37,
+      18
+    ],
+    [
+      37,
+      19
+    ],
+    [
+      38,
+      20
+    ],
+    [
+      39,
+      21
+    ],
+    [
+      40,
+      21
+    ],
+    [
+      41,
+      21
+    ],
+    [
+      42,
+      21
+    ],
+    [
+      43,
+      19
+    ],
+    [
+      44,
+      18
+    ],
+    [
+      45,
+      18
+    ],
+    [
+      46,
+      18
+    ],
+    [
+      47,
+      18
+    ],
+    [
+      48,
+      18
+    ],
+    [
+      49,
+      18
+    ],
+    [
+      50,
+      18
+    ],
+    [
+      51,
+      18
+    ],
+    [
+      53,
+      18
+    ],
+    [
+      56,
+      22
+    ],
+    [
+      58,
+      22
+    ],
+    [
+      59,
+      22
+    ],
+    [
+      60,
+      22
+    ],
+    [
+      61,
+      22
+    ],
+    [
+      62,
+      22
+    ],
+    [
+      65,
+      18
+    ],
+    [
+      65,
+      23
+    ]
+  ],
+  "val_groups": [
+    [
+      12,
+      6
+    ],
+    [
+      19,
+      7
+    ],
+    [
+      29,
+      11
+    ],
+    [
+      33,
+      15
+    ],
+    [
+      34,
+      14
+    ],
+    [
+      34,
+      15
+    ],
+    [
+      52,
+      18
+    ],
+    [
+      57,
+      22
+    ],
+    [
+      65,
+      22
+    ]
+  ],
+  "validation": {
+    "metric": "MAE (not accuracy)",
+    "mae": 0.043,
+    "mse": 0.00563,
+    "rmse": 0.07505,
+    "r2": 0.4293,
+    "mae_engagement_points": 4.3
+  },
+  "naive_baseline_on_val": {
+    "mae": 0.0422,
+    "mse": 0.00634,
+    "rmse": 0.0796,
+    "mae_engagement_points": 4.22
+  },
+  "training_performance_NOT_validation": {
+    "mae": 0.06805,
+    "mse": 0.0105,
+    "rmse": 0.10249,
+    "r2": 0.3646
+  }
+}

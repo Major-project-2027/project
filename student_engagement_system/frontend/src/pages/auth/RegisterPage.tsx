@@ -22,6 +22,24 @@ export function RegisterPage() {
   const onSubmit = async (values: RegisterFormValues) => {
     await authApi.register(values)
     setSuccess(true)
+
+    if (values.role === 'student') {
+      // Face registration (capturing the student's registered face for
+      // later live-class verification) needs an authenticated request,
+      // and /register itself doesn't return a token -- so log in with the
+      // credentials just submitted before handing off to that step,
+      // rather than sending the student to a face-capture page with no
+      // session and no way to save anything.
+      try {
+        await authApi.login(values.email, values.password, 'student')
+        setTimeout(() => navigate('/register/face'), 1000)
+        return
+      } catch {
+        // Fall through to the normal "redirect to sign in" path -- the
+        // account was created successfully either way.
+      }
+    }
+
     setTimeout(() => navigate('/login'), 1400)
   }
 

@@ -38,6 +38,76 @@ export function engagementTone(score: number): 'engaged' | 'attention' | 'critic
   return 'critical'
 }
 
+// Shared source of truth for how a backend-computed prediction "label"
+// (see types/domain.ts PredictionLabel / backend prediction_state_label())
+// is described in the UI, so the student dashboard, teacher participants
+// list, and AI monitoring panel never drift out of sync with each other
+// or hardcode their own threshold-derived copy.
+export function predictionLabelText(
+  label: 'stable' | 'attention_may_decrease' | 'attention_drop_predicted' | 'unavailable' | undefined,
+): string {
+  switch (label) {
+    case 'stable':
+      return 'Stable'
+    case 'attention_may_decrease':
+      return 'Attention may decrease'
+    case 'attention_drop_predicted':
+      return 'Attention drop predicted'
+    default:
+      return 'Prediction unavailable'
+  }
+}
+
+export function predictionLabelTone(
+  label: 'stable' | 'attention_may_decrease' | 'attention_drop_predicted' | 'unavailable' | undefined,
+): 'engaged' | 'attention' | 'critical' | 'neutral' {
+  switch (label) {
+    case 'stable':
+      return 'engaged'
+    case 'attention_may_decrease':
+      return 'attention'
+    case 'attention_drop_predicted':
+      return 'critical'
+    default:
+      return 'neutral'
+  }
+}
+
+// Shared source of truth for the HISTORICAL/FUTURE engagement prediction
+// (a SEPARATE feature from predictionLabelText/Tone above -- see
+// types/domain.ts FutureEngagementStatusLabel / backend
+// future_prediction_status_label()) -- keeps the student dashboard and
+// teacher's Future Engagement Prediction list from drifting apart.
+export function futureEngagementLabelText(
+  label: 'stable' | 'needs_attention' | 'at_risk' | 'unavailable' | undefined,
+): string {
+  switch (label) {
+    case 'stable':
+      return 'Stable'
+    case 'needs_attention':
+      return 'Needs attention'
+    case 'at_risk':
+      return 'At risk'
+    default:
+      return 'Unavailable'
+  }
+}
+
+export function futureEngagementLabelTone(
+  label: 'stable' | 'needs_attention' | 'at_risk' | 'unavailable' | undefined,
+): 'engaged' | 'attention' | 'critical' | 'neutral' {
+  switch (label) {
+    case 'stable':
+      return 'engaged'
+    case 'needs_attention':
+      return 'attention'
+    case 'at_risk':
+      return 'critical'
+    default:
+      return 'neutral'
+  }
+}
+
 export function initials(name: string) {
   return name
     .split(' ')

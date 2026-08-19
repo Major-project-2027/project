@@ -35,6 +35,10 @@ def _new_state() -> dict:
         "last_phone_detected": False,
         "last_ear": 0.0,
         "last_alert_type": None,
+        "no_person_streak": 0,
+        "last_prediction_at": 0.0,
+        "last_prediction": None,
+        "last_prediction_state": None,
     }
 
 

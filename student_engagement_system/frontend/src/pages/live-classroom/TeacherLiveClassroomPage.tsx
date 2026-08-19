@@ -28,11 +28,31 @@ type SidePanel =
   | 'chat'
   | 'monitoring'
 
+// Section 5 requirement: the teacher's student list is sorted by LOWEST
+// predicted future engagement first, so at-risk students surface
+// immediately -- current engagement is NOT the sort key. Students with
+// no valid prediction yet (null/undefined -- insufficient data, no
+// person, or no model loaded) sort after every student who has one.
+function comparePredictedEngagement(a: StudentLiveState, b: StudentLiveState) {
+  const aPredicted = a.predictedEngagement
+  const bPredicted = b.predictedEngagement
+
+  const aHasPrediction = aPredicted !== null && aPredicted !== undefined
+  const bHasPrediction = bPredicted !== null && bPredicted !== undefined
+
+  if (!aHasPrediction && !bHasPrediction) return 0
+  if (!aHasPrediction) return 1
+  if (!bHasPrediction) return -1
+
+  return aPredicted - bPredicted
+}
+
 const ALERT_LABEL: Record<string, string> = {
   looking_away: 'Looking away from screen',
   drowsiness: 'Signs of drowsiness detected',
   phone_detected: 'Mobile phone detected',
   multiple_person: 'A second person detected',
+  no_person_detected: 'No person in front of camera',
   face_auth_failed: 'Face authentication failed',
   voice_disturbance: 'Background voice disturbance',
   camera_off: 'Camera turned off',
@@ -79,9 +99,20 @@ function convertAIResultToStudent(
       1,
   )
 
+  // Prefer the backend's own debounced flag (a short streak of confirmed
+  // empty frames, not one bad read) when present; only fall back to a raw
+  // personCount==0 check for older cached entries that predate it.
+  const noPersonDetected = Boolean(
+    data.no_person_detected ??
+      existing?.noPersonDetected ??
+      personCount === 0,
+  )
+
   let activeAlert = null
 
-  if (phoneDetected) {
+  if (noPersonDetected) {
+    activeAlert = 'no_person_detected'
+  } else if (phoneDetected) {
     activeAlert = 'phone_detected'
   } else if (personCount > 1) {
     activeAlert = 'multiple_person'
@@ -150,6 +181,44 @@ function convertAIResultToStudent(
     phoneDetected,
 
     personCount,
+
+    noPersonDetected,
+
+    // Future-engagement prediction -- passed through as-is from the
+    // backend (never recomputed client-side): null/undefined unless
+    // EngagementPredictionService actually produced a real value this
+    // cycle (see that module for why it currently never does -- no
+    // trained LSTM model is loaded).
+    predictedEngagement:
+      data.predicted_engagement ??
+      existing?.predictedEngagement ??
+      null,
+
+    predictionStatus:
+      data.prediction_status ??
+      existing?.predictionStatus ??
+      'unavailable',
+
+    attentionDropPredicted: Boolean(
+      data.attention_drop_predicted ??
+        existing?.attentionDropPredicted ??
+        false,
+    ),
+
+    predictionThreshold:
+      data.prediction_threshold ??
+      existing?.predictionThreshold ??
+      undefined,
+
+    predictionTimestamp:
+      data.prediction_timestamp ??
+      existing?.predictionTimestamp ??
+      undefined,
+
+    predictionLabel:
+      data.prediction_label ??
+      existing?.predictionLabel ??
+      'unavailable',
 
     history: [
       ...(existing?.history ?? []).slice(-19),
@@ -240,7 +309,10 @@ export function TeacherLiveClassroomPage() {
       }
     }
 
-    return Array.from(merged.values())
+    // Sorted dynamically on every render (re-evaluated whenever
+    // apiStudents/connectedStudents change, i.e. whenever new predictions
+    // arrive), never alphabetically and never by current engagement.
+    return Array.from(merged.values()).sort(comparePredictedEngagement)
   })()
 
   const selected =
@@ -806,7 +878,8 @@ useEffect(() => {
 
         severity:
           student.activeAlert === 'phone_detected' ||
-          student.activeAlert === 'multiple_person'
+          student.activeAlert === 'multiple_person' ||
+          student.activeAlert === 'no_person_detected'
             ? 'critical'
             : 'warning',
       })

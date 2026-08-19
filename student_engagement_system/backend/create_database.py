@@ -9,6 +9,8 @@ from models.engagement import EngagementRecord
 from models.face_registration import FaceRegistration
 from models.enrollment import Enrollment
 from models.attendance import Attendance
+from models.alert import Alert
+from models.future_engagement_prediction import FutureEngagementPrediction
 
 
 print("=" * 60)

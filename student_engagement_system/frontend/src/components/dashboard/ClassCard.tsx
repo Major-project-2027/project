@@ -81,7 +81,11 @@ export function ClassCard({ session, role }: { session: ClassSession; role: 'tea
 
           {/* STUDENT actions */}
           {role === 'student' && session.status === 'live' && (
-            <Button size="sm" className="w-full" onClick={() => navigate(`/student/lobby/${session.id}`)}>
+            // Joining a live class requires face verification first
+            // (Feature 2) -- even for a class the student is already
+            // enrolled in, so this can't be used to skip straight into a
+            // monitored session without ever being checked.
+            <Button size="sm" className="w-full" onClick={() => navigate(`/student/verify/${session.id}`)}>
               <LogIn className="h-4 w-4" />Join
             </Button>
           )}

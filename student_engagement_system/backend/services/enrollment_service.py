@@ -3,6 +3,7 @@ from models.enrollment import Enrollment
 from repositories.classroom_repository import ClassroomRepository
 from repositories.enrollment_repository import EnrollmentRepository
 from repositories.session_repository import SessionRepository
+from services import face_verification_state
 
 
 class EnrollmentService:
@@ -12,7 +13,16 @@ class EnrollmentService:
         """Direct join for the "Live Classes" dashboard flow -- no class
         code required. Only allowed while the class actually has an
         active session, and never creates a second session or a
-        duplicate enrollment row."""
+        duplicate enrollment row.
+
+        Also the backend-enforced anti-bypass gate for Feature 2: this is
+        THE join endpoint the "Join class" button calls, so it is where
+        face verification is actually required and consumed -- a request
+        that never passed /face/verify-live for this exact
+        (student_id, class_id) is rejected here regardless of anything
+        the client claims, because consume_verification() can only
+        return True if the backend itself recorded a real match.
+        """
 
         classroom = ClassroomRepository.get_by_id(
             db,
@@ -29,6 +39,11 @@ class EnrollmentService:
 
         if not active_session:
             raise Exception("This class is not currently live.")
+
+        if not face_verification_state.consume_verification(student_id, class_id):
+            raise Exception(
+                "Face verification required before joining this class."
+            )
 
         if not EnrollmentRepository.already_joined(
             db,
@@ -73,6 +88,26 @@ class EnrollmentService:
             classroom.class_id
         ):
             raise Exception("You have already joined this classroom.")
+
+        # A student who is NOT yet enrolled and enters a class code for a
+        # class that is currently LIVE is functionally doing the same
+        # thing as "Join class" on the Live Classes card (entering a
+        # monitored session for the first time) -- so this path must not
+        # be a face-verification bypass just because it goes through a
+        # code instead of the one-click button. Enrolling in a class that
+        # isn't live yet (the normal "add a scheduled class" case) is
+        # unaffected, since there is nothing live to verify against.
+        active_session = SessionRepository.get_active_session(
+            db,
+            classroom.class_id,
+        )
+
+        if active_session and not face_verification_state.consume_verification(
+            student_id, classroom.class_id
+        ):
+            raise Exception(
+                "Face verification required before joining this class."
+            )
 
         enrollment = Enrollment(
             student_id=student_id,

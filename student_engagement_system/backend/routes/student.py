@@ -1,12 +1,20 @@
+import base64
+
+import cv2
+import numpy as np
+
 from flask import Blueprint, request, jsonify
 from services.monitoring_service import MonitoringService
 from database.database import SessionLocal
 from schemas.student_schema import StudentRegister
 from schemas.login_schema import StudentLogin
+from schemas.face_schema import FaceSampleValidate, FaceRegister, FaceVerifyLive
 from services.student_service import StudentService
 from schemas.join_class_schema import JoinClass, JoinLiveClass
 from services.enrollment_service import EnrollmentService
 from services.jwt_service import JWTService
+from services.face_service import FaceService, FaceBackendUnavailable
+from services import face_verification_state
 from models.session import Session
 from models.student import Student
 from models.classroom import Classroom
@@ -15,7 +23,44 @@ from models.enrollment import Enrollment
 from repositories.session_repository import SessionRepository
 from repositories.attendance_repository import AttendanceRepository
 from repositories.alert_repository import AlertRepository
+from repositories.face_repository import FaceRepository
 student_bp = Blueprint("student", __name__)
+
+
+def _decode_frame(image_b64: str):
+    """Decode a base64 (optionally data-URL-prefixed) JPEG/PNG string into
+    an OpenCV BGR frame, same convention already used by
+    /ai/analyze-frame (app/routers/monitoring.py)."""
+
+    encoded = image_b64
+
+    if "," in encoded:
+        encoded = encoded.split(",", 1)[1]
+
+    image_bytes = base64.b64decode(encoded)
+
+    image_array = np.frombuffer(image_bytes, dtype=np.uint8)
+
+    return cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+
+
+def _require_student_id():
+    """Pull the logged-in student's id from the Authorization bearer
+    token -- never from a client-supplied field. This is what makes face
+    verification impossible to spoof as a different student: the identity
+    being checked always comes from the server-verified JWT, not from
+    anything the request body says."""
+
+    auth = request.headers.get("Authorization")
+
+    if not auth:
+        raise Exception("Authorization token missing.")
+
+    token = auth.split(" ")[1]
+
+    payload = JWTService.verify_token(token)
+
+    return payload["user_id"]
 
 
 @student_bp.route("/register", methods=["POST"])
@@ -46,6 +91,185 @@ def register_student():
 
     finally:
         db.close()
+
+
+@student_bp.route("/face/validate-sample", methods=["POST"])
+def validate_face_sample():
+    """One captured photo from the guided registration flow -- rejects it
+    unless exactly one clear face is present, and returns its embedding
+    so the frontend can hold onto it (no re-detection needed) until all
+    poses are captured and /face/register is called."""
+
+    try:
+        _require_student_id()
+
+        data = FaceSampleValidate(**request.json)
+
+        frame = _decode_frame(data.image)
+
+        if frame is None:
+            raise Exception("Unable to decode image.")
+
+        embedding = FaceService.generate_face_embedding(frame)
+
+        return jsonify({
+            "success": True,
+            "embedding": embedding,
+        }), 200
+
+    except FaceBackendUnavailable as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+        }), 503
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+        }), 400
+
+
+@student_bp.route("/face/register", methods=["POST"])
+def register_face():
+    """Persist every validated sample's embedding for the logged-in
+    student, associated with their student_id. Safe to call again later
+    (e.g. re-registering) -- updates the existing row rather than
+    duplicating it, since face_registrations.student_id is unique."""
+
+    db = SessionLocal()
+
+    try:
+        student_id = _require_student_id()
+
+        data = FaceRegister(**request.json)
+
+        if not data.embeddings:
+            raise Exception("At least one validated face sample is required.")
+
+        existing = FaceRepository.get_face_by_student_id(db, student_id)
+
+        if existing:
+            face = FaceRepository.update_face_embedding(
+                db,
+                student_id,
+                data.embeddings,
+            )
+        else:
+            face = FaceRepository.save_face_embedding(
+                db,
+                student_id,
+                data.embeddings,
+            )
+
+        return jsonify({
+            "success": True,
+            "message": "Face registered successfully.",
+            "sample_count": len(data.embeddings),
+            "face_id": face.face_id,
+        }), 201
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+        }), 400
+
+    finally:
+        db.close()
+
+
+@student_bp.route("/face/verify-live", methods=["POST"])
+def verify_face_live():
+    """Face verification gate for joining a live class (Feature 2).
+
+    Compares a live camera frame against the LOGGED-IN student's own
+    registered face -- the student_id being checked always comes from the
+    JWT, never from the request body, so this can't be used to verify as
+    a different student. On a genuine match, marks a short-lived,
+    backend-owned "verified" flag (face_verification_state) that the join
+    endpoints require and consume -- a client can't just claim
+    verified=true, only a real match sets this.
+    """
+
+    db = SessionLocal()
+
+    try:
+        student_id = _require_student_id()
+
+        data = FaceVerifyLive(**request.json)
+
+        registration = FaceRepository.get_face_by_student_id(db, student_id)
+
+        if not registration:
+            return jsonify({
+                "success": True,
+                "matched": False,
+                "reason": "not_registered",
+                "message": (
+                    "Face registration required. Please complete face "
+                    "registration before joining a live class."
+                ),
+            }), 200
+
+        frame = _decode_frame(data.image)
+
+        if frame is None:
+            raise Exception("Unable to decode image.")
+
+        try:
+            live_embedding = FaceService.generate_face_embedding(frame)
+        except Exception as exc:
+            # "No face detected." / "Multiple faces detected." from
+            # FaceService -- a normal, retryable outcome, not a server
+            # error.
+            return jsonify({
+                "success": True,
+                "matched": False,
+                "reason": "capture_invalid",
+                "message": str(exc),
+            }), 200
+
+        matched, distance = FaceService.verify_against_registration(
+            registration.embedding,
+            live_embedding,
+        )
+
+        if matched:
+            face_verification_state.mark_verified(student_id, data.class_id)
+
+            return jsonify({
+                "success": True,
+                "matched": True,
+                "message": "Identity verified.",
+            }), 200
+
+        return jsonify({
+            "success": True,
+            "matched": False,
+            "reason": "no_match",
+            "message": (
+                "Student not authenticated. Face verification failed. "
+                "You cannot join this class."
+            ),
+        }), 200
+
+    except FaceBackendUnavailable as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+        }), 503
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+        }), 400
+
+    finally:
+        db.close()
+
+
 @student_bp.route("/login", methods=["POST"])
 def login_student():
 
@@ -491,6 +715,54 @@ def student_class_history(class_id):
                     for r in records
                 ],
             }
+        }), 200
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+    finally:
+        db.close()
+
+
+@student_bp.route("/student/future-engagement-prediction", methods=["GET"])
+def student_future_engagement_prediction():
+    """The logged-in student's own cross-session HISTORICAL/FUTURE
+    engagement prediction ONLY -- built from their own COMPLETED sessions
+    (never the current live one). Separate feature from /live-monitor's
+    per-session live prediction; see
+    services/engagement_prediction_service.py's get_future_prediction()."""
+
+    db = SessionLocal()
+
+    try:
+        auth = request.headers.get("Authorization")
+
+        if not auth:
+            raise Exception("Authorization token missing.")
+
+        token = auth.split(" ")[1]
+        payload = JWTService.verify_token(token)
+        student_id = payload["user_id"]
+
+        from services.engagement_prediction_service import (
+            EngagementPredictionService,
+            future_prediction_status_label,
+        )
+
+        result = EngagementPredictionService.get_future_prediction(
+            db, student_id
+        )
+
+        return jsonify({
+            "success": True,
+            "prediction": {
+                **result,
+                "status_label": future_prediction_status_label(result),
+            },
         }), 200
 
     except Exception as e:

@@ -20,18 +20,40 @@ export function SettingsPage({ role }: { role: UserRole }) {
 
   const toggle = (key: keyof typeof prefs) => setPrefs((p) => ({ ...p, [key]: !p[key] }))
 
+  // Student and teacher Settings only ever get Light/Dark -- "System" is
+  // no longer offered to either (previously student-only; now also
+  // removed for teacher). ThemeContext itself only ever stores
+  // 'light' | 'dark' (see context/ThemeContext.tsx), so this is a
+  // display-only restriction, not a change to the underlying theme
+  // infrastructure: a user who previously had some other value stored
+  // simply isn't offered "System" as a choice going forward, exactly
+  // like this page already silently ignored clicking it before (Theme
+  // has no "system" state to switch into). No current route ever
+  // renders this page with role="admin", but the branch is left in
+  // place rather than deleted in case that ever changes.
+  const appearanceOptions: {
+    value: 'light' | 'dark' | 'system'
+    label: string
+    icon: typeof Sun
+  }[] = role === 'admin'
+    ? [
+        { value: 'light', label: 'Light', icon: Sun },
+        { value: 'dark', label: 'Dark', icon: Moon },
+        { value: 'system', label: 'System', icon: Monitor },
+      ]
+    : [
+        { value: 'light', label: 'Light', icon: Sun },
+        { value: 'dark', label: 'Dark', icon: Moon },
+      ]
+
   return (
     <AppShell role={role} title="Settings">
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader className="pb-3"><CardTitle>Appearance</CardTitle><CardDescription>Choose how Cognivue looks on this device</CardDescription></CardHeader>
           <CardContent className="pt-3">
-            <div className="grid grid-cols-3 gap-3">
-              {([
-                { value: 'light', label: 'Light', icon: Sun },
-                { value: 'dark', label: 'Dark', icon: Moon },
-                { value: 'system', label: 'System', icon: Monitor },
-              ] as const).map((opt) => (
+            <div className={cn('grid gap-3', role === 'admin' ? 'grid-cols-3' : 'grid-cols-2')}>
+              {appearanceOptions.map((opt) => (
                 <button
                   key={opt.value}
                   onClick={() => opt.value !== 'system' && setTheme(opt.value)}

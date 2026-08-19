@@ -95,6 +95,32 @@ class SessionService:
             )
 
     @staticmethod
+    def _refresh_future_predictions(db, session):
+        """Regenerate the cross-session HISTORICAL/FUTURE engagement
+        prediction (EngagementPredictionService.get_future_prediction) for
+        every student who actually produced engagement data in the
+        session that was JUST finalized as completed -- the explicit
+        event this feature's regeneration is tied to (never per-frame,
+        never per-dashboard-poll; see that method's own staleness check
+        for the read-side counterpart of this same policy)."""
+
+        from services.engagement_prediction_service import EngagementPredictionService
+
+        records = EngagementRepository.get_session_records(db, session.session_id)
+        student_ids = {r.student_id for r in records}
+
+        for student_id in student_ids:
+            try:
+                EngagementPredictionService.get_future_prediction(
+                    db, student_id, force_refresh=True
+                )
+            except Exception:
+                # Best-effort -- ending the class must never fail because
+                # one student's historical prediction couldn't be
+                # (re)computed.
+                pass
+
+    @staticmethod
     def end_session(db, teacher_id, class_id):
 
         active_session = SessionRepository.get_active_session(
@@ -117,6 +143,8 @@ class SessionService:
         )
 
         SessionService._finalize_attendance(db, session)
+
+        SessionService._refresh_future_predictions(db, session)
 
         SessionService._notify_ai_service_session_ended(
             session.session_id

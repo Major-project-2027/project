@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Phone,
   Users,
+  UserX,
   EyeOff,
   X,
   ScreenShare,
@@ -585,6 +586,10 @@ export function StudentLiveClassroomPage() {
                 <Users className="h-5 w-5 text-critical-400" />
               )}
 
+              {aiAlert === 'no_person_detected' && (
+                <UserX className="h-5 w-5 text-critical-400" />
+              )}
+
               {aiAlert === 'looking_away' && (
                 <EyeOff className="h-5 w-5 text-critical-400" />
               )}
@@ -618,6 +623,9 @@ export function StudentLiveClassroomPage() {
 
                 {aiAlert === 'multiple_person' &&
                   'Multiple people detected. Please remain alone in the classroom.'}
+
+                {aiAlert === 'no_person_detected' &&
+                  'No person in front of camera. Please return to your seat.'}
 
                 {aiAlert === 'looking_away' &&
                   'Please look toward the screen.'}

@@ -1,0 +1,46 @@
+{
+  "component": "Historical/Future Engagement LSTM (production model)",
+  "model_path": "C:\\Users\\disha\\Predictive_Multimodal_Student_Engagement\\student_engagement_system\\ml_models\\engagement_prediction\\lstm_future_engagement_model.keras",
+  "evaluated_at": "2026-08-19T15:33:52.899460+00:00",
+  "dataset": "Real engagement_records + real alerts, held-out student-level split reused from train_future_engagement_lstm.py's own build_dataset()",
+  "model_runtime_status": "LOADED_OK",
+  "status": "STATISTICALLY INSUFFICIENT",
+  "sequence_length_sessions": 6,
+  "num_features": 6,
+  "eligible_students": [
+    9,
+    18,
+    21,
+    22
+  ],
+  "train_examples": 21,
+  "val_examples": 1,
+  "train_students": [
+    18,
+    21,
+    22
+  ],
+  "val_students": [
+    9
+  ],
+  "validation": {
+    "metric": "MAE (not accuracy)",
+    "mae": 0.00034,
+    "mse": 0.0,
+    "rmse": 0.00034,
+    "r2": null,
+    "mae_engagement_points": 0.03
+  },
+  "naive_baseline_on_val": {
+    "mae": 0.04768,
+    "mse": 0.00227,
+    "rmse": 0.04768,
+    "mae_engagement_points": 4.77
+  },
+  "training_performance_NOT_validation": {
+    "mae": 0.16903,
+    "rmse": 0.24676,
+    "r2": -0.2657
+  },
+  "reliability_reason": "n=1 validation example(s) from 1 student(s) -- R2 undefined/meaningless below 2 points; MAE on 1 point is not a statistically valid generalization estimate."
+}

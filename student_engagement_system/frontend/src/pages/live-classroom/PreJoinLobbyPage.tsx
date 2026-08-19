@@ -20,7 +20,12 @@ export function PreJoinLobbyPage({ role }: { role: UserRole }) {
   const [cameraOn, setCameraOn] = useState(true)
   const [micOn, setMicOn] = useState(role === 'teacher')
   const [cameraError, setCameraError] = useState(false)
-  const [authStep, setAuthStep] = useState<AuthStep>(role === 'student' ? 'verifying' : 'verified')
+  // Real face verification (Feature 2) already ran on /student/verify/:classId
+  // -- the join call that lands a student here only succeeds after a
+  // genuine backend-confirmed match, so there is nothing left to verify by
+  // the time this page renders. This badge reports that completed result,
+  // it does not perform (or simulate) verification itself.
+  const [authStep] = useState<AuthStep>('verified')
 
   const classQuery = useQuery({ queryKey: ['class', classId], queryFn: () => classesApi.get(classId ?? '') })
   const user = role === 'teacher' ? currentTeacher : currentStudent
@@ -52,14 +57,6 @@ export function PreJoinLobbyPage({ role }: { role: UserRole }) {
   useEffect(() => {
     streamRef.current?.getAudioTracks().forEach((t) => (t.enabled = micOn))
   }, [micOn])
-
-  // Simulated face-authentication step for students, matching the spec's
-  // "face auth required before monitoring begins".
-  useEffect(() => {
-    if (role !== 'student') return
-    const t = setTimeout(() => setAuthStep('verified'), 1800)
-    return () => clearTimeout(t)
-  }, [role])
 
   const canJoin = role === 'teacher' || authStep === 'verified'
 
