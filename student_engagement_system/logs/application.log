@@ -578,3 +578,56 @@ ValueError: Deliberate sample error to confirm errors.log receives Phase 2 event
 2026-08-10 04:06:07.207 | INFO     | app.services.database:connect_to_database:28 - MongoDB client created for database 'student_engagement_db'
 2026-08-10 04:06:10.243 | WARNING  | app.services.database:ping_database:53 - MongoDB ping failed: ServerSelectionTimeoutError: localhost:27017: [WinError 10061] No connection could be made because the target machine actively refused it (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 3.0s, Topology Description: <TopologyDescription id: 6a7900d7101a9ce5a43f15ef, topology_type: Unknown, servers: [<ServerDescription ('localhost', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('localhost:27017: [WinError 10061] No connection could be made because the target machine actively refused it (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
 2026-08-31 15:25:03.898 | INFO     | app.services.database:connect_to_database:28 - MongoDB client created for database 'student_engagement'
+2026-08-31 21:41:53.737 | INFO     | tests.test_phase1_foundation:test_logging_creates_all_four_log_files:102 - pytest log check -- stream=application
+2026-08-31 21:41:57.502 | WARNING  | ml_models.face_authentication.face_detector:_init_backend:99 - mediapipe.solutions is unavailable in this installation (removed in newer MediaPipe releases) -- falling back to the Tasks API.
+2026-08-31 21:41:57.526 | INFO     | ml_models.face_authentication.face_detector:_init_backend:114 - FaceDetector using MediaPipe Tasks API.
+2026-08-31 21:41:58.516 | WARNING  | ml_models.face_authentication.face_detector:_init_backend:99 - mediapipe.solutions is unavailable in this installation (removed in newer MediaPipe releases) -- falling back to the Tasks API.
+2026-08-31 21:41:58.528 | INFO     | ml_models.face_authentication.face_detector:_init_backend:114 - FaceDetector using MediaPipe Tasks API.
+2026-08-31 21:41:58.911 | INFO     | ml_models.face_authentication.face_matcher:reload_gallery:72 - FaceMatcher gallery reloaded -- 0 student(s) loaded.
+2026-08-31 21:41:58.919 | INFO     | ml_models.face_authentication.attendance_database:append:60 - Attendance recorded: S1 (Student One) at 2026-08-31 21:41:58
+2026-08-31 21:41:58.925 | INFO     | ml_models.face_authentication.attendance_database:append:60 - Attendance recorded: S2 (Student Two) at 2026-08-31 21:41:58
+2026-08-31 21:41:58.926 | INFO     | ml_models.face_authentication.attendance_database:append:60 - Attendance recorded: S2 (Student Two) at 2026-08-31 21:41:58
+2026-08-31 21:41:59.232 | WARNING  | app.routers.emotion:_decode_b64_image:61 - Failed to decode face_crop_b64: Incorrect padding
+2026-08-31 21:41:59.316 | WARNING  | app.routers.head_pose:_decode_b64_image:77 - Failed to decode frame_b64: Incorrect padding
+2026-08-31 21:41:59.324 | WARNING  | app.routers.head_pose:_decode_b64_image:77 - Failed to decode frame_b64: Incorrect padding
+2026-08-31 21:41:59.335 | WARNING  | ml_models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-3\test_append_and_read0\configs\dashboard.yaml
+2026-08-31 21:41:59.339 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-08-31 21:41:59.343 | WARNING  | ml_models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-3\test_compute_summary_empty0\configs\dashboard.yaml
+2026-08-31 21:41:59.348 | WARNING  | ml_models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-3\test_compute_summary_with_even0\configs\dashboard.yaml
+2026-08-31 21:41:59.353 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-08-31 21:41:59.353 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S2
+2026-08-31 21:41:59.357 | WARNING  | ml_models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-3\test_compute_timeline_numeric_0\configs\dashboard.yaml
+2026-08-31 21:41:59.359 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-08-31 21:41:59.360 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-08-31 21:41:59.364 | WARNING  | ml_models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-3\test_compute_timeline_category0\configs\dashboard.yaml
+2026-08-31 21:41:59.369 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-08-31 21:41:59.370 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-08-31 21:41:59.374 | WARNING  | ml_models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-3\test_compute_timeline_invalid_0\configs\dashboard.yaml
+2026-08-31 21:41:59.379 | WARNING  | ml_models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-3\test_compute_student_table0\configs\dashboard.yaml
+2026-08-31 21:41:59.383 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-08-31 21:41:59.384 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S2
+2026-08-31 21:41:59.388 | WARNING  | ml_models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-3\test_compute_alerts_filters_by0\configs\dashboard.yaml
+2026-08-31 21:41:59.390 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-08-31 21:41:59.391 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-08-31 21:41:59.394 | WARNING  | ml_models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-3\test_compute_report_daily0\configs\dashboard.yaml
+2026-08-31 21:41:59.396 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-08-31 21:41:59.399 | WARNING  | ml_models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-3\test_export_csv_contains_heade0\configs\dashboard.yaml
+2026-08-31 21:41:59.402 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=S1
+2026-08-31 21:41:59.406 | WARNING  | ml_models.dashboard_analytics.analytics_store:_load_config:83 - Falling back to default dashboard config: Config file not found: C:\Users\disha\AppData\Local\Temp\pytest-of-disha\pytest-3\test_singleton_pattern0\configs\dashboard.yaml
+2026-08-31 21:41:59.429 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=R1
+2026-08-31 21:41:59.454 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=R2
+2026-08-31 21:41:59.583 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=AAA1
+2026-08-31 21:41:59.598 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=BBB2
+2026-08-31 21:41:59.629 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=C1
+2026-08-31 21:41:59.654 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=D1
+2026-08-31 21:41:59.732 | INFO     | ml_models.dashboard_analytics.analytics_store:append_event:101 - Dashboard event recorded for student_id=E1
+2026-08-31 21:42:20.209 | WARNING  | ml_models.face_authentication.face_detector:_init_backend:99 - mediapipe.solutions is unavailable in this installation (removed in newer MediaPipe releases) -- falling back to the Tasks API.
+2026-08-31 21:42:20.230 | INFO     | ml_models.face_authentication.face_detector:_init_backend:114 - FaceDetector using MediaPipe Tasks API.
+2026-08-31 21:42:21.101 | WARNING  | ml_models.face_authentication.face_detector:_init_backend:99 - mediapipe.solutions is unavailable in this installation (removed in newer MediaPipe releases) -- falling back to the Tasks API.
+2026-08-31 21:42:21.111 | INFO     | ml_models.face_authentication.face_detector:_init_backend:114 - FaceDetector using MediaPipe Tasks API.
+2026-08-31 21:42:21.313 | INFO     | ml_models.face_authentication.face_matcher:reload_gallery:72 - FaceMatcher gallery reloaded -- 0 student(s) loaded.
+2026-08-31 21:42:21.320 | INFO     | ml_models.face_authentication.attendance_database:append:60 - Attendance recorded: S1 (Student One) at 2026-08-31 21:42:21
+2026-08-31 21:42:21.325 | INFO     | ml_models.face_authentication.attendance_database:append:60 - Attendance recorded: S2 (Student Two) at 2026-08-31 21:42:21
+2026-08-31 21:42:21.326 | INFO     | ml_models.face_authentication.attendance_database:append:60 - Attendance recorded: S2 (Student Two) at 2026-08-31 21:42:21
+2026-08-31 21:42:21.557 | WARNING  | app.routers.head_pose:_decode_b64_image:77 - Failed to decode frame_b64: Incorrect padding
+2026-08-31 21:42:21.565 | WARNING  | app.routers.head_pose:_decode_b64_image:77 - Failed to decode frame_b64: Incorrect padding
