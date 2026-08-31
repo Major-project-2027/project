@@ -14,10 +14,25 @@
 # by the friend's UN-wired inference/voice + inference/face_authentication
 # + inference/engagement modules (deepface, retina-face, librosa,
 # soundfile, webrtcvad-wheels -- loader.py never calls into those).
-# Everything else pip resolves transitively (e.g. torch/torchvision via
-# ultralytics, the many small tensorflow sub-dependencies via
-# tensorflow) rather than being pinned twice here.
+# Everything else pip resolves transitively (e.g. the many small
+# tensorflow sub-dependencies via tensorflow) rather than being pinned
+# twice here. torch/torchvision are the one exception -- pinned below
+# to the CPU-only build explicitly; see that comment for why.
 # =====================================================================
+
+# ultralytics (below) declares only a loose "torch>=1.8.0" / an
+# unpinned torchvision, so left alone pip resolves both from the
+# default PyPI index. On Linux, PyPI's default torch wheel bundles full
+# CUDA as pip dependencies (nvidia-cublas, nvidia-cufft, nvidia-cusolver,
+# nvidia-cudnn, ...), which is several GB of completely unneeded
+# downloads on Render's GPU-less service and was the direct cause of a
+# "ran out of memory (used over 8GB)" build failure. This extra index
+# plus the explicit "+cpu" pins below select PyTorch's own CPU-only
+# wheel build instead -- same exact version already verified working
+# locally (this machine's default wheel happens to be CPU-only too,
+# which is why this never showed up in local testing), just without the
+# CUDA payload.
+--extra-index-url https://download.pytorch.org/whl/cpu
 
 # --- Flask (backend/app.py) --------------------------------------------
 Flask==3.1.3
@@ -45,19 +60,22 @@ numpy==2.2.4
 opencv-python==4.13.0.92
 mediapipe==0.10.35
 scipy==1.17.1
+torch==2.13.0+cpu
+torchvision==0.28.0+cpu
 tensorflow==2.21.0
 keras==3.15.1
 ultralytics==8.4.117
-
-# face-recognition depends on dlib, which has no prebuilt wheel on PyPI
-# for many platforms -- installing plain `dlib` means pip tries to build
-# it from source, which needs a C++ toolchain + cmake and will fail in a
-# normal build environment (local Windows dev machine or Render's build
-# container alike). dlib-bin ships prebuilt wheels (including Linux
-# manylinux_2_27/2_28 x86_64, confirmed on PyPI) under a different
-# distribution name but installs the same importable `dlib` module, so
-# face-recognition just works against it with no compiler needed.
-dlib-bin==20.0.1
-face-recognition==1.3.0
-face-recognition-models==0.3.0
 Pillow==11.3.0
+
+# dlib-bin, face-recognition, and face-recognition-models are
+# deliberately NOT listed here. face-recognition declares a hard
+# dependency on plain `dlib` (a different PyPI distribution from
+# dlib-bin, which has no prebuilt wheel on most platforms -- pip falls
+# back to a from-source cmake/C++ build, which is slow and was the
+# other contributor to the Render build running out of memory). Both
+# Render services' buildCommand in render.yaml installs dlib-bin first,
+# then face-recognition/face-recognition-models with --no-deps, so pip
+# never attempts to resolve plain `dlib` at all; only then does it run
+# `pip install -r requirements.txt` for everything else in this file.
+# Local dev: run that same two-step sequence once, in that order,
+# before installing this file.

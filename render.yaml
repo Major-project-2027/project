@@ -20,15 +20,26 @@ services:
     runtime: python
     plan: free
     rootDir: student_engagement_system/backend
-    # TEMPORARY, first-deploy-only diagnostic (remove the `ls -la ...;`
-    # prefix once confirmed): prints the size of every LFS-tracked model
-    # file this service loads to the build log before installing
-    # anything, so we can see in the log whether Render's clone step
-    # already resolved real LFS content (tens of MB each) or left
+    # Step 1: dlib-bin then face-recognition/face-recognition-models
+    # with --no-deps -- face-recognition declares a hard dependency on
+    # plain `dlib` (no prebuilt wheel on most platforms, so pip falls
+    # back to a slow from-source cmake/C++ build), which is a different
+    # PyPI distribution from dlib-bin. --no-deps stops pip from ever
+    # attempting that; requirements.txt deliberately excludes these
+    # three for the same reason (see its own comment).
+    # Step 2: TEMPORARY, first-deploy-only diagnostic (remove the
+    # `ls -la ...;` segment once confirmed) -- prints the size of every
+    # LFS-tracked model file this service loads to the build log before
+    # installing anything else, so we can see whether Render's clone
+    # step already resolved real LFS content (tens of MB each) or left
     # ~130-byte pointer files. Uses `;`, not `&&`, so a missing/renamed
-    # path can never fail the build -- pip install always still runs.
-    # Does not fetch, modify, or replace any file.
-    buildCommand: 'ls -la yolov8n.pt face_landmarker.task "../MODEL_INTEGRATION_PACKAGE (2)/MODEL_INTEGRATION_PACKAGE/models/object_detection/yolo11n.pt" "../MODEL_INTEGRATION_PACKAGE (2)/MODEL_INTEGRATION_PACKAGE/models/emotion/emotion_model.keras" ; pip install -r requirements.txt'
+    # path can never fail the build. Does not fetch/modify/replace any
+    # file.
+    # Step 3: the rest of requirements.txt, which now also pins
+    # torch/torchvision to PyTorch's CPU-only wheel build via
+    # --extra-index-url (see that file's comment) instead of letting
+    # ultralytics pull the default CUDA-bundled Linux wheel.
+    buildCommand: 'pip install dlib-bin==20.0.1 && pip install --no-deps face-recognition==1.3.0 face-recognition-models==0.3.0 && ls -la yolov8n.pt face_landmarker.task "../MODEL_INTEGRATION_PACKAGE (2)/MODEL_INTEGRATION_PACKAGE/models/object_detection/yolo11n.pt" "../MODEL_INTEGRATION_PACKAGE (2)/MODEL_INTEGRATION_PACKAGE/models/emotion/emotion_model.keras" ; pip install -r requirements.txt'
     # gunicorn, not `python app.py` -- app.run(debug=True) is a dev-only
     # server that doesn't handle concurrent requests safely. Points at
     # wsgi:app, NOT app:app -- backend/app.py (Flask) and backend/app/
@@ -96,10 +107,13 @@ services:
     runtime: python
     plan: free
     rootDir: student_engagement_system/backend
-    # TEMPORARY, first-deploy-only diagnostic -- see the matching comment
-    # on engagement-flask-api above for what this checks and why it's
-    # safe (never fails the build, doesn't fetch/modify/replace anything).
-    buildCommand: 'ls -la yolov8n.pt face_landmarker.task "../MODEL_INTEGRATION_PACKAGE (2)/MODEL_INTEGRATION_PACKAGE/models/object_detection/yolo11n.pt" "../MODEL_INTEGRATION_PACKAGE (2)/MODEL_INTEGRATION_PACKAGE/models/emotion/emotion_model.keras" ; pip install -r requirements.txt'
+    # dlib-bin / face-recognition --no-deps step, then the TEMPORARY
+    # first-deploy-only LFS diagnostic, then requirements.txt (which now
+    # also pins CPU-only torch/torchvision) -- see the matching comment
+    # on engagement-flask-api above for the full explanation of each
+    # step; identical here since both services install from the same
+    # requirements.txt and both load these models at startup.
+    buildCommand: 'pip install dlib-bin==20.0.1 && pip install --no-deps face-recognition==1.3.0 face-recognition-models==0.3.0 && ls -la yolov8n.pt face_landmarker.task "../MODEL_INTEGRATION_PACKAGE (2)/MODEL_INTEGRATION_PACKAGE/models/object_detection/yolo11n.pt" "../MODEL_INTEGRATION_PACKAGE (2)/MODEL_INTEGRATION_PACKAGE/models/emotion/emotion_model.keras" ; pip install -r requirements.txt'
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: APP_ENV
