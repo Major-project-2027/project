@@ -61,8 +61,7 @@ from typing import Optional
 
 import numpy as np
 
-from repositories.engagement_repository import EngagementRepository
-from repositories.alert_repository import AlertRepository
+from repositories.active import EngagementRepository, AlertRepository
 from models.student import Student  # noqa: F401 -- registers `students` table for
 # FutureEngagementPrediction's FK (same pattern already used by
 # app/routers/monitoring.py for EngagementRecord/Alert's FKs) -- this
@@ -700,9 +699,7 @@ class EngagementPredictionService:
         well-formed dict with an honest status.
         """
 
-        from repositories.future_engagement_repository import (
-            FutureEngagementRepository,
-        )
+        from repositories.active import FutureEngagementRepository
 
         try:
             history = cls._build_student_session_history(db, student_id)

@@ -74,6 +74,11 @@ sessionStorage.setItem('user_role',
       name: result.name,
       email: normalizedEmail,
       role,
+      // The login response doesn't include the account's real creation
+      // timestamp (Flask's /login and /teacher/login don't return one),
+      // and nothing in the UI reads User.createdAt -- this placeholder
+      // only exists to satisfy that type field, never displayed.
+      createdAt: new Date().toISOString(),
     },
     token: result.token,
   }
@@ -342,7 +347,7 @@ get: (id: string) =>
 
   if (input.startNow) {
     const startResponse = await fetch(
-      `http://127.0.0.1:5000/teacher/start-session/${classId}`,
+      `${FLASK_API_BASE_URL}/teacher/start-session/${classId}`,
       {
         method: 'POST',
         headers: {
@@ -557,6 +562,12 @@ export const monitoringApi = {
           false,
         ),
 
+      sleeping:
+        Boolean(
+          student.sleeping ??
+          false,
+        ),
+
       predictedEngagement:
         student.predictedEngagement ??
         student.predicted_engagement ??
@@ -688,6 +699,20 @@ export const historyApi = {
         attentionDropCount: number
         totalAlerts: number
         blinkCount: number
+        // Session-level, rule-based Cognitive State summary -- computed
+        // ONCE when the session ends (see
+        // backend/services/cognitive_state_service.py), never fabricated.
+        // status: 'ok' | 'insufficient_data' | 'not_available' (session
+        // hasn't ended yet, so nothing has been computed at all).
+        cognitiveState: {
+          status: 'ok' | 'insufficient_data' | 'not_available'
+          state: 'focused' | 'neutral' | 'distracted' | 'drowsy' | null
+          focusedPercentage: number | null
+          neutralPercentage: number | null
+          distractedPercentage: number | null
+          drowsyEpisodeCount: number
+          reason: string | null
+        }
         snapshots: Array<{
           timestamp: string
           engagementScore: number

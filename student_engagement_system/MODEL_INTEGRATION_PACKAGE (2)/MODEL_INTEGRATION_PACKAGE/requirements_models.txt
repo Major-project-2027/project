@@ -1,0 +1,64 @@
+# =====================================================================
+# requirements_models.txt
+# ---------------------------------------------------------------------
+# Dependencies required to run ONLY the inference code in this package
+# (MODEL_INTEGRATION_PACKAGE/inference/*). Versions are pinned to what
+# was actually installed in the source project's .venv and used to
+# verify every model in this package (see MODEL_INVENTORY.md "Test"
+# column). Do not casually bump versions — the emotion model in
+# particular was saved with Keras 3.15.0 and TensorFlow 2.18.0; a newer
+# Keras major version may not load it (see README.md "Compatibility").
+#
+# Install with:
+#   pip install -r requirements_models.txt
+#
+# Python version: verified against Python 3.12.7 (the source project's
+# .venv). Not pinned elsewhere in this package, so noting it here —
+# mediapipe/tensorflow/keras at these exact versions are not guaranteed
+# to install on much older (<3.10) or newer (>=3.13, unreleased at pin
+# time) Python versions.
+# =====================================================================
+
+numpy==1.26.4
+opencv-python-headless==4.10.0.84
+
+# ---- Emotion detection (MobileNetV2 / Keras) --------------------------
+tensorflow==2.18.0
+keras==3.15.0
+
+# ---- Object detection (YOLO11n via Ultralytics) ------------------------
+ultralytics==8.3.49
+torch==2.5.1
+torchvision==0.20.1
+
+# ---- Gaze / head-pose / blink / drowsiness (MediaPipe + OpenCV, no
+#      extra trained-weight file — MediaPipe downloads its own bundled
+#      pretrained FaceMesh/Iris models on first use) ---------------------
+mediapipe==0.10.18
+scipy==1.17.1
+
+# ---- Face authentication (ArcFace via DeepFace, TensorFlow-backed;
+#      retinaface is the configured detector backend) --------------------
+deepface==0.0.93
+retina-face==0.0.17
+tf-keras==2.18.0
+
+# ---- Voice analysis (WebRTC VAD + librosa features + scikit-learn
+#      speech-confidence calibrator) --------------------------------------
+scikit-learn==1.5.2
+joblib==1.5.3
+librosa==0.11.0
+soundfile==0.13.1
+webrtcvad-wheels==2.0.14
+
+# ---- Optional: only needed if you want the higher-accuracy Silero VAD
+#      backend for voice analysis instead of WebRTC VAD (falls back to
+#      WebRTC automatically if this is absent — verified during testing,
+#      see README.md "Known limitations"). Silero ALSO needs torchaudio,
+#      which was NOT present in the verified environment:
+# torchaudio==2.5.1
+
+# ---- Optional: only needed for ObjectDetectionPredictor.predict_folder()
+#      / predict_video() progress bars (not required for single-frame
+#      predict_image(), which is what the Celery task wrappers use):
+# tqdm==4.67.1

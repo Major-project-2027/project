@@ -1,18 +1,25 @@
 import urllib.request
 import json
+from datetime import datetime, timezone
+
+from config import FASTAPI_INTERNAL_URL
 
 from models.session import Session
-from repositories.session_repository import SessionRepository
-from repositories.classroom_repository import ClassroomRepository
-from repositories.engagement_repository import EngagementRepository
-from repositories.attendance_repository import AttendanceRepository
+from repositories.active import (
+    SessionRepository,
+    ClassroomRepository,
+    EngagementRepository,
+    AttendanceRepository,
+    EnrollmentRepository,
+)
 
-# The AI/monitoring pipeline runs in the separate FastAPI process (port 8000)
-# and keeps its own in-memory per-(session, student) state. This Flask
-# process cannot reach into that memory directly, so ending a session here
-# notifies the AI service over HTTP (best-effort -- ending the class must
-# never fail just because the AI service happens to be unreachable).
-AI_SERVICE_BASE_URL = "http://127.0.0.1:8000"
+# The AI/monitoring pipeline runs in the separate FastAPI process (port 8000
+# locally; a separate Render service in production) and keeps its own
+# in-memory per-(session, student) state. This Flask process cannot reach
+# into that memory directly, so ending a session here notifies the AI
+# service over HTTP (best-effort -- ending the class must never fail just
+# because the AI service happens to be unreachable).
+AI_SERVICE_BASE_URL = FASTAPI_INTERNAL_URL
 
 # Attendance rule: PRESENT only if the student actually generated engagement
 # samples AND both their average AND their latest engagement score exceed
@@ -42,13 +49,7 @@ class SessionService:
         collected during the session. No values are invented: a student
         with zero samples is marked absent, never silently skipped."""
 
-        from models.enrollment import Enrollment
-
-        enrollments = (
-            db.query(Enrollment)
-            .filter(Enrollment.class_id == session.class_id)
-            .all()
-        )
+        enrollments = EnrollmentRepository.get_for_class(db, session.class_id)
 
         records = EngagementRepository.get_session_records(
             db,
@@ -121,6 +122,36 @@ class SessionService:
                 pass
 
     @staticmethod
+    def _compute_cognitive_states(db, session):
+        """Compute and persist the session-level cognitive-state summary
+        (Focused/Neutral/Distracted/Drowsy -- see
+        services/cognitive_state_service.py for the full method) for
+        every student who actually produced engagement data in the
+        session that was JUST finalized as completed. This is the ONE
+        place this summary is calculated -- never recomputed on every
+        teacher-dashboard read (see CognitiveStateRepository.get_by_session,
+        the read-only path app/routes/teacher.py's class_history() uses)."""
+
+        from services.cognitive_state_service import CognitiveStateService
+
+        records = EngagementRepository.get_session_records(db, session.session_id)
+        student_ids = {r.student_id for r in records}
+
+        for student_id in student_ids:
+            try:
+                CognitiveStateService.compute_and_store(
+                    db,
+                    session_id=session.session_id,
+                    class_id=session.class_id,
+                    student_id=student_id,
+                )
+            except Exception:
+                # Best-effort -- ending the class must never fail because
+                # one student's cognitive-state summary couldn't be
+                # computed.
+                pass
+
+    @staticmethod
     def end_session(db, teacher_id, class_id):
 
         active_session = SessionRepository.get_active_session(
@@ -134,8 +165,13 @@ class SessionService:
         if active_session.teacher_id != teacher_id:
             raise Exception("You are not authorized to end this session.")
 
-        from sqlalchemy.sql import func as sql_func
-        active_session.end_time = sql_func.now()
+        # A plain Python datetime (not sqlalchemy.sql.func.now(), a
+        # server-side SQL expression object) -- works identically for
+        # both the SQLite path (SQLAlchemy sends it as a literal UPDATE
+        # parameter, same practical effect as NOW()) and the MongoDB
+        # path (a real value pymongo can serialize; a func.now()
+        # expression object cannot be).
+        active_session.end_time = datetime.now(timezone.utc)
 
         session = SessionRepository.end_session(
             db,
@@ -145,6 +181,8 @@ class SessionService:
         SessionService._finalize_attendance(db, session)
 
         SessionService._refresh_future_predictions(db, session)
+
+        SessionService._compute_cognitive_states(db, session)
 
         SessionService._notify_ai_service_session_ended(
             session.session_id

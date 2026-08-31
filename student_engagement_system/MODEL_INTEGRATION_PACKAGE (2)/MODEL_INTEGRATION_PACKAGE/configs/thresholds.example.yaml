@@ -1,0 +1,37 @@
+# =====================================================================
+# thresholds.example.yaml
+# ---------------------------------------------------------------------
+# Example tunable configuration for engagement scoring and alerting,
+# mirroring the Admin Requirements (FR-18) and Security Architecture's
+# `GET/PUT /api/v1/admin/config` endpoint (Phase 2+ deliverable).
+#
+# Copy to `thresholds.yaml` (git-ignored) to override defaults per
+# deployment/classroom without touching code.
+# =====================================================================
+
+engagement_feature_weights:
+  eye_focus: 0.30
+  emotion: 0.20
+  head_pose: 0.25
+  object_detected: 0.15
+  multiple_person: 0.10
+
+engagement_bands:
+  low: [0, 40]
+  medium: [41, 70]
+  high: [71, 100]
+
+alerts:
+  low_engagement_threshold: 40
+  attention_drop_probability_threshold: 0.65
+  hysteresis_seconds: 10
+  dedup_window_seconds: 30
+
+face_authentication:
+  similarity_threshold: 0.75
+  max_retries: 3
+
+sampling:
+  frame_interval_seconds: 2.0
+  feature_window_seconds: 2.0
+  lstm_rolling_window_seconds: 45

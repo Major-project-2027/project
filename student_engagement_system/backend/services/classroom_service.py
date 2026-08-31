@@ -2,7 +2,7 @@ import random
 import string
 
 from models.classroom import Classroom
-from repositories.classroom_repository import ClassroomRepository
+from repositories.active import ClassroomRepository
 
 
 class ClassroomService:

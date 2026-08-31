@@ -1,0 +1,113 @@
+# Render Blueprint -- deploys the Flask API and the FastAPI AI/live-
+# monitoring service as two separate web services from this one repo,
+# per the project's explicit "Option A: keep Flask and FastAPI separate"
+# decision. Both point at backend/requirements.txt (one shared
+# environment) and the same MongoDB Atlas cluster via env vars.
+#
+# Using this Blueprint is optional -- everything here can also be set up
+# by hand in the Render dashboard using the exact same values. See the
+# deployment instructions for the manual equivalent and for which env
+# vars must be filled in by hand (marked `sync: false` below; Render
+# will prompt for these when the Blueprint is applied and never stores
+# them in this file).
+
+services:
+  # ---------------------------------------------------------------------
+  # Flask API -- auth, classes, students, teachers, sessions, reports.
+  # ---------------------------------------------------------------------
+  - type: web
+    name: engagement-flask-api
+    runtime: python
+    plan: free
+    rootDir: student_engagement_system/backend
+    buildCommand: pip install -r requirements.txt
+    # gunicorn, not `python app.py` -- app.run(debug=True) is a dev-only
+    # server that doesn't handle concurrent requests safely. Points at
+    # wsgi:app, NOT app:app -- backend/app.py (Flask) and backend/app/
+    # (the FastAPI package) share the name "app" in this directory, and
+    # `import app` resolves to the PACKAGE, not app.py, so gunicorn
+    # app:app would fail. wsgi.py loads app.py unambiguously by file
+    # path; see that file's docstring.
+    startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: SECRET_KEY
+        sync: false
+      - key: DB_BACKEND
+        value: mongodb
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_DB_NAME
+        sync: false
+      # Comma-separated list of allowed frontend origins, e.g. the
+      # Vercel deployment URL. "*" (default in code) works functionally
+      # since this API uses bearer tokens, not cookies, but set this to
+      # the real Vercel URL once known.
+      - key: CORS_ORIGINS
+        sync: false
+      # The FastAPI service's own public URL (see the other service
+      # below) -- used only for the best-effort "session ended" ping in
+      # services/session_service.py. Fill in after both services exist,
+      # since Render assigns the FastAPI URL at first deploy.
+      - key: FASTAPI_INTERNAL_URL
+        sync: false
+      # These match backend/.env.example exactly -- all relative to the
+      # process's working directory, which Render sets to rootDir
+      # (backend/) when running startCommand, same as running
+      # `python app.py` from inside backend/ locally. Do not change
+      # these to absolute paths; that would be an unrequested behavior
+      # change, and the relative form already works identically here.
+      - key: DATABASE_NAME
+        value: student_engagement.db
+      - key: PROJECT_ROOT
+        value: ..
+      - key: LOG_FOLDER
+        value: ../logs
+      - key: REPORT_FOLDER
+        value: ../reports
+      - key: UPLOAD_FOLDER
+        value: ../uploads
+      - key: FACE_MODEL
+        value: ../models/face_recognition_model.keras
+      - key: EMOTION_MODEL
+        value: ../models/emotion_recognition/emotion_model.keras
+      - key: LANDMARK_MODEL
+        value: ../face_landmarker.task
+      - key: YOLO_MODEL
+        value: yolov8n.pt
+
+  # ---------------------------------------------------------------------
+  # FastAPI -- AI/live-monitoring pipeline, LSTM engagement prediction,
+  # WebRTC signaling. Single worker is REQUIRED: ai_state.py and
+  # app/routers/monitoring.py cache per-session AI state in this
+  # process's own memory, not in Mongo/Redis, so a second worker or
+  # instance would silently corrupt debounce/prediction/drowsiness
+  # timing. Never add --workers to the start command below.
+  # ---------------------------------------------------------------------
+  - type: web
+    name: engagement-fastapi
+    runtime: python
+    plan: free
+    rootDir: student_engagement_system/backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        sync: false
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_DB_NAME
+        sync: false
+      # Comma-separated list of additional allowed CORS origins on top
+      # of the always-on localhost regex -- e.g. the Vercel URL.
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: AI_OBJECT_DETECTION_MODEL
+        value: friend
+      - key: AI_LOOKING_AWAY_DROWSINESS_SOURCE
+        value: friend
+      - key: AI_EMOTION_MODEL_SOURCE
+        value: friend

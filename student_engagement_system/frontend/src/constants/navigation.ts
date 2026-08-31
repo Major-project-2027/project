@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, CalendarClock, Users, BarChart3, ClipboardList,
+  LayoutDashboard, CalendarClock, Users, ClipboardList,
   FileText, Settings, HelpCircle, ShieldCheck, GraduationCap,
   Info, LifeBuoy, Sparkles,
 } from 'lucide-react'
@@ -15,7 +15,6 @@ export const teacherNav: NavItem[] = [
   { label: 'Dashboard', to: '/teacher', icon: LayoutDashboard },
   { label: 'Classes', to: '/teacher/classes', icon: CalendarClock },
   { label: 'Attendance', to: '/teacher/attendance', icon: Users },
-  { label: 'Analytics', to: '/teacher/analytics', icon: BarChart3 },
   { label: 'Future Engagement', to: '/teacher/future-engagement-prediction', icon: Sparkles },
   { label: 'Settings', to: '/teacher/settings', icon: Settings },
 ]

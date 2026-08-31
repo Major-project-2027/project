@@ -1,3 +1,38 @@
 __pycache__/
 *.pyc
 *.pyo
+
+# Environment files may contain real secrets (DB credentials, Mongo
+# Atlas connection strings, API keys) -- never track these. .env.example
+# files are safe (placeholders only) and stay tracked.
+.env
+**/.env
+!.env.example
+!**/.env.example
+
+# Redundant zip archives of directories that are already tracked in
+# full (e.g. the extracted MODEL_INTEGRATION_PACKAGE folders) -- these
+# are duplicate copies of the same content, not a separate source of
+# truth, and would otherwise be pulled through Git LFS (*.zip is LFS-
+# tracked) for no benefit.
+student_engagement_system.zip
+student_engagement_system/*.zip
+
+# YOLO fine-tuning experiment runs/checkpoints -- not loaded by the live
+# application (which uses backend/yolov8n.pt or the friend package's
+# yolo11n.pt), kept locally as research artifacts only.
+student_engagement_system/ml_models/research/
+
+# The friend's FIRST model-integration delivery. Superseded by her second
+# delivery ("MODEL_INTEGRATION_PACKAGE (2)/"), which backend/services/
+# friend_ai/loader.py exclusively points at (see FRIEND_PACKAGE_ROOT) --
+# object detection and gaze/head-pose/drowsiness are byte-identical
+# between the two, and only the emotion model's weights changed, so this
+# first copy is a stale duplicate, not a separate source of truth. Left
+# on disk locally, not deleted, per the loader module's own comment.
+student_engagement_system/MODEL_INTEGRATION_PACKAGE/
+
+# Runtime log file written by the friend's gaze/head-pose module at
+# import time -- process-local output, not source, and empty in a fresh
+# checkout anyway.
+student_engagement_system/backend/services/friend_ai/gaze_headpose_pkg/ml/training/gaze_headpose/logs/

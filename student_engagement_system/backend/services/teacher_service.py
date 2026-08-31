@@ -1,9 +1,7 @@
-from repositories.teacher_repository import TeacherRepository
+from repositories.active import TeacherRepository, ClassroomRepository, EnrollmentRepository
 from services.security_service import SecurityService
 from services.jwt_service import JWTService
 from models.teacher import Teacher
-from repositories.classroom_repository import ClassroomRepository
-from repositories.enrollment_repository import EnrollmentRepository
 
 class TeacherService:
 

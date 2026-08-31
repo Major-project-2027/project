@@ -1,0 +1,49 @@
+{
+  "checkpoint": "C:\\Users\\disha\\Predictive_Multimodal_Student_Engagement\\student_engagement_system\\ml_models\\research\\phone_person\\runs\\detect\\finetune_run\\ft1_continue_6to20\\weights\\best.pt",
+  "test_data_split": "test",
+  "test_images": 858,
+  "settings": {
+    "imgsz": 640,
+    "conf": 0.25,
+    "iou": 0.7,
+    "device": "cpu",
+    "batch": 8
+  },
+  "overall": {
+    "precision": 0.6831327152081244,
+    "recall": 0.5330839335512233,
+    "f1": 0.5988523102888917,
+    "mAP50": 0.504504825318765,
+    "mAP50_95": 0.289258169251478,
+    "num_test_images": 858,
+    "num_gt_instances_total": 3961
+  },
+  "per_class": {
+    "person": {
+      "class_index": 0,
+      "precision": 0.7094346920084365,
+      "recall": 0.6014742014742015,
+      "f1": 0.6510088794046643,
+      "mAP50": 0.5782934568442314,
+      "mAP50_95": 0.3885175402380627,
+      "gt_instances": 2035,
+      "images_with_gt": 456
+    },
+    "cell phone": {
+      "class_index": 67,
+      "precision": 0.6568307384078121,
+      "recall": 0.46469366562824505,
+      "f1": 0.5443039534933206,
+      "mAP50": 0.4307161937932985,
+      "mAP50_95": 0.18999879826489321,
+      "gt_instances": 1926,
+      "images_with_gt": 294
+    }
+  },
+  "speed_ms": {
+    "preprocess": 1.0467808858365566,
+    "inference": 74.0978778557014,
+    "loss": 0.00015466236824165412,
+    "postprocess": 1.0644017486987172
+  }
+}

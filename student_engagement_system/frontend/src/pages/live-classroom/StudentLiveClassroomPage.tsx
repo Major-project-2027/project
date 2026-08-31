@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/Badge'
 import { currentStudent } from '@/mocks/data'
 import { generateLiveStudents } from '@/mocks/data'
 import { classesApi } from '@/services/api/endpoints'
+import { API_BASE_URL, FLASK_API_BASE_URL, WS_API_BASE_URL, getIceServers } from '@/services/api/client'
 
 type SidePanel = 'none' | 'participants' | 'chat'
 
@@ -50,7 +51,7 @@ export function StudentLiveClassroomPage() {
 
     try {
       const response = await fetch(
-        'http://127.0.0.1:5000/join-class',
+        `${FLASK_API_BASE_URL}/join-class`,
         {
           method: 'POST',
           headers: {
@@ -107,6 +108,102 @@ export function StudentLiveClassroomPage() {
   const peerRef = useRef<RTCPeerConnection | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
 
+  // ---------------------------------------------------------------------------
+  // DROWSINESS ALERT SOUND
+  // A drowsy/sleeping student may have their eyes closed, so a silent
+  // toast alone may go unnoticed -- play a short, distinct ~2s tone the
+  // moment `active_alert` TRANSITIONS into 'drowsiness'. previousAlertRef
+  // (not the `aiAlert` React state) drives the transition check so this
+  // never re-fires every poll while still drowsy, only re-arms once the
+  // alert has cleared. soundPlayingRef blocks overlapping instances.
+  // ---------------------------------------------------------------------------
+
+  const previousAlertRef = useRef<string | null>(null)
+  const soundPlayingRef = useRef(false)
+  const audioCtxRef = useRef<AudioContext | null>(null)
+
+  function getAudioContext(): AudioContext | null {
+    if (!audioCtxRef.current) {
+      const Ctx = window.AudioContext || (window as any).webkitAudioContext
+      if (Ctx) {
+        audioCtxRef.current = new Ctx()
+      }
+    }
+    return audioCtxRef.current
+  }
+
+  // Browsers block audio until a user gesture unlocks the AudioContext.
+  // The student has already interacted with this page (join/camera/mic
+  // controls), but that gesture may land before the AudioContext exists --
+  // so create/resume it on the first pointer or key interaction here too.
+  useEffect(() => {
+    const unlock = () => {
+      const ctx = getAudioContext()
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {})
+      }
+    }
+
+    window.addEventListener('pointerdown', unlock, { once: true })
+    window.addEventListener('keydown', unlock, { once: true })
+
+    return () => {
+      window.removeEventListener('pointerdown', unlock)
+      window.removeEventListener('keydown', unlock)
+    }
+  }, [])
+
+  function playDrowsinessAlertSound() {
+    // Never stack overlapping instances -- one ~2s tone per confirmed
+    // episode is enough, and a fresh timer already re-arms it after.
+    if (soundPlayingRef.current) {
+      return
+    }
+
+    const ctx = getAudioContext()
+
+    if (!ctx) {
+      return
+    }
+
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {})
+    }
+
+    soundPlayingRef.current = true
+
+    try {
+      const now = ctx.currentTime
+      // Three short, gentle pulses spanning ~2 seconds -- noticeable
+      // without being harsh/loud, and clearly finite (not a drone).
+      const pulseOffsets = [0, 0.65, 1.3]
+
+      pulseOffsets.forEach((offset) => {
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+
+        osc.type = 'sine'
+        osc.frequency.value = 660
+
+        gain.gain.setValueAtTime(0.0001, now + offset)
+        gain.gain.exponentialRampToValueAtTime(0.22, now + offset + 0.05)
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.35)
+
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+
+        osc.start(now + offset)
+        osc.stop(now + offset + 0.36)
+      })
+    } catch {
+      // Audio is a non-essential enhancement -- never let it break alerting.
+    }
+
+    setTimeout(() => {
+      soundPlayingRef.current = false
+    }, 2000)
+  }
+
   const students = generateLiveStudents(15)
 
   // ---------------------------------------------------------------------------
@@ -136,7 +233,7 @@ export function StudentLiveClassroomPage() {
         // ------------------------------------------------------------
 
         const ws = new WebSocket(
-          `ws://127.0.0.1:8000/ws/classes/${classId}/signaling`,
+          `${WS_API_BASE_URL}/ws/classes/${classId}/signaling`,
         )
 
         wsRef.current = ws
@@ -149,11 +246,7 @@ export function StudentLiveClassroomPage() {
           // ----------------------------------------------------------
 
           const peer = new RTCPeerConnection({
-            iceServers: [
-              {
-                urls: 'stun:stun.l.google.com:19302',
-              },
-            ],
+            iceServers: getIceServers(),
           })
 
           peerRef.current = peer
@@ -387,7 +480,7 @@ export function StudentLiveClassroomPage() {
         }
 
         const response = await fetch(
-          'http://127.0.0.1:8000/ai/analyze-frame',
+          `${API_BASE_URL}/ai/analyze-frame`,
           {
             method: 'POST',
             headers: {
@@ -465,6 +558,19 @@ export function StudentLiveClassroomPage() {
 
           const activeAlert =
             result.data?.active_alert ?? null
+
+          // Play the audible alert exactly once per NEW drowsiness
+          // episode -- only when this poll's alert differs from the
+          // previous poll's AND is 'drowsiness' (a transition INTO the
+          // state, not every poll while still drowsy).
+          if (
+            activeAlert === 'drowsiness' &&
+            previousAlertRef.current !== 'drowsiness'
+          ) {
+            playDrowsinessAlertSound()
+          }
+
+          previousAlertRef.current = activeAlert
 
           if (activeAlert) {
             setAiAlert((previousAlert) => {

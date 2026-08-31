@@ -11,6 +11,7 @@ from models.enrollment import Enrollment
 from models.attendance import Attendance
 from models.alert import Alert
 from models.future_engagement_prediction import FutureEngagementPrediction
+from models.cognitive_state import CognitiveStateSummary
 
 
 print("=" * 60)

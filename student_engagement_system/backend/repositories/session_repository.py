@@ -52,3 +52,26 @@ class SessionRepository:
 
         return session
 
+    @staticmethod
+    def get_by_id(db: Session, session_id: int):
+        return (
+            db.query(ClassSession)
+            .filter(ClassSession.session_id == session_id)
+            .first()
+        )
+
+    @staticmethod
+    def get_latest_session_for_class(db: Session, class_id: int):
+        """Most recent session for this class REGARDLESS of active
+        status -- distinct from get_active_session (is_active == True
+        only). Used by class_history (teacher's class report always
+        shows the latest session, live or completed) and
+        ClassStatusService."""
+
+        return (
+            db.query(ClassSession)
+            .filter(ClassSession.class_id == class_id)
+            .order_by(ClassSession.session_id.desc())
+            .first()
+        )
+

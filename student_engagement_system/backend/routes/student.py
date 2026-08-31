@@ -1,11 +1,12 @@
 import base64
+import os
 
 import cv2
 import numpy as np
 
 from flask import Blueprint, request, jsonify
 from services.monitoring_service import MonitoringService
-from database.database import SessionLocal
+from database.db_provider import get_db, close_db, is_mongo
 from schemas.student_schema import StudentRegister
 from schemas.login_schema import StudentLogin
 from schemas.face_schema import FaceSampleValidate, FaceRegister, FaceVerifyLive
@@ -15,15 +16,17 @@ from services.enrollment_service import EnrollmentService
 from services.jwt_service import JWTService
 from services.face_service import FaceService, FaceBackendUnavailable
 from services import face_verification_state
-from models.session import Session
-from models.student import Student
-from models.classroom import Classroom
-from models.teacher import Teacher
-from models.enrollment import Enrollment
-from repositories.session_repository import SessionRepository
-from repositories.attendance_repository import AttendanceRepository
-from repositories.alert_repository import AlertRepository
-from repositories.face_repository import FaceRepository
+from repositories.active import (
+    SessionRepository,
+    AttendanceRepository,
+    AlertRepository,
+    FaceRepository,
+    ClassroomRepository,
+    TeacherRepository,
+    EnrollmentRepository,
+    StudentRepository,
+    EngagementRepository,
+)
 student_bp = Blueprint("student", __name__)
 
 
@@ -66,7 +69,7 @@ def _require_student_id():
 @student_bp.route("/register", methods=["POST"])
 def register_student():
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
         data = StudentRegister(**request.json)
@@ -90,7 +93,7 @@ def register_student():
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 
 
 @student_bp.route("/face/validate-sample", methods=["POST"])
@@ -137,7 +140,7 @@ def register_face():
     (e.g. re-registering) -- updates the existing row rather than
     duplicating it, since face_registrations.student_id is unique."""
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
         student_id = _require_student_id()
@@ -176,7 +179,7 @@ def register_face():
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 
 
 @student_bp.route("/face/verify-live", methods=["POST"])
@@ -192,7 +195,7 @@ def verify_face_live():
     verified=true, only a real match sets this.
     """
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
         student_id = _require_student_id()
@@ -216,6 +219,22 @@ def verify_face_live():
 
         if frame is None:
             raise Exception("Unable to decode image.")
+
+        # TEMPORARY DIAGNOSTIC -- investigating "Unsupported image type,
+        # must be 8bit gray or RGB image." reported from the live
+        # /student/verify/<id> page. Prints the decoded frame's exact
+        # shape/dtype/contiguity right after _decode_frame, before any
+        # further processing. Remove once root-caused. Guarded so it can
+        # be silenced without removing it: set AI_FACE_VERIFY_DEBUG=0.
+        if os.environ.get("AI_FACE_VERIFY_DEBUG", "1") != "0":
+            print(
+                f"[FACE_VERIFY_DEBUG] raw base64 len={len(data.image)} "
+                f"decoded frame shape={frame.shape} dtype={frame.dtype} "
+                f"ndim={frame.ndim} "
+                f"C_CONTIGUOUS={frame.flags['C_CONTIGUOUS']} "
+                f"WRITEABLE={frame.flags['WRITEABLE']}",
+                flush=True,
+            )
 
         try:
             live_embedding = FaceService.generate_face_embedding(frame)
@@ -267,13 +286,13 @@ def verify_face_live():
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 
 
 @student_bp.route("/login", methods=["POST"])
 def login_student():
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
 
@@ -300,11 +319,11 @@ def login_student():
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 @student_bp.route("/join-class", methods=["POST"])
 def join_class():
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
         auth = request.headers.get("Authorization")
@@ -338,7 +357,7 @@ def join_class():
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 
 
 @student_bp.route("/live-classes", methods=["GET"])
@@ -347,7 +366,7 @@ def live_classes():
     teacher -- lets any authenticated student discover and join a live
     class from the dashboard without needing its code."""
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
         auth = request.headers.get("Authorization")
@@ -365,26 +384,14 @@ def live_classes():
 
         for session in active_sessions:
 
-            classroom = (
-                db.query(Classroom)
-                .filter(Classroom.class_id == session.class_id)
-                .first()
-            )
+            classroom = ClassroomRepository.get_by_id(db, session.class_id)
 
             if not classroom:
                 continue
 
-            teacher = (
-                db.query(Teacher)
-                .filter(Teacher.teacher_id == session.teacher_id)
-                .first()
-            )
+            teacher = TeacherRepository.get_by_id(db, session.teacher_id)
 
-            student_count = (
-                db.query(Enrollment)
-                .filter(Enrollment.class_id == session.class_id)
-                .count()
-            )
+            student_count = EnrollmentRepository.count_for_class(db, session.class_id)
 
             result.append({
                 "session_id": session.session_id,
@@ -410,7 +417,7 @@ def live_classes():
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 
 
 @student_bp.route("/join-live-class", methods=["POST"])
@@ -419,7 +426,7 @@ def join_live_class():
     code required. Only succeeds while the class's session is actually
     active, and never creates a duplicate enrollment or a new session."""
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
         auth = request.headers.get("Authorization")
@@ -454,13 +461,13 @@ def join_live_class():
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 
 
 @student_bp.route("/my-classes", methods=["GET"])
 def my_classes():
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
         token = request.headers.get("Authorization")
@@ -488,11 +495,11 @@ def my_classes():
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 @student_bp.route("/dashboard", methods=["GET"])
 def student_dashboard():
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
 
@@ -523,7 +530,7 @@ def student_dashboard():
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 @student_bp.route("/live-monitor", methods=["GET"])
 def live_monitor():
 
@@ -548,7 +555,7 @@ def live_monitor():
 )
 def student_class_history(class_id):
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
         auth = request.headers.get("Authorization")
@@ -561,33 +568,14 @@ def student_class_history(class_id):
 
         student_id = payload["user_id"]
 
-        from models.engagement import EngagementRecord
-        from models.classroom import Classroom
-
-        classroom = (
-            db.query(Classroom)
-            .filter(Classroom.class_id == class_id)
-            .first()
-        )
+        classroom = ClassroomRepository.get_by_id(db, class_id)
 
         if not classroom:
             raise Exception("Classroom not found.")
 
         # Find the student's records for this class.
-        records = (
-            db.query(EngagementRecord)
-            .join(
-                Session,
-                EngagementRecord.session_id == Session.session_id
-            )
-            .filter(
-                Session.class_id == class_id,
-                EngagementRecord.student_id == student_id
-            )
-            .order_by(
-                EngagementRecord.timestamp.asc()
-            )
-            .all()
+        records = EngagementRepository.get_student_class_records(
+            db, class_id, student_id
         )
 
         if not records:
@@ -601,13 +589,7 @@ def student_class_history(class_id):
             for r in records
         ]
 
-        student = (
-            db.query(Student)
-            .filter(
-                Student.student_id == student_id
-            )
-            .first()
-        )
+        student = StudentRepository.get_by_id(db, student_id)
 
         latest_session_id = records[-1].session_id
 
@@ -623,11 +605,7 @@ def student_class_history(class_id):
             student_id,
         )
 
-        session = (
-            db.query(Session)
-            .filter(Session.session_id == latest_session_id)
-            .first()
-        )
+        session = SessionRepository.get_by_id(db, latest_session_id)
 
         return jsonify({
             "success": True,
@@ -725,7 +703,7 @@ def student_class_history(class_id):
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 
 
 @student_bp.route("/student/future-engagement-prediction", methods=["GET"])
@@ -736,7 +714,7 @@ def student_future_engagement_prediction():
     per-session live prediction; see
     services/engagement_prediction_service.py's get_future_prediction()."""
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
         auth = request.headers.get("Authorization")
@@ -773,13 +751,13 @@ def student_future_engagement_prediction():
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 
 
 @student_bp.route("/student/attendance", methods=["GET"])
 def student_attendance():
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
         auth = request.headers.get("Authorization")
@@ -791,9 +769,6 @@ def student_attendance():
         payload = JWTService.verify_token(token)
         student_id = payload["user_id"]
 
-        from models.classroom import Classroom
-        from models.engagement import EngagementRecord
-
         records = AttendanceRepository.get_for_student(
             db,
             student_id,
@@ -803,24 +778,15 @@ def student_attendance():
 
         for record in records:
 
-            classroom = (
-                db.query(Classroom)
-                .filter(Classroom.class_id == record.class_id)
-                .first()
-            )
+            classroom = ClassroomRepository.get_by_id(db, record.class_id)
 
-            session = (
-                db.query(Session)
-                .filter(Session.session_id == record.session_id)
-                .first()
-            )
+            session = SessionRepository.get_by_id(db, record.session_id)
 
             engagement_scores = [
                 float(r.engagement_score or 0)
-                for r in db.query(EngagementRecord).filter(
-                    EngagementRecord.session_id == record.session_id,
-                    EngagementRecord.student_id == record.student_id,
-                ).all()
+                for r in EngagementRepository.get_student_session_records(
+                    db, record.session_id, record.student_id
+                )
             ]
 
             avg_engagement = (
@@ -871,5 +837,5 @@ def student_attendance():
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 

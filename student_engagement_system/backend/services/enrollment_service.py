@@ -1,8 +1,6 @@
 from models.enrollment import Enrollment
 
-from repositories.classroom_repository import ClassroomRepository
-from repositories.enrollment_repository import EnrollmentRepository
-from repositories.session_repository import SessionRepository
+from repositories.active import ClassroomRepository, EnrollmentRepository, SessionRepository
 from services import face_verification_state
 
 

@@ -68,14 +68,26 @@ export interface LiveClassSummary {
 // AI Monitoring
 // ---------------------------------------------------------------------------
 
+// The real production emotion model (ml_models/emotion_recognition/
+// emotion_model.keras) only ever genuinely produces 7 classes -- angry,
+// disgust, fear, happy, sad, surprise, neutral (see
+// backend/services/ai_service.py's own emotion_labels list, in that
+// exact order). There is no genuine "confused" class; it is kept here
+// (unused by anything real) only because frontend/src/mocks/data.ts's
+// demo generator already relies on it, along with a few other
+// mock-only labels -- never fabricated as a real prediction.
 export type EmotionLabel =
   | 'neutral'
   | 'happy'
+  | 'sad'
+  | 'angry'
+  | 'disgust'
+  | 'fear'
+  | 'surprise'
   | 'confused'
   | 'bored'
   | 'frustrated'
   | 'surprised'
-  | 'sad'
 
 export type CognitiveState = 'focused' | 'distracted' | 'drowsy' | 'confused'
 
@@ -153,6 +165,12 @@ export interface StudentLiveState {
   personCount?: number
   engagementStatus?: string
   noPersonDetected?: boolean
+  // Genuine temporal both-eyes-closed detection (>= SLEEP_THRESHOLD_SECONDS
+  // continuously, see ai_service.process_frame) -- distinct from the
+  // engagement-score-based `cognitiveState === 'drowsy'` heuristic that
+  // already existed; this is the real signal, backed by actual eye-closure
+  // evidence, not inferred from a low score.
+  sleeping?: boolean
 
   // Future-engagement prediction (LSTM, per session+student -- see
   // EngagementPredictionService on the backend). predictedEngagement is

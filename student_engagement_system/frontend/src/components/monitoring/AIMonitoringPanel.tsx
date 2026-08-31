@@ -1,35 +1,19 @@
 import {
   Eye,
   EyeOff,
-  Smile,
-  Frown,
-  Meh,
   ScanFace,
-  Volume2,
-  VolumeX,
   Phone,
   Users2,
   Moon,
   AlertTriangle,
   CheckCircle2,
   Activity,
-  Eye as BlinkIcon,
 } from 'lucide-react'
 
 import { ConfidenceRing } from './ConfidenceRing'
 import { Badge } from '@/components/ui/Badge'
 import type { StudentLiveState } from '@/types/domain'
 import { cn, predictionLabelText, predictionLabelTone } from '@/lib/utils'
-
-const EMOTION_ICON = {
-  neutral: Meh,
-  happy: Smile,
-  confused: Meh,
-  bored: Frown,
-  frustrated: Frown,
-  surprised: Smile,
-  sad: Frown,
-} as const
 
 function MetricRow({
   icon: Icon,
@@ -67,27 +51,23 @@ function MetricRow({
  * /live-monitor
  *
  * including:
- * - emotion
  * - engagement
  * - face authentication
  * - head pose
- * - gaze
- * - blink count
  * - drowsiness
  * - phone detection
  * - person count
- * - voice disturbance
+ *
+ * Emotion, gaze, blink count, and voice disturbance are still computed
+ * and stored by the backend (they still feed the engagement score /
+ * future analysis) -- this is a UI visibility change only, not a model
+ * removal. See ai_service.py / EngagementRecord.
  */
 export function AIMonitoringPanel({
   student,
 }: {
   student: StudentLiveState
 }) {
-  const EmotionIcon =
-    EMOTION_ICON[
-      student.currentEmotion as keyof typeof EMOTION_ICON
-    ] ?? Meh
-
   const alertActive = Boolean(student.activeAlert)
 
   // ------------------------------------------------------------
@@ -95,21 +75,14 @@ export function AIMonitoringPanel({
   // ------------------------------------------------------------
 
   const aiStudent = student as StudentLiveState & {
-    blinkCount?: number
     headPose?: string
-    gaze?: string
     phoneDetected?: boolean
     personCount?: number
     engagementStatus?: string
   }
 
-  const blinkCount = aiStudent.blinkCount ?? 0
-
   const headPose =
     aiStudent.headPose ?? 'Forward'
-
-  const gaze =
-    aiStudent.gaze ?? 'Center'
 
   const phoneDetected =
     aiStudent.phoneDetected ?? false
@@ -128,11 +101,12 @@ export function AIMonitoringPanel({
   const isLookingForward =
     headPose.toLowerCase().includes('forward')
 
-  const isGazeCenter =
-    gaze.toLowerCase() === 'center'
-
+  // Prefer the real, temporal both-eyes-closed signal (see
+  // ai_service.process_frame's SLEEP_THRESHOLD_SECONDS tracker) when the
+  // backend has sent it; fall back to the older engagement-score
+  // heuristic only for any cached entry that predates it.
   const isDrowsy =
-    student.cognitiveState === 'drowsy'
+    student.sleeping ?? student.cognitiveState === 'drowsy'
 
   const multiplePersons =
     personCount > 1
@@ -199,19 +173,6 @@ export function AIMonitoringPanel({
 
       <div className="grid grid-cols-2 gap-2">
 
-        {/* Emotion */}
-        <MetricRow
-          icon={EmotionIcon}
-          label="Emotion"
-          value={student.currentEmotion}
-          tone={
-            student.currentEmotion === 'happy' ||
-            student.currentEmotion === 'neutral'
-              ? 'engaged'
-              : 'attention'
-          }
-        />
-
         {/* Face authentication */}
         <MetricRow
           icon={
@@ -243,22 +204,6 @@ export function AIMonitoringPanel({
           value={headPose}
           tone={
             isLookingForward
-              ? 'engaged'
-              : 'attention'
-          }
-        />
-
-        {/* Gaze */}
-        <MetricRow
-          icon={
-            isGazeCenter
-              ? Eye
-              : EyeOff
-          }
-          label="Gaze"
-          value={gaze}
-          tone={
-            isGazeCenter
               ? 'engaged'
               : 'attention'
           }
@@ -308,36 +253,6 @@ export function AIMonitoringPanel({
           tone={
             multiplePersons || noPersonDetected
               ? 'critical'
-              : 'engaged'
-          }
-        />
-
-        {/* Blink count */}
-        <MetricRow
-          icon={BlinkIcon}
-          label="Blink count"
-          value={String(blinkCount)}
-          tone="neutral"
-        />
-
-        {/* Voice */}
-        <MetricRow
-          icon={
-            student.micOn
-              ? Volume2
-              : VolumeX
-          }
-          label="Voice disturbance"
-          value={
-            student.activeAlert ===
-            'voice_disturbance'
-              ? 'Detected'
-              : 'Clear'
-          }
-          tone={
-            student.activeAlert ===
-            'voice_disturbance'
-              ? 'attention'
               : 'engaged'
           }
         />
@@ -392,11 +307,9 @@ export function AIMonitoringPanel({
           <div>
 
             <p className="text-sm font-medium text-critical-600 dark:text-critical-400">
-              Active alert:{' '}
-              {student.activeAlert?.replaceAll(
-                '_',
-                ' ',
-              )}
+              {student.activeAlert === 'drowsiness'
+                ? 'Sleeping — Wake Up!'
+                : `Active alert: ${student.activeAlert?.replaceAll('_', ' ')}`}
             </p>
 
             <p className="text-xs text-textmuted-light dark:text-textmuted-dark">
@@ -406,63 +319,6 @@ export function AIMonitoringPanel({
           </div>
         </div>
       )}
-
-      {/* ============================================================
-          AI STATUS SUMMARY
-      ============================================================ */}
-
-      <div className="rounded-xl border border-border-light bg-focus-500/5 p-3 dark:border-border-dark">
-
-        <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-focus-600 dark:text-focus-400">
-          <ScanFace className="h-3.5 w-3.5" />
-
-          Real-time AI status
-        </p>
-
-        <div className="grid grid-cols-2 gap-2 text-xs">
-
-          <div>
-            <span className="text-textmuted-light dark:text-textmuted-dark">
-              Emotion
-            </span>
-
-            <p className="font-medium capitalize text-text-light dark:text-text-dark">
-              {student.currentEmotion}
-            </p>
-          </div>
-
-          <div>
-            <span className="text-textmuted-light dark:text-textmuted-dark">
-              Engagement
-            </span>
-
-            <p className="font-medium text-text-light dark:text-text-dark">
-              {student.currentEngagement}%
-            </p>
-          </div>
-
-          <div>
-            <span className="text-textmuted-light dark:text-textmuted-dark">
-              Head
-            </span>
-
-            <p className="font-medium text-text-light dark:text-text-dark">
-              {headPose}
-            </p>
-          </div>
-
-          <div>
-            <span className="text-textmuted-light dark:text-textmuted-dark">
-              Gaze
-            </span>
-
-            <p className="font-medium text-text-light dark:text-text-dark">
-              {gaze}
-            </p>
-          </div>
-
-        </div>
-      </div>
 
       {/* ============================================================
           ENGAGEMENT PREDICTION

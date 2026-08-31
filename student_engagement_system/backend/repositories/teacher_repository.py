@@ -15,6 +15,14 @@ class TeacherRepository:
         )
 
     @staticmethod
+    def get_by_id(db: Session, teacher_id: int):
+        return (
+            db.query(Teacher)
+            .filter(Teacher.teacher_id == teacher_id)
+            .first()
+        )
+
+    @staticmethod
     def create_teacher(db: Session, teacher: Teacher):
 
         db.add(teacher)

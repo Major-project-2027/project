@@ -3,15 +3,14 @@ import time
 from typing import Optional
 
 try:
-    from database.database import SessionLocal
+    from database.db_provider import get_db, close_db, is_mongo
 except ModuleNotFoundError:
-    from backend.database.database import SessionLocal
+    from backend.database.db_provider import get_db, close_db, is_mongo
 from models.engagement import EngagementRecord
 from models.student import Student  # noqa: F401 -- registers `students` table for EngagementRecord's FK
 from models.classroom import Classroom  # noqa: F401 -- registers `classrooms` table for Alert's FK
 from models.teacher import Teacher  # noqa: F401 -- registers `teachers` table for Session's FK
-from repositories.session_repository import SessionRepository
-from repositories.alert_repository import AlertRepository
+from repositories.active import SessionRepository, AlertRepository, EngagementRepository
 from services import ai_state
 import cv2
 import numpy as np
@@ -51,25 +50,28 @@ def get_active_alert(result):
     if result.get("no_person_detected"):
         return "no_person_detected"
 
+    # Sleeping ("both eyes closed for >= SLEEP_THRESHOLD_SECONDS", see
+    # ai_service.process_frame's temporal tracker) ranks next -- a
+    # confirmed multi-second closed-eye episode is a more certain,
+    # more actionable signal than a phone sighting or an off-center
+    # gaze, so it takes priority over those.
+    if result.get("sleeping"):
+        return "drowsiness"
+
     if result.get("phone_detected"):
         return "phone_detected"
 
     if result.get("person_count", 1) > 1:
         return "multiple_person"
 
-    if result.get("head_pose") not in (
-        None,
-        "Looking Forward",
-        "Forward",
-        "Unknown",
-    ):
-        return "looking_away"
-
-    if result.get("gaze") not in (
-        None,
-        "Center",
-        "Unknown",
-    ):
+    # Debounced "genuinely outside the acceptable laptop-screen viewing
+    # zone" signal computed in ai_service.process_frame's LOOKING-AWAY
+    # block -- requires several consecutive outside-zone frames (not a
+    # single frame) AND treats natural small head/gaze movement as still
+    # "on screen" (see that module for the exact dead-zone/hysteresis
+    # logic). Replaces the old raw per-frame head_pose/gaze equality
+    # checks, which fired on almost every frame.
+    if result.get("looking_away"):
         return "looking_away"
 
     if result.get("engagement_score", 100) < 40:
@@ -87,11 +89,11 @@ def live_monitor(class_id: Optional[int] = Query(default=None)):
     if class_id is None:
         return {"success": True, "data": []}
 
-    db = SessionLocal()
+    db = get_db()
     try:
         active_session = SessionRepository.get_active_session(db, class_id)
     finally:
-        db.close()
+        close_db(db)
 
     if not active_session:
         # No live session for this class right now -- drop any cached
@@ -118,8 +120,15 @@ def live_monitor(class_id: Optional[int] = Query(default=None)):
         predicted_engagement = result.get("predicted_engagement")
         prediction_status = result.get("prediction_status", "unavailable")
         attention_drop_predicted = bool(result.get("attention_drop_predicted", False))
+        # Genuine temporal both-eyes-closed detection (see
+        # ai_service.process_frame) -- NOT the same thing as the
+        # engagement<40 heuristic below, which stays as a fallback only
+        # for whatever it already covered before this existed.
+        sleeping = bool(result.get("sleeping", False))
 
-        if engagement < 40:
+        if sleeping:
+            cognitive_state = "drowsy"
+        elif engagement < 40:
             cognitive_state = "drowsy"
         elif (
             gaze.lower() not in ["center", "forward", "unknown"]
@@ -145,6 +154,7 @@ def live_monitor(class_id: Optional[int] = Query(default=None)):
             "phoneDetected": phone_detected,
             "personCount": person_count,
             "noPersonDetected": no_person_detected,
+            "sleeping": sleeping,
             "engagementStatus": engagement_status,
 
             "predictedEngagement": predicted_engagement,
@@ -168,6 +178,21 @@ def prediction_status():
     fabricated. See services/engagement_prediction_service.py."""
 
     return {"success": True, **EngagementPredictionService.model_status()}
+
+
+@router.get("/ai/model-sources")
+def ai_model_sources():
+    """Which AI component sources are actually active right now --
+    current (this project's own, pre-integration) vs friend (the
+    integrated MODEL_INTEGRATION_PACKAGE components) -- for manual
+    verification and for later A/B evaluation between the current and
+    friend object-detection models. See services/friend_ai/loader.py;
+    override with AI_OBJECT_DETECTION_MODEL / AI_LOOKING_AWAY_DROWSINESS_SOURCE
+    / AI_EMOTION_MODEL_SOURCE."""
+
+    from services.friend_ai import loader as friend_ai_loader
+
+    return {"success": True, **friend_ai_loader.status()}
 
 
 # ---------------------------------------------------------------------------
@@ -240,7 +265,7 @@ class AIFrameRequest(BaseModel):
 @router.post("/ai/analyze-frame")
 def analyze_frame(request: AIFrameRequest):
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
         # ----------------------------------------------------
@@ -321,8 +346,11 @@ def analyze_frame(request: AIFrameRequest):
             ),
         )
 
-        db.add(engagement_record)
-        db.commit()
+        # EngagementRepository.create() handles both persistence
+        # backends (SQLite: db.add()+db.commit(); MongoDB: insert_one()
+        # with an auto-incremented record_id) -- see repositories.active
+        # and repositories/mongo/engagement_repository.py.
+        EngagementRepository.create(db, engagement_record)
 
         # ----------------------------------------------------
         # DETERMINE ACTIVE ALERT, AND PERSIST A NEW ALERT
@@ -412,6 +440,7 @@ def analyze_frame(request: AIFrameRequest):
             "phone_detected": result.get("phone_detected", False),
             "person_count": result.get("person_count", 1),
             "no_person_detected": result.get("no_person_detected", False),
+            "sleeping": result.get("sleeping", False),
             "engagement_score": result.get("engagement_score", 0),
             "engagement_status": result.get(
                 "engagement_status", "unknown"
@@ -456,7 +485,11 @@ def analyze_frame(request: AIFrameRequest):
 
     except Exception as exc:
 
-        db.rollback()
+        # rollback() is SQLAlchemy-specific -- MongoDB has no equivalent
+        # here (each write is already its own atomic operation, not part
+        # of an open multi-statement transaction to unwind).
+        if not is_mongo():
+            db.rollback()
 
         return {
             "success": False,
@@ -466,7 +499,7 @@ def analyze_frame(request: AIFrameRequest):
 
     finally:
 
-        db.close()
+        close_db(db)
 
 
 @router.post("/ai/clear-session/{session_id}")

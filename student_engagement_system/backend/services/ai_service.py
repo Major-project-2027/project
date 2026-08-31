@@ -10,6 +10,14 @@ from scipy.spatial import distance
 from tensorflow.keras.models import load_model
 from ultralytics import YOLO
 
+# Friend's integrated AI components (Phone+Person / Looking-away /
+# Sleeping-Drowsiness / Emotion) -- see backend/services/friend_ai/ and
+# MODEL_INTEGRATION_PACKAGE/ at the project root. Selectable per-component
+# via env vars (AI_OBJECT_DETECTION_MODEL / AI_LOOKING_AWAY_DROWSINESS_SOURCE
+# / AI_EMOTION_MODEL_SOURCE, see loader.py); every existing "current"
+# code path below is untouched and still fully functional as the fallback.
+from services.friend_ai import loader as friend_ai_loader
+
 # The MediaPipe FaceLandmarker (VIDEO mode, monotonic timestamps) and the
 # TensorFlow/YOLO models below are single shared instances used by every
 # request. None of them are safe to call from multiple threads at once, so
@@ -42,7 +50,17 @@ FACE_MODEL_PATH = str(
 EMOTION_MODEL_PATH = str(
     _PROJECT_ROOT / "ml_models" / "emotion_recognition" / "emotion_model.keras"
 )
-YOLO_MODEL_PATH = "yolov8n.pt"
+
+# CURRENT_YOLO_MODEL_PATH is this project's own existing production
+# weights -- kept exactly as-is, never deleted/overwritten. Which one
+# actually loads below is resolved by friend_ai_loader from
+# AI_OBJECT_DETECTION_MODEL (default "friend" -- see loader.py's module
+# docstring); flip that env var to "current" to go back to this model
+# with no code change.
+CURRENT_YOLO_MODEL_PATH = "yolov8n.pt"
+YOLO_MODEL_PATH, YOLO_MODEL_SOURCE = friend_ai_loader.resolve_object_detection_weights_path(
+    CURRENT_YOLO_MODEL_PATH
+)
 LANDMARKER_PATH = "face_landmarker.task"
 
 
@@ -79,8 +97,17 @@ if os.path.exists(EMOTION_MODEL_PATH):
 else:
     print("WARNING: Emotion model not found. Emotion recognition disabled.")
 
-print("Loading YOLO...")
+print(f"Loading YOLO ({YOLO_MODEL_SOURCE} model: {YOLO_MODEL_PATH})...")
 yolo_model = YOLO(YOLO_MODEL_PATH)
+
+print(
+    "AI component sources -- "
+    f"object_detection={YOLO_MODEL_SOURCE}, "
+    f"looking_away_drowsiness={friend_ai_loader.LOOKING_AWAY_DROWSINESS_SOURCE}, "
+    f"emotion={friend_ai_loader.EMOTION_SOURCE} "
+    "(override via AI_OBJECT_DETECTION_MODEL / "
+    "AI_LOOKING_AWAY_DROWSINESS_SOURCE / AI_EMOTION_MODEL_SOURCE)"
+)
 
 
 # ============================================================
@@ -181,6 +208,123 @@ PROCESS_EVERY_FACE = 6
 # actually-empty seat is flagged quickly.
 NO_PERSON_CONFIRM_STREAK = 3
 
+# ============================================================
+# SLEEPING (temporal, both-eyes-closed) SETTINGS
+# ============================================================
+# A student is "sleeping" only when BOTH eyes (the same EAR/EAR_THRESHOLD
+# measurement blink detection already uses above) stay continuously below
+# EAR_THRESHOLD for this many real wall-clock seconds -- timed with
+# time.time(), not a frame count, so it is correct regardless of the
+# client's actual frame rate. A normal blink (a few hundred ms) or a
+# brief MediaPipe landmark miss never reaches this; see
+# process_frame()'s sleeping-tracking block for exactly how the streak
+# is started/held/reset.
+SLEEP_THRESHOLD_SECONDS = 4.0
+
+# Real EAR readings from the actual MediaPipe landmarker are noisy frame to
+# frame (confirmed empirically: a real, plainly open-eyes registration photo
+# measured ear~0.15-0.18, already below EAR_THRESHOLD=0.25 on its own -- the
+# margin between "open" and "closed" is thin). A single stray frame that
+# happens to read >= EAR_THRESHOLD in the middle of an otherwise-continuous
+# closed-eye episode must NOT be treated as genuine reopening, or the
+# eyes_closed_since timer resets to zero and a real 4s+ episode can never
+# accumulate enough continuous time to fire. Mirrors the exact same
+# debounce idea NO_PERSON_CONFIRM_STREAK already uses above: only treat the
+# eyes as genuinely open after this many CONSECUTIVE open readings.
+EYES_OPEN_CONFIRM_STREAK = 3
+
+# TEMPORARY diagnostic logging for the sleeping-detection pipeline only --
+# prints one line per processed frame with landmark/EAR/timer/sleeping
+# state. Defaults ON so the fix above can be verified against a real
+# camera; set AI_SLEEP_DEBUG=0 to silence it once verified. Safe to leave
+# in (a single guarded print), but intended to be removed/disabled once
+# the feature is confirmed working live.
+SLEEP_DEBUG = os.environ.get("AI_SLEEP_DEBUG", "1") != "0"
+
+# ============================================================
+# LOOKING-AWAY: ACCEPTABLE "LAPTOP SCREEN" VIEWING ZONE + DEBOUNCE
+# ============================================================
+# A student's head/gaze naturally wanders a little even while genuinely
+# looking at their laptop screen. Treating ANY non-dead-center reading as
+# "looking away" (the previous behaviour) fired on almost every frame.
+#
+# Two independent fixes, both reusing values/signals the existing
+# gaze/head-pose implementations already expose rather than inventing new
+# ones:
+#
+# 1. DEAD ZONE -- FRIEND_HEAD_POSE_MAP above already treats the friend
+#    module's own "slightly_distracted" tier (within
+#    HEAD_POSE_SLIGHTLY_DISTRACTED_YAW_DEG/PITCH_DEG = 30/25 degrees of
+#    center) as still "Looking Forward". For gaze, the friend module has
+#    no equivalent middle tier -- only a single center/off-center
+#    threshold (config.GAZE_HORIZONTAL_THRESHOLD/GAZE_VERTICAL_THRESHOLD
+#    = 0.18/0.16), meant for DISPLAYING a direction label, not for
+#    deciding whether to alert. GAZE_ALERT_*_THRESHOLD below is a second,
+#    wider threshold used ONLY for the alert decision -- roughly double
+#    the display threshold, mirroring the ~2x ratio between the friend's
+#    own "focused" (15 deg) and "looking_away" (30 deg) head-pose bounds
+#    -- applied to the SAME continuous gaze_horizontal_ratio/
+#    gaze_vertical_ratio values the friend predictor already computes
+#    (already EMA-smoothed, see temporal_filter.py), not a fresh guess.
+# 2. TEMPORAL DEBOUNCE (hysteresis) -- even outside the dead zone, a
+#    single stray frame must not flip the alert. LOOKING_AWAY_CONFIRM_
+#    STREAK consecutive outside-zone frames are required before
+#    `looking_away` becomes True, and LOOKING_AWAY_CLEAR_STREAK
+#    consecutive inside-zone frames are required before it clears again
+#    -- the same debounce pattern SLEEP_THRESHOLD_SECONDS/
+#    EYES_OPEN_CONFIRM_STREAK already use above for drowsiness. State
+#    (away_streak/on_screen_streak/looking_away_confirmed) lives in the
+#    caller's per-student `state` dict (ai_state.py), so it persists
+#    across frames for that student/session without creating a new
+#    predictor or losing state between calls.
+GAZE_ALERT_HORIZONTAL_THRESHOLD = 0.36
+GAZE_ALERT_VERTICAL_THRESHOLD = 0.32
+
+LOOKING_AWAY_CONFIRM_STREAK = 3
+LOOKING_AWAY_CLEAR_STREAK = 3
+
+# ============================================================
+# FRIEND LOOKING-AWAY / DROWSINESS OUTPUT MAPPING
+# ============================================================
+# Maps the friend's GazeHeadPosePredictor output vocabulary (see
+# gaze_headpose_pkg/ml/training/gaze_headpose/gaze_estimator.py's
+# `_classify_direction` and headpose_estimator.py's `_classify`) onto
+# THIS project's own existing gaze/head_pose string vocabulary (see
+# calculate_gaze()/calculate_head_pose() above), so calculate_engagement(),
+# get_active_alert() (app/routers/monitoring.py), the DB columns, and the
+# frontend all keep working completely unchanged regardless of which
+# source produced the value -- neither only ever compares for equality
+# against "Center"/"Looking Forward", so an unmapped/new label still
+# safely counts as "not centered"/"not forward".
+FRIEND_GAZE_DIRECTION_MAP = {
+    "center": "Center",
+    "left": "Left",
+    "right": "Right",
+    "up": "Up",
+    "down": "Down",
+}
+# "slightly_distracted" is the friend's own middle tier (see
+# headpose_estimator.py's _classify: within HEAD_POSE_SLIGHTLY_DISTRACTED_
+# YAW_DEG/PITCH_DEG of center -- up to 30 deg yaw / 25 deg pitch, well past
+# a natural head turn while still reading a laptop screen). It is mapped
+# to "Looking Forward" -- i.e. still INSIDE the acceptable laptop-screen
+# viewing zone -- rather than "Looking Away", so small/natural head
+# movement never counts as looking away. Only "looking_away" (beyond
+# those bounds -- the friend module's own definition of clearly outside
+# the zone) maps to "Looking Away".
+FRIEND_HEAD_POSE_MAP = {
+    "focused": "Looking Forward",
+    "slightly_distracted": "Looking Forward",
+    "looking_away": "Looking Away",
+}
+# Drowsiness -> the existing boolean `sleeping` field. "fatigued" is a
+# real intermediate tier the friend's module reports (see
+# drowsiness_detector.py's _SEVERITY_ORDER) but is deliberately NOT
+# treated as `sleeping=True` here -- it mirrors this project's own
+# SLEEP_THRESHOLD_SECONDS intent (a sustained, high-confidence closed-eye
+# episode), not an early/borderline signal.
+FRIEND_SLEEPING_DROWSINESS_STATES = {"drowsy", "microsleep"}
+
 
 # ============================================================
 # EAR FUNCTION
@@ -279,16 +423,24 @@ def calculate_head_pose(landmarks, width, height):
     x_angle = angles[0] * 360
     y_angle = angles[1] * 360
 
-    if y_angle < -10:
+    # Widened from the original +/-10 deg to +/-15 deg -- this is the
+    # "current" (non-friend) fallback path's own acceptable-viewing-zone
+    # bound, matching the friend module's "focused" bound
+    # (HEAD_POSE_FOCUSED_YAW_DEG/PITCH_DEG = 15, see config.py) so both
+    # sources agree on what counts as "still looking at the screen". Only
+    # reached when AI_LOOKING_AWAY_DROWSINESS_SOURCE=current or the
+    # friend predictor briefly has no result for a frame (see
+    # process_frame's FRIEND LOOKING-AWAY OVERRIDE block).
+    if y_angle < -15:
         return "Looking Left"
 
-    elif y_angle > 10:
+    elif y_angle > 15:
         return "Looking Right"
 
-    elif x_angle < -10:
+    elif x_angle < -15:
         return "Looking Down"
 
-    elif x_angle > 10:
+    elif x_angle > 15:
         return "Looking Up"
 
     return "Looking Forward"
@@ -326,10 +478,16 @@ def calculate_gaze(landmarks):
 
     difference = iris_x - eye_center
 
-    if difference < -0.015:
+    # Widened from the original +/-0.015 (a fraction of a percent of eye
+    # width -- effectively any iris micro-movement) to +/-0.05, still much
+    # tighter than the friend module's own 0.18 display threshold since
+    # this "current"-path measurement is a raw unnormalized/unsmoothed
+    # iris-center difference, not the friend's normalized ratio. Only
+    # reached as a fallback -- see calculate_head_pose's comment above.
+    if difference < -0.05:
         return "Left"
 
-    elif difference > 0.015:
+    elif difference > 0.05:
         return "Right"
 
     return "Center"
@@ -381,7 +539,8 @@ def calculate_engagement(
     gaze,
     phone_detected,
     person_count,
-    no_person_confirmed=False
+    no_person_confirmed=False,
+    sleeping=False,
 ):
 
     # No student in frame -- there is nothing to score. gaze/head_pose
@@ -391,8 +550,8 @@ def calculate_engagement(
     # stale/default signals looked perfect. 0 is the formula's own floor
     # (see `max(score, 0)` below) but is never actually reached by any
     # combination of the other penalties (worst case with all of them is
-    # 100-30-30-10-10=20), so it isn't overloading a meaning that already
-    # exists elsewhere -- it uniquely marks "no one to measure."
+    # 100-30-30-30-10-10=10), so it isn't overloading a meaning that
+    # already exists elsewhere -- it uniquely marks "no one to measure."
     if no_person_confirmed:
         return 0
 
@@ -402,6 +561,18 @@ def calculate_engagement(
         score -= 30
 
     if person_count > 1:
+        score -= 30
+
+    # Sleeping (both eyes continuously closed for >= SLEEP_THRESHOLD_SECONDS,
+    # see process_frame()) is weighted the same as phone/multiple-person --
+    # a genuinely disengaged state, not a minor distraction like a brief
+    # off-center gaze. This is purely an ADDITIONAL term in the same
+    # existing linear-penalty formula; nothing else about how the score is
+    # computed changes, and it naturally stops applying the moment
+    # `sleeping` next reports False (real per-frame recomputation, no
+    # artificial decay/recovery curve -- see process_frame()'s reset logic
+    # for exactly when that happens).
+    if sleeping:
         score -= 30
 
     if gaze != "Center":
@@ -590,6 +761,233 @@ def process_frame(frame, state):
         )
 
     # ========================================================
+    # SLEEPING (temporal, both-eyes-closed) -- reuses the exact same
+    # landmarks/EAR computed above; no second face/eye pipeline.
+    #
+    # State transitions (per this student's own state dict only):
+    #   - no_person_confirmed (existing, already-debounced signal):
+    #     there is no genuine face/eye evidence at all -- always reset,
+    #     never sleeping. Satisfies "no-person must never be treated as
+    #     sleeping."
+    #   - result.face_landmarks present (a real face WAS found this
+    #     frame) and ear < EAR_THRESHOLD (same threshold blink detection
+    #     already uses): this is genuine closed-eye evidence. Start (or
+    #     continue) a real wall-clock timer via time.time(). Once the
+    #     continuous closed duration reaches SLEEP_THRESHOLD_SECONDS,
+    #     `sleeping` becomes True. A normal blink never reaches this --
+    #     it reopens within a fraction of a second, hitting the branch
+    #     below long before 4s.
+    #   - result.face_landmarks present and ear >= EAR_THRESHOLD (a
+    #     candidate "eyes open" reading): NOT trusted on a single frame,
+    #     because real EAR is noisy (see EYES_OPEN_CONFIRM_STREAK above).
+    #     Only once EYES_OPEN_CONFIRM_STREAK consecutive open readings
+    #     have been seen is the episode considered genuinely over --
+    #     THEN the timer and one-shot alert flag reset, so a LATER >=4s
+    #     closed episode can trigger a fresh alert. A lone noisy "open"
+    #     frame in the middle of a real closed episode leaves
+    #     eyes_closed_since untouched, so the elapsed duration keeps
+    #     counting through it.
+    #   - result.face_landmarks ABSENT this frame, but the student is
+    #     still otherwise present (no_person_confirmed is False -- e.g. a
+    #     momentary MediaPipe landmark miss, which also happens routinely
+    #     for a face with closed eyes): neither advance nor reset -- a
+    #     genuine multi-second sleeping episode must not be destroyed by
+    #     one missed frame, but it also never STARTS from missing
+    #     landmarks alone (only the ear < EAR_THRESHOLD branch above ever
+    #     starts the timer).
+    # ========================================================
+
+    # The one-alert-per-continuous-episode debounce is NOT reimplemented
+    # here -- app/routers/monitoring.py already only creates a new Alert
+    # row the first time active_alert transitions to a new value (see
+    # its existing `if active_alert != state.get("last_alert_type")`
+    # check), and only reverts away from "drowsiness" once `sleeping`
+    # below goes back to False. That existing mechanism is reused as-is.
+    now_ts = time.time()
+
+    if no_person_confirmed:
+        state["eyes_closed_since"] = None
+        state["sleeping"] = False
+        state["eyes_open_streak"] = 0
+    elif result.face_landmarks:
+        if ear < EAR_THRESHOLD:
+            state["eyes_open_streak"] = 0
+
+            if state.get("eyes_closed_since") is None:
+                state["eyes_closed_since"] = now_ts
+
+            closed_duration = now_ts - state["eyes_closed_since"]
+
+            if closed_duration >= SLEEP_THRESHOLD_SECONDS:
+                state["sleeping"] = True
+        else:
+            state["eyes_open_streak"] = state.get("eyes_open_streak", 0) + 1
+
+            if state["eyes_open_streak"] >= EYES_OPEN_CONFIRM_STREAK:
+                state["eyes_closed_since"] = None
+                state["sleeping"] = False
+    # else: face detection momentarily failed but the student is still
+    # present -- deliberately leave eyes_closed_since/sleeping/
+    # eyes_open_streak untouched.
+
+    sleeping = bool(state.get("sleeping", False))
+
+    # ========================================================
+    # FRIEND LOOKING-AWAY / DROWSINESS OVERRIDE -- only takes effect when
+    # AI_LOOKING_AWAY_DROWSINESS_SOURCE=friend (the default; see
+    # friend_ai_loader's module docstring). Everything above this block
+    # (the existing solvePnP/iris-ratio/EAR "current" computation) still
+    # runs on every frame exactly as before -- unchanged -- so gaze/
+    # head_pose/sleeping simply keep their "current" values below if this
+    # is disabled, unavailable, or this particular frame's face wasn't
+    # detected by the friend's own MediaPipe FaceMesh pass (e.g. extreme
+    # profile/occlusion) -- a graceful per-frame fallback, never a crash.
+    # ========================================================
+    friend_gaze_result = None
+
+    if (
+        friend_ai_loader.LOOKING_AWAY_DROWSINESS_SOURCE == "friend"
+        and not no_person_confirmed
+    ):
+        friend_gaze_predictor = state.get("friend_gaze_predictor")
+
+        if friend_gaze_predictor is None and "friend_gaze_predictor" not in state:
+            # Stateful (adaptive EAR baseline, blink counters, temporal
+            # smoothers) -- one instance per (session, student), created
+            # once and reused; see INTEGRATION_GUIDE.md "Instantiate ONCE
+            # PER STUDENT SESSION". Cached even on failure (None) so a
+            # broken/missing dependency isn't retried every single frame.
+            friend_gaze_predictor = friend_ai_loader.new_friend_gaze_headpose_predictor()
+            state["friend_gaze_predictor"] = friend_gaze_predictor
+
+        if friend_gaze_predictor is not None:
+            try:
+                with inference_lock:
+                    friend_gaze_result = friend_gaze_predictor.predict_frame(
+                        frame, timestamp=now_ts
+                    ).to_dict()
+            except Exception as exc:  # noqa: BLE001 -- must degrade, never crash.
+                friend_gaze_result = None
+                if SLEEP_DEBUG:
+                    print(f"[FRIEND_GAZE_DEBUG] predict_frame failed: {exc}")
+
+        if friend_gaze_result and friend_gaze_result.get("face_detected"):
+            gaze = FRIEND_GAZE_DIRECTION_MAP.get(
+                friend_gaze_result.get("gaze_direction"), gaze
+            )
+            head_pose = FRIEND_HEAD_POSE_MAP.get(
+                friend_gaze_result.get("head_pose_classification"), head_pose
+            )
+            sleeping = (
+                friend_gaze_result.get("drowsiness_state")
+                in FRIEND_SLEEPING_DROWSINESS_STATES
+            )
+            # Keep ai_state's own sleeping flag in sync so a later frame
+            # that falls back to "current" (e.g. friend predictor
+            # transiently unavailable) doesn't see a stale True/False.
+            state["sleeping"] = sleeping
+
+    # ========================================================
+    # LOOKING-AWAY: dead zone + temporal debounce (see the "ACCEPTABLE
+    # LAPTOP SCREEN VIEWING ZONE" comment block above process_frame for
+    # the reasoning). `head_pose` here already reflects the dead-zone-
+    # aware mapping (FRIEND_HEAD_POSE_MAP / the widened calculate_head_pose
+    # bounds), so "Looking Away" only means genuinely outside the
+    # acceptable zone. Gaze only contributes when it is CLEARLY extreme
+    # (the wider GAZE_ALERT_* thresholds on the continuous, already-
+    # smoothed ratio -- not the tighter display-categorization
+    # threshold), since gaze naturally wanders more than head pose while
+    # still reading a laptop screen.
+    # ========================================================
+
+    frame_outside_screen_zone = False
+
+    if head_pose == "Looking Away":
+        frame_outside_screen_zone = True
+    elif friend_gaze_result and friend_gaze_result.get("face_detected"):
+        h_ratio = friend_gaze_result.get("gaze_horizontal_ratio")
+        v_ratio = friend_gaze_result.get("gaze_vertical_ratio")
+        if h_ratio is not None and abs(h_ratio) > GAZE_ALERT_HORIZONTAL_THRESHOLD:
+            frame_outside_screen_zone = True
+        elif v_ratio is not None and abs(v_ratio) > GAZE_ALERT_VERTICAL_THRESHOLD:
+            frame_outside_screen_zone = True
+    elif gaze != "Center":
+        # "current"-path fallback with no continuous ratio available --
+        # calculate_gaze()'s own widened +/-0.05 threshold is already
+        # this path's dead zone, so any classified deviation counts.
+        frame_outside_screen_zone = True
+
+    # BUG THIS FIXES: head_pose/gaze default to "Looking Forward"/"Center"
+    # (see the DEFAULT VALUES block above) whenever NEITHER this
+    # project's own MediaPipe FaceLandmarker NOR the friend's own
+    # landmark pass finds a face THIS FRAME. A moderate head turn is
+    # tracked fine and correctly classified via the branches above -- but
+    # a sufficiently LARGE turn (exactly the "genuinely looking away"
+    # case this feature must catch) is precisely when a face detector
+    # loses tracking. Previously that made a genuine look-away
+    # indistinguishable from "still centered", silently resetting
+    # away_streak every such frame and preventing the alert from ever
+    # confirming. landmarks_available tells the two cases apart; a
+    # landmarks-missing frame is treated as supporting evidence for
+    # "outside the zone" (same confirm/clear bookkeeping as an explicit
+    # outside-zone classification) rather than being defaulted to
+    # "inside the zone". This mirrors the sleeping-detection block's own
+    # established handling of a missed-landmarks frame (see its comment
+    # above) -- reusing an existing pattern, not inventing a new one.
+    landmarks_available = bool(result.face_landmarks) or bool(
+        friend_gaze_result and friend_gaze_result.get("face_detected")
+    )
+
+    if no_person_confirmed:
+        # Nobody to judge -- never stay stuck "looking away" from before
+        # the student left, mirrors the sleeping reset just above.
+        state["away_streak"] = 0
+        state["on_screen_streak"] = 0
+        state["looking_away_confirmed"] = False
+    elif frame_outside_screen_zone or not landmarks_available:
+        state["on_screen_streak"] = 0
+        state["away_streak"] = state.get("away_streak", 0) + 1
+        if state["away_streak"] >= LOOKING_AWAY_CONFIRM_STREAK:
+            state["looking_away_confirmed"] = True
+    else:
+        state["away_streak"] = 0
+        state["on_screen_streak"] = state.get("on_screen_streak", 0) + 1
+        if state["on_screen_streak"] >= LOOKING_AWAY_CLEAR_STREAK:
+            state["looking_away_confirmed"] = False
+
+    looking_away_confirmed = bool(state.get("looking_away_confirmed", False))
+
+    if SLEEP_DEBUG:
+        closed_since = state.get("eyes_closed_since")
+        elapsed = (now_ts - closed_since) if closed_since else 0.0
+        print(
+            f"[SLEEP_DEBUG] student={state.get('last_name')} "
+            f"landmarks={bool(result.face_landmarks)} "
+            f"no_person_confirmed={no_person_confirmed} "
+            f"ear={ear:.4f} EAR_THRESHOLD={EAR_THRESHOLD} "
+            f"eyes_closed_since={closed_since} elapsed={elapsed:.2f}s "
+            f"eyes_open_streak={state.get('eyes_open_streak', 0)} "
+            f"sleeping={sleeping}"
+        )
+        if friend_gaze_result is not None:
+            print(
+                f"[FRIEND_GAZE_DEBUG] face_detected={friend_gaze_result.get('face_detected')} "
+                f"gaze_direction={friend_gaze_result.get('gaze_direction')} "
+                f"head_pose={friend_gaze_result.get('head_pose_classification')} "
+                f"drowsiness_state={friend_gaze_result.get('drowsiness_state')} "
+                f"ear={friend_gaze_result.get('ear_average')}"
+            )
+        print(
+            f"[LOOKING_AWAY_DEBUG] student={state.get('last_name')} "
+            f"head_pose={head_pose} gaze={gaze} "
+            f"landmarks_available={landmarks_available} "
+            f"frame_outside_zone={frame_outside_screen_zone} "
+            f"away_streak={state.get('away_streak', 0)} "
+            f"on_screen_streak={state.get('on_screen_streak', 0)} "
+            f"looking_away_confirmed={looking_away_confirmed}"
+        )
+
+    # ========================================================
     # MEDIAPIPE FACE FALLBACK
     # ========================================================
 
@@ -711,35 +1109,61 @@ def process_frame(frame, state):
                 state["last_name"] = "Disha"
 
                 # ---------------- Emotion ----------------
+                # AI_EMOTION_MODEL_SOURCE=friend (the default; see
+                # friend_ai_loader's module docstring) tries the friend's
+                # MobileNetV2/FER2013 model (96x96 input, its own internal
+                # preprocessing -- see EmotionPredictor._preprocess) on
+                # the SAME face_crop this project's own model would use,
+                # writing the SAME state["last_emotion"] string format
+                # ("Happy"/"Neutral"/... -- Title-case, matching
+                # emotion_labels below) so nothing downstream needs to
+                # change. Falls back to the current model (unchanged
+                # below) if the friend source is disabled/unavailable, or
+                # if her prediction call itself fails on this frame.
+                emotion_source_used = None
 
-                emotion_input = cv2.resize(
-                    face_crop,
-                    (224, 224)
-                )
+                if friend_ai_loader.EMOTION_SOURCE == "friend":
+                    friend_emotion_predictor = friend_ai_loader.get_friend_emotion_predictor()
 
-                emotion_input = (
-                    emotion_input.astype("float32")
-                    / 255.0
-                )
+                    if friend_emotion_predictor is not None:
+                        try:
+                            friend_emotion_result = friend_emotion_predictor.predict(face_crop)
+                            state["last_emotion"] = friend_emotion_result["raw_label"].capitalize()
+                            emotion_source_used = "friend"
+                        except Exception as exc:  # noqa: BLE001 -- must degrade, never crash.
+                            if SLEEP_DEBUG:
+                                print(f"[FRIEND_EMOTION_DEBUG] predict failed: {exc}")
 
-                emotion_input = np.expand_dims(
-                    emotion_input,
-                    axis=0
-                )
+                if emotion_source_used is None:
 
-                if emotion_model is not None:
-
-                    emotion_pred = emotion_model.predict(
-                        emotion_input,
-                        verbose=0
+                    emotion_input = cv2.resize(
+                        face_crop,
+                        (224, 224)
                     )
 
-                    state["last_emotion"] = emotion_labels[
-                        np.argmax(emotion_pred)
-                    ]
+                    emotion_input = (
+                        emotion_input.astype("float32")
+                        / 255.0
+                    )
 
-                else:
-                    state["last_emotion"] = "Neutral"
+                    emotion_input = np.expand_dims(
+                        emotion_input,
+                        axis=0
+                    )
+
+                    if emotion_model is not None:
+
+                        emotion_pred = emotion_model.predict(
+                            emotion_input,
+                            verbose=0
+                        )
+
+                        state["last_emotion"] = emotion_labels[
+                            np.argmax(emotion_pred)
+                        ]
+
+                    else:
+                        state["last_emotion"] = "Neutral"
 
         name = state["last_name"]
         emotion = state["last_emotion"]
@@ -786,7 +1210,8 @@ def process_frame(frame, state):
         gaze,
         phone_detected,
         person_count,
-        no_person_confirmed
+        no_person_confirmed,
+        sleeping
     )
         # ========================================================
     # AI ALERT
@@ -796,8 +1221,14 @@ def process_frame(frame, state):
 
     # No person takes priority over every other signal -- phone/gaze/head
     # pose are all meaningless (stale or default) when nobody is in frame.
+    # Sleeping ranks next: a confirmed >=4s closed-eye episode is a more
+    # actionable, more certain signal than a mere off-center gaze/phone
+    # sighting, so it's checked before those.
     if no_person_confirmed:
         active_alert = "no_person_detected"
+
+    elif sleeping:
+        active_alert = "drowsiness"
 
     elif phone_detected:
         active_alert = "phone_detected"
@@ -805,10 +1236,7 @@ def process_frame(frame, state):
     elif person_count > 1:
         active_alert = "multiple_persons"
 
-    elif (
-        gaze != "Center"
-        or head_pose != "Looking Forward"
-    ):
+    elif looking_away_confirmed:
         active_alert = "looking_away"
 
     # ========================================================
@@ -893,6 +1321,12 @@ def process_frame(frame, state):
         "no_person_detected": no_person_confirmed,
         "active_alert": active_alert,
         "engagement_score": engagement_score,
+        "sleeping": sleeping,
+        # Debounced "genuinely outside the acceptable laptop-screen
+        # viewing zone" signal -- see the LOOKING-AWAY block above.
+        # app/routers/monitoring.py's get_active_alert() uses this
+        # instead of re-deriving from raw head_pose/gaze equality checks.
+        "looking_away": looking_away_confirmed,
         "engagement_status":
             "No Person Detected"
             if no_person_confirmed

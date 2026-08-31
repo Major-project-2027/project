@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     secret_key: str = "change-this-in-production"
     access_token_expire_minutes: int = 60
 
+    # Comma-separated list of additional CORS origins allowed on top of the
+    # always-on localhost/127.0.0.1 regex (see app/main.py) -- e.g. the
+    # deployed Vercel frontend's URL. Empty by default so local dev is
+    # unaffected until this is actually set in production.
+    frontend_origin: str = ""
+
     model_config = SettingsConfigDict(
         env_file=str(Path(__file__).resolve().parents[3] / ".env"),
         extra="ignore",

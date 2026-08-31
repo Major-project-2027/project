@@ -31,6 +31,16 @@ class EngagementRepository:
         )
 
     @staticmethod
+    def get_distinct_student_ids_for_session(db: Session, session_id: int):
+        return [
+            student_id for (student_id,) in
+            db.query(EngagementRecord.student_id)
+            .filter(EngagementRecord.session_id == session_id)
+            .distinct()
+            .all()
+        ]
+
+    @staticmethod
     def get_student_session_records(
         db: Session,
         session_id: int,
@@ -45,6 +55,26 @@ class EngagementRepository:
             .order_by(
                 EngagementRecord.timestamp.asc()
             )
+            .all()
+        )
+
+    @staticmethod
+    def get_student_class_records(db: Session, class_id: int, student_id: int):
+        """This student's engagement_records across EVERY session ever
+        held for this classroom (live or completed) -- used by the
+        student's own class-history view. Distinct from
+        get_student_session_records (one specific session)."""
+
+        from models.session import Session as ClassSession
+
+        return (
+            db.query(EngagementRecord)
+            .join(ClassSession, EngagementRecord.session_id == ClassSession.session_id)
+            .filter(
+                ClassSession.class_id == class_id,
+                EngagementRecord.student_id == student_id,
+            )
+            .order_by(EngagementRecord.timestamp.asc())
             .all()
         )
 

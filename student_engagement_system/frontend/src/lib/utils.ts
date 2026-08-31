@@ -108,6 +108,47 @@ export function futureEngagementLabelTone(
   }
 }
 
+// Session-level, rule-based Cognitive State summary (a SEPARATE, new
+// feature from the LSTM engagement prediction above -- see
+// backend/services/cognitive_state_service.py for the full deterministic
+// classification method and why it is explicitly NOT a trained ML model).
+// Computed once when a class session ends and shown only in the
+// teacher's post-class report -- never during the live class, never to
+// the student.
+export function cognitiveStateText(
+  state: 'focused' | 'neutral' | 'distracted' | 'drowsy' | null | undefined,
+): string {
+  switch (state) {
+    case 'focused':
+      return 'Focused'
+    case 'neutral':
+      return 'Neutral'
+    case 'distracted':
+      return 'Distracted'
+    case 'drowsy':
+      return 'Drowsy'
+    default:
+      return 'Not available'
+  }
+}
+
+export function cognitiveStateTone(
+  state: 'focused' | 'neutral' | 'distracted' | 'drowsy' | null | undefined,
+): 'engaged' | 'attention' | 'critical' | 'neutral' {
+  switch (state) {
+    case 'focused':
+      return 'engaged'
+    case 'neutral':
+      return 'attention'
+    case 'distracted':
+      return 'critical'
+    case 'drowsy':
+      return 'critical'
+    default:
+      return 'neutral'
+  }
+}
+
 export function initials(name: string) {
   return name
     .split(' ')

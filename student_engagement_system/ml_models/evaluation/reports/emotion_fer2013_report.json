@@ -1,7 +1,7 @@
 {
-  "component": "Emotion Recognition (production model)",
+  "component": "Emotion Recognition",
   "model_path": "C:\\Users\\disha\\Predictive_Multimodal_Student_Engagement\\student_engagement_system\\ml_models\\emotion_recognition\\emotion_model.keras",
-  "evaluated_at": "2026-08-19T15:41:49.235744+00:00",
+  "evaluated_at": "2026-08-19T17:29:06.979468+00:00",
   "dataset": "FER2013 (real, public) -- held-out 15% test split, reconstructed with the exact seed/procedure used at training time",
   "model_runtime_status": "LOADED_OK",
   "status": "VALID PROJECT-SPECIFIC METRIC",

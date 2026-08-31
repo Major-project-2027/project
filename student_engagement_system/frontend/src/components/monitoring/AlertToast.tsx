@@ -7,6 +7,13 @@ export interface ToastItem {
   studentName: string
   message: string
   severity: 'warning' | 'critical'
+  // When true, plays a single short alert tone the moment this toast is
+  // raised (not on every render/poll -- pushAlertToast is itself only
+  // ever called once per newly-detected alert, see the caller in
+  // TeacherLiveClassroomPage.tsx, so "once per toast" already means
+  // "once per continuous episode"). Opt-in per toast rather than global,
+  // so existing alert types that never asked for a sound stay silent.
+  sound?: boolean
 }
 
 let pushToastImpl: ((t: Omit<ToastItem, 'id'>) => void) | null = null
@@ -15,6 +22,38 @@ let pushToastImpl: ((t: Omit<ToastItem, 'id'>) => void) | null = null
  * monitoring stream detects a new attention/behavior issue). */
 export function pushAlertToast(toast: Omit<ToastItem, 'id'>) {
   pushToastImpl?.(toast)
+}
+
+// No audio mechanism existed anywhere else in the frontend (checked
+// before adding this). A short synthesized two-beep tone via the
+// standard Web Audio API -- no new audio asset file, no new library --
+// kept intentionally small since it only ever needs to fire once per
+// alert toast.
+function playAlertTone() {
+  try {
+    const Ctx = window.AudioContext || (window as any).webkitAudioContext
+    if (!Ctx) return
+    const ctx = new Ctx()
+    const now = ctx.currentTime
+
+    ;[0, 0.18].forEach((offset) => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'sine'
+      osc.frequency.value = 880
+      gain.gain.setValueAtTime(0.0001, now + offset)
+      gain.gain.exponentialRampToValueAtTime(0.3, now + offset + 0.02)
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.16)
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.start(now + offset)
+      osc.stop(now + offset + 0.17)
+    })
+
+    setTimeout(() => ctx.close().catch(() => {}), 600)
+  } catch {
+    // Audio is a non-essential enhancement -- never let it break alerting.
+  }
 }
 
 export function AlertToastStack() {
@@ -27,6 +66,9 @@ export function AlertToastStack() {
   useEffect(() => {
     pushToastImpl = (toast) => {
       const id = `${Date.now()}-${Math.random()}`
+      if (toast.sound) {
+        playAlertTone()
+      }
       setToasts((t) => [...t, { ...toast, id }].slice(-4))
       setTimeout(() => dismiss(id), 6000)
     }

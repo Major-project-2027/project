@@ -1,0 +1,10 @@
+{
+  "threshold": 0.46493413175519027,
+  "far_at_threshold": 0.13656828414207103,
+  "frr_at_threshold": 0.13648105625717566,
+  "eer": 0.13652467019962333,
+  "num_genuine_pairs": 6968,
+  "num_impostor_pairs": 1999,
+  "similarity_metric": "cosine",
+  "model_name": "ArcFace"
+}

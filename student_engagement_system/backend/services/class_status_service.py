@@ -1,24 +1,25 @@
-from models.session import Session
-from models.enrollment import Enrollment
-from models.engagement import EngagementRecord
-from models.attendance import Attendance
+from repositories.active import (
+    SessionRepository,
+    EnrollmentRepository,
+    EngagementRepository,
+    AttendanceRepository,
+)
 
 
 class ClassStatusService:
     """Computes the real, DB-backed status/summary of a classroom for the
     class list views (teacher + student). Nothing here is invented --
     'live'/'completed'/'scheduled' is derived strictly from whether a
-    session row exists and whether it has been ended."""
+    session row exists and whether it has been ended.
+
+    Every query goes through repositories.active (backend-agnostic --
+    SQLite or MongoDB, whichever config.DB_BACKEND selects) rather than
+    inline SQLAlchemy queries, so this service works unchanged under
+    either backend."""
 
     @staticmethod
     def get_latest_session(db, class_id):
-
-        return (
-            db.query(Session)
-            .filter(Session.class_id == class_id)
-            .order_by(Session.session_id.desc())
-            .first()
-        )
+        return SessionRepository.get_latest_session_for_class(db, class_id)
 
     @staticmethod
     def summarize(db, classroom):
@@ -27,10 +28,8 @@ class ClassStatusService:
             db, classroom.class_id
         )
 
-        students_enrolled = (
-            db.query(Enrollment)
-            .filter(Enrollment.class_id == classroom.class_id)
-            .count()
+        students_enrolled = EnrollmentRepository.count_for_class(
+            db, classroom.class_id
         )
 
         if session is None:
@@ -50,47 +49,28 @@ class ClassStatusService:
         avg_engagement = None
 
         if status == "live":
-            present_ids = (
-                db.query(EngagementRecord.student_id)
-                .filter(EngagementRecord.session_id == session.session_id)
-                .distinct()
-                .all()
+            present_ids = EngagementRepository.get_distinct_student_ids_for_session(
+                db, session.session_id
             )
             students_present = len(present_ids)
 
             scores = [
                 float(r.engagement_score or 0)
-                for r in (
-                    db.query(EngagementRecord.engagement_score)
-                    .filter(
-                        EngagementRecord.session_id == session.session_id
-                    )
-                    .all()
-                )
+                for r in EngagementRepository.get_session_records(db, session.session_id)
             ]
 
             if scores:
                 avg_engagement = round(sum(scores) / len(scores))
         else:
-            present_rows = (
-                db.query(Attendance)
-                .filter(
-                    Attendance.session_id == session.session_id,
-                    Attendance.status == 1,
-                )
-                .all()
-            )
+            present_rows = [
+                r for r in AttendanceRepository.get_by_session(db, session.session_id)
+                if r.status == 1
+            ]
             students_present = len(present_rows)
 
             scores = [
                 float(r.engagement_score or 0)
-                for r in (
-                    db.query(EngagementRecord.engagement_score)
-                    .filter(
-                        EngagementRecord.session_id == session.session_id
-                    )
-                    .all()
-                )
+                for r in EngagementRepository.get_session_records(db, session.session_id)
             ]
 
             if scores:

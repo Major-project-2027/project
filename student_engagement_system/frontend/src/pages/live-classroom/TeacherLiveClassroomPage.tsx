@@ -18,6 +18,7 @@ import {
   monitoringApi,
   classesApi,
 } from '@/services/api/endpoints'
+import { WS_API_BASE_URL, getIceServers } from '@/services/api/client'
 
 import { Badge } from '@/components/ui/Badge'
 import type { StudentLiveState } from '@/types/domain'
@@ -49,7 +50,7 @@ function comparePredictedEngagement(a: StudentLiveState, b: StudentLiveState) {
 
 const ALERT_LABEL: Record<string, string> = {
   looking_away: 'Looking away from screen',
-  drowsiness: 'Signs of drowsiness detected',
+  drowsiness: 'Sleeping — Wake Up!',
   phone_detected: 'Mobile phone detected',
   multiple_person: 'A second person detected',
   no_person_detected: 'No person in front of camera',
@@ -108,25 +109,29 @@ function convertAIResultToStudent(
       personCount === 0,
   )
 
-  let activeAlert = null
+  // Genuine temporal both-eyes-closed detection (see
+  // ai_service.process_frame's SLEEP_THRESHOLD_SECONDS tracker) --
+  // relayed as-is from the same backend result the HTTP /live-monitor
+  // poll already carries; this path just mirrors it for students who
+  // arrive over the WebRTC signaling channel before their first
+  // /live-monitor poll resolves.
+  const sleeping = Boolean(
+    data.sleeping ?? existing?.sleeping ?? false,
+  )
 
-  if (noPersonDetected) {
-    activeAlert = 'no_person_detected'
-  } else if (phoneDetected) {
-    activeAlert = 'phone_detected'
-  } else if (personCount > 1) {
-    activeAlert = 'multiple_person'
-  } else if (
-    !['center', 'forward'].includes(
-      gaze.toLowerCase(),
-    )
-  ) {
-    activeAlert = 'looking_away'
-  }
+  // Use the backend's own already-debounced active_alert (see
+  // app/routers/monitoring.py's get_active_alert(), which requires
+  // several consecutive frames genuinely outside the acceptable
+  // laptop-screen viewing zone before 'looking_away' fires, and never
+  // fires for small/natural head or gaze movement). Recomputing this
+  // client-side from a single raw gaze/head-pose reading -- the
+  // previous behaviour -- bypassed that debounce entirely on this
+  // WebRTC-merged path and caused alert flicker/spam.
+  const activeAlert = data.active_alert ?? null
 
   let cognitiveState = 'focused'
 
-  if (engagement < 40) {
+  if (sleeping || engagement < 40) {
     cognitiveState = 'drowsy'
   } else if (
     !['center', 'forward'].includes(
@@ -183,6 +188,8 @@ function convertAIResultToStudent(
     personCount,
 
     noPersonDetected,
+
+    sleeping,
 
     // Future-engagement prediction -- passed through as-is from the
     // backend (never recomputed client-side): null/undefined unless
@@ -381,7 +388,7 @@ export function TeacherLiveClassroomPage() {
     }
 
     const ws = new WebSocket(
-      `ws://127.0.0.1:8000/ws/classes/${classId}/signaling`,
+      `${WS_API_BASE_URL}/ws/classes/${classId}/signaling`,
     )
 
     signalingRef.current = ws
@@ -516,12 +523,7 @@ export function TeacherLiveClassroomPage() {
 
       // Create new peer connection.
       const peer = new RTCPeerConnection({
-        iceServers: [
-          {
-            urls:
-              'stun:stun.l.google.com:19302',
-          },
-        ],
+        iceServers: getIceServers(),
       })
 
       peersRef.current[studentId] = peer
@@ -879,9 +881,17 @@ useEffect(() => {
         severity:
           student.activeAlert === 'phone_detected' ||
           student.activeAlert === 'multiple_person' ||
-          student.activeAlert === 'no_person_detected'
+          student.activeAlert === 'no_person_detected' ||
+          student.activeAlert === 'drowsiness'
             ? 'critical'
             : 'warning',
+
+        // Sound plays once here specifically for a newly-confirmed
+        // sleeping episode -- this whole block only runs when alertKey
+        // (studentId + alert type) is NEW, i.e. exactly once per
+        // continuous episode, never once per frame/poll. No other
+        // existing alert type gets a sound (unchanged from before).
+        sound: student.activeAlert === 'drowsiness',
       })
     }
   }

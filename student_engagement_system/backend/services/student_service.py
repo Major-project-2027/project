@@ -1,11 +1,10 @@
 import re
 
-from repositories.student_repository import StudentRepository
+from repositories.active import StudentRepository, EnrollmentRepository
 from services.security_service import SecurityService
 from models.student import Student
 from services.jwt_service import JWTService
 from services.class_status_service import ClassStatusService
-from repositories.enrollment_repository import EnrollmentRepository
 
 
 class StudentService:
@@ -16,12 +15,10 @@ class StudentService:
         that don't supply one -- the current register form collects no
         real USN, so one must be assigned server-side."""
 
-        existing = db.query(Student.usn).filter(
-            Student.usn.like("STUDENT%")
-        ).all()
+        existing = StudentRepository.get_usns_starting_with(db, "STUDENT")
 
         max_num = 0
-        for (usn,) in existing:
+        for usn in existing:
             match = re.match(r"^STUDENT(\d+)$", usn or "")
             if match:
                 max_num = max(max_num, int(match.group(1)))

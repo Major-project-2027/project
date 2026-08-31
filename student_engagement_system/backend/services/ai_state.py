@@ -36,9 +36,27 @@ def _new_state() -> dict:
         "last_ear": 0.0,
         "last_alert_type": None,
         "no_person_streak": 0,
+        # Sleeping (temporal, both-eyes-closed) tracking -- see
+        # ai_service.py's process_frame() for how these are read/updated.
+        "eyes_closed_since": None,
+        "sleeping": False,
+        "eyes_open_streak": 0,
+        # Looking-away debounce (temporal hysteresis around the
+        # acceptable laptop-screen viewing zone) -- see ai_service.py's
+        # process_frame() LOOKING-AWAY block for how these are read/updated.
+        "away_streak": 0,
+        "on_screen_streak": 0,
+        "looking_away_confirmed": False,
         "last_prediction_at": 0.0,
         "last_prediction": None,
         "last_prediction_state": None,
+        # Friend's gaze/head-pose/drowsiness predictor for THIS student's
+        # session, created lazily on first use (see ai_service.py's
+        # FRIEND LOOKING-AWAY / DROWSINESS OVERRIDE block) -- stateful
+        # (adaptive EAR baseline, blink counters, temporal smoothers), so
+        # it must never be shared across students/sessions. Closed (its
+        # MediaPipe FaceLandmarker released) in clear_session() below.
+        "friend_gaze_predictor": None,
     }
 
 
@@ -60,6 +78,15 @@ def clear_session(session_id: int) -> int:
         keys = [key for key in _states if key[0] == int(session_id)]
 
         for key in keys:
+            friend_gaze_predictor = _states[key].get("friend_gaze_predictor")
+            if friend_gaze_predictor is not None:
+                try:
+                    friend_gaze_predictor.close()
+                except Exception:
+                    # Best-effort cleanup only -- a failure here must
+                    # never block dropping this session's state.
+                    pass
+
             del _states[key]
 
         return len(keys)

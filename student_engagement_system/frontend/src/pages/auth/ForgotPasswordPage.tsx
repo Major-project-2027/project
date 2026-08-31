@@ -7,7 +7,6 @@ import { AuthLayout } from './AuthLayout'
 import { Input, Label } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { forgotPasswordSchema, type ForgotPasswordFormValues } from '@/features/auth/schemas'
-import { authApi } from '@/services/api/endpoints'
 
 export function ForgotPasswordPage() {
   const [sentTo, setSentTo] = useState('')
@@ -16,8 +15,13 @@ export function ForgotPasswordPage() {
     defaultValues: { email: '' },
   })
 
+  // The backend has no password-reset endpoint (only /login,
+  // /teacher/login, /register, /teacher/register exist) -- this was
+  // already the case before this change, it just previously called a
+  // nonexistent authApi.forgotPassword() that would have thrown at
+  // runtime. Until a real endpoint exists, this only updates local UI
+  // state; no request is sent.
   const onSubmit = async (values: ForgotPasswordFormValues) => {
-    await authApi.forgotPassword(values.email)
     setSentTo(values.email)
   }
 

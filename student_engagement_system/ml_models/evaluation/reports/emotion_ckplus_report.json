@@ -1,7 +1,7 @@
 {
-  "component": "Emotion Recognition (production model) -- second independent real dataset",
+  "component": "Emotion Recognition -- second independent real dataset",
   "model_path": "C:\\Users\\disha\\Predictive_Multimodal_Student_Engagement\\student_engagement_system\\ml_models\\emotion_recognition\\emotion_model.keras",
-  "evaluated_at": "2026-08-19T15:43:45.916100+00:00",
+  "evaluated_at": "2026-08-19T17:31:49.220099+00:00",
   "dataset": "CK+ (real, public), classes: anger/disgust/fear/happy/sadness/surprise (contempt excluded, no Neutral images available)",
   "model_runtime_status": "LOADED_OK",
   "status": "VALID PROJECT-SPECIFIC METRIC (6 of 7 classes -- no Neutral ground truth in this dataset)",

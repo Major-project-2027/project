@@ -19,6 +19,22 @@ class EnrollmentRepository:
         return enrollment
 
     @staticmethod
+    def get_for_class(db: Session, class_id: int):
+        return (
+            db.query(Enrollment)
+            .filter(Enrollment.class_id == class_id)
+            .all()
+        )
+
+    @staticmethod
+    def count_for_class(db: Session, class_id: int):
+        return (
+            db.query(Enrollment)
+            .filter(Enrollment.class_id == class_id)
+            .count()
+        )
+
+    @staticmethod
     def already_joined(db: Session, student_id: int, class_id: int):
 
         return (

@@ -1,3 +1,5 @@
+import os
+
 import cv2
 import numpy as np
 
@@ -52,6 +54,22 @@ class FaceService:
             image,
             cv2.COLOR_BGR2RGB
         )
+
+        # TEMPORARY DIAGNOSTIC -- see routes/student.py's matching
+        # AI_FACE_VERIFY_DEBUG block. This is the exact array passed into
+        # dlib via face_recognition immediately below -- prints its
+        # shape/dtype/contiguity so a dlib "Unsupported image type" error
+        # can be matched to the actual array that triggered it. Remove
+        # once root-caused.
+        if os.environ.get("AI_FACE_VERIFY_DEBUG", "1") != "0":
+            print(
+                f"[FACE_VERIFY_DEBUG] pre-dlib image: input shape={image.shape} "
+                f"input dtype={image.dtype} rgb shape={rgb.shape} "
+                f"rgb dtype={rgb.dtype} rgb ndim={rgb.ndim} "
+                f"C_CONTIGUOUS={rgb.flags['C_CONTIGUOUS']} "
+                f"WRITEABLE={rgb.flags['WRITEABLE']}",
+                flush=True,
+            )
 
         locations = face_recognition.face_locations(rgb)
 

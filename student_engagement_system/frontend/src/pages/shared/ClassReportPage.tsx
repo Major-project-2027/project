@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Users, Bell } from 'lucide-react'
+import { ArrowLeft, Users, Bell, BrainCircuit } from 'lucide-react'
 
 import { AppShell } from '@/components/layout/AppShell'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card'
@@ -13,7 +13,7 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { Button } from '@/components/ui/Button'
 import { EngagementTrendChart } from '@/components/charts/EngagementTrendChart'
 import { historyApi } from '@/services/api/endpoints'
-import { formatDateTime, formatTime, engagementTone } from '@/lib/utils'
+import { formatDateTime, formatTime, engagementTone, cognitiveStateText, cognitiveStateTone } from '@/lib/utils'
 import type { UserRole } from '@/types/domain'
 
 type Snapshot = {
@@ -26,6 +26,24 @@ type Snapshot = {
   phoneDetected: boolean
   multiplePerson: boolean
   engagementStatus: string
+}
+
+// Session-level, rule-based Cognitive State summary -- see
+// backend/services/cognitive_state_service.py. Only ever populated on the
+// TEACHER'S report (teacherClassReport) -- deliberately omitted from the
+// student's own class report (studentClassReport never returns it), per
+// the product decision that this is a teacher/research summary, not
+// something shown to the student. That's why this is optional here:
+// StudentReportDetail below only renders the cognitive-state section when
+// it is actually present.
+type CognitiveStateSummary = {
+  status: 'ok' | 'insufficient_data' | 'not_available'
+  state: 'focused' | 'neutral' | 'distracted' | 'drowsy' | null
+  focusedPercentage: number | null
+  neutralPercentage: number | null
+  distractedPercentage: number | null
+  drowsyEpisodeCount: number
+  reason: string | null
 }
 
 type StudentSummary = {
@@ -44,6 +62,7 @@ type StudentSummary = {
   attentionDropCount: number
   totalAlerts: number
   blinkCount: number
+  cognitiveState?: CognitiveStateSummary
   snapshots: Snapshot[]
 }
 
@@ -85,6 +104,45 @@ function StudentReportDetail({ student }: { student: StudentSummary }) {
         <StatPill icon={Users} label="Avg. engagement" value={`${student.averageEngagement}%`} />
         <StatPill icon={Bell} label="Total alerts" value={student.totalAlerts} />
       </div>
+
+      {student.cognitiveState && (
+        <div className="rounded-xl border border-border-light p-3 dark:border-border-dark">
+          <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-textmuted-light dark:text-textmuted-dark">
+            <BrainCircuit className="h-3.5 w-3.5" />
+            Cognitive state
+          </p>
+
+          {student.cognitiveState.status === 'ok' ? (
+            <>
+              <Badge variant={cognitiveStateTone(student.cognitiveState.state)}>
+                {cognitiveStateText(student.cognitiveState.state)}
+              </Badge>
+
+              {student.cognitiveState.focusedPercentage !== null && (
+                <div className="mt-2 space-y-1 text-xs text-textmuted-light dark:text-textmuted-dark">
+                  <p>Focused: {student.cognitiveState.focusedPercentage}%</p>
+                  <p>Neutral: {student.cognitiveState.neutralPercentage}%</p>
+                  <p>Distracted: {student.cognitiveState.distractedPercentage}%</p>
+                </div>
+              )}
+
+              {student.cognitiveState.state === 'drowsy' && (
+                <p className="mt-1 text-xs text-textmuted-light dark:text-textmuted-dark">
+                  {student.cognitiveState.drowsyEpisodeCount} confirmed drowsiness episode
+                  {student.cognitiveState.drowsyEpisodeCount === 1 ? '' : 's'} this session.
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-xs text-textmuted-light dark:text-textmuted-dark">
+              {student.cognitiveState.reason ??
+                (student.cognitiveState.status === 'not_available'
+                  ? 'Not yet available.'
+                  : 'Insufficient data for this session.')}
+            </p>
+          )}
+        </div>
+      )}
 
       {trend.length > 0 ? (
         <div>
@@ -180,7 +238,14 @@ export function ClassReportPage({ role }: { role: UserRole }) {
                             <p className="truncate text-sm font-medium text-text-light dark:text-text-dark">{s.studentName}</p>
                             <p className="truncate text-xs text-textmuted-light dark:text-textmuted-dark">{s.usn ?? '—'}</p>
                           </div>
-                          <Badge variant={ATTENDANCE_VARIANT[s.attendanceStatus]}>{s.attendanceStatus}</Badge>
+                          <div className="flex shrink-0 flex-col items-end gap-1">
+                            <Badge variant={ATTENDANCE_VARIANT[s.attendanceStatus]}>{s.attendanceStatus}</Badge>
+                            {s.cognitiveState?.status === 'ok' && (
+                              <Badge variant={cognitiveStateTone(s.cognitiveState.state)}>
+                                {cognitiveStateText(s.cognitiveState.state)}
+                              </Badge>
+                            )}
+                          </div>
                         </button>
                       </li>
                     ))}

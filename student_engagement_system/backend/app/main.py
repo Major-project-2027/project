@@ -58,6 +58,17 @@ def create_app() -> FastAPI:
     # port covers this without hand-maintaining a port list; still local
     # dev origins only, same as before.
     allow_origin_regex=r"^http://(localhost|127\.0\.0\.1):\d+$",
+    # Production origins (e.g. the deployed Vercel frontend) come from
+    # FRONTEND_ORIGIN, comma-separated for preview + production URLs.
+    # Starlette's CORSMiddleware allows an origin if it matches EITHER
+    # allow_origin_regex OR is in allow_origins, so this adds to the
+    # localhost regex above rather than replacing it -- local dev keeps
+    # working unchanged whether or not FRONTEND_ORIGIN is set.
+    allow_origins=[
+        origin.strip()
+        for origin in settings.frontend_origin.split(",")
+        if origin.strip()
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

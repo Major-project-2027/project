@@ -23,6 +23,7 @@ test set through the already-existing saved model -- nothing new is
 trained, nothing is fabricated.
 """
 
+import argparse
 import json
 import sys
 from datetime import datetime, timezone
@@ -35,6 +36,18 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 EMOTION_MODEL_PATH = _PROJECT_ROOT / "ml_models" / "emotion_recognition" / "emotion_model.keras"
 FER_PATH = _PROJECT_ROOT / "datasets" / "raw" / "fer2013" / "fer2013.csv"
 REPORT_PATH = Path(__file__).resolve().parent / "reports" / "emotion_fer2013_report.json"
+
+
+def _parse_args():
+    # Optional override so this script can also evaluate a CANDIDATE
+    # model (e.g. ml_models/emotion_recognition/emotion_model_candidate.keras)
+    # before it is promoted to production -- defaults to the exact same
+    # production path as before when not given, so existing behavior is
+    # unchanged.
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model-path", type=str, default=None)
+    parser.add_argument("--report-name", type=str, default=None)
+    return parser.parse_args()
 
 # Must match ai_service.py's own emotion_labels list order exactly (also
 # the order FER2013's own `emotion` column indices 0-6 use, confirmed
@@ -87,15 +100,22 @@ def _preprocess_batch(images_48x48):
 
 
 def main():
+    args = _parse_args()
+    model_path = Path(args.model_path) if args.model_path else EMOTION_MODEL_PATH
+    report_path = (
+        REPORT_PATH.parent / args.report_name if args.report_name else REPORT_PATH
+    )
+
     result = {
-        "component": "Emotion Recognition (production model)",
-        "model_path": str(EMOTION_MODEL_PATH),
+        "component": "Emotion Recognition",
+        "model_path": str(model_path),
         "evaluated_at": datetime.now(timezone.utc).isoformat(),
         "dataset": "FER2013 (real, public) -- held-out 15% test split, reconstructed with the exact seed/procedure used at training time",
     }
 
     print("=" * 70)
     print("EMOTION MODEL EVALUATION -- real FER2013 held-out test split")
+    print(f"Model: {model_path}")
     print("=" * 70)
 
     # ------------------------------------------------------------
@@ -104,31 +124,18 @@ def main():
     # ------------------------------------------------------------
     try:
         from tensorflow.keras.models import load_model
-        model = load_model(EMOTION_MODEL_PATH)
+        model = load_model(model_path)
         result["model_runtime_status"] = "LOADED_OK"
-        print(f"MODEL RUNTIME STATUS: LOADED OK ({EMOTION_MODEL_PATH})")
+        print(f"MODEL RUNTIME STATUS: LOADED OK ({model_path})")
     except Exception as exc:  # noqa: BLE001
         result["model_runtime_status"] = "FAILED_TO_LOAD"
         result["model_load_error"] = str(exc)[:500]
-        result["status"] = "NOT EVALUATABLE -- PRODUCTION MODEL FAILED TO LOAD"
+        result["status"] = "NOT EVALUATABLE -- MODEL FAILED TO LOAD"
         print("MODEL RUNTIME STATUS: FAILED TO LOAD")
         print(f"  error: {str(exc)[:300]}")
-        print()
-        print("No fresh test-set metric can be computed -- the production")
-        print("model file cannot be deserialized in this environment. This")
-        print("is reported as-is, not hidden. The only surviving number is")
-        print("the ORIGINAL TRAINING RUN's own reported validation accuracy")
-        print("(0.2504, frozen across all 5 epochs, from")
-        print("Phase9_Emotion_Training.ipynb.ipynb's saved output) -- that")
-        print("number was NOT reproduced by this script and is NOT a test-set")
-        print("metric; it is quoted here only for reference, clearly labeled.")
-        result["historical_training_run_val_accuracy"] = {
-            "value": 0.2504,
-            "note": "As printed in Phase9_Emotion_Training.ipynb.ipynb's own saved cell output. NOT independently reproduced by this script. This is VALIDATION accuracy from training time, not a TEST metric.",
-        }
-        REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
-        REPORT_PATH.write_text(json.dumps(result, indent=2))
-        print(f"\nSaved report to {REPORT_PATH}")
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(result, indent=2))
+        print(f"\nSaved report to {report_path}")
         return
 
     # ------------------------------------------------------------
@@ -198,9 +205,9 @@ def main():
         "labels_order": EMOTION_LABELS,
     })
 
-    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    REPORT_PATH.write_text(json.dumps(result, indent=2))
-    print(f"\nSaved report to {REPORT_PATH}")
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(result, indent=2))
+    print(f"\nSaved report to {report_path}")
 
 
 if __name__ == "__main__":

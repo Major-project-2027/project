@@ -2,8 +2,7 @@ from flask import Blueprint, request, jsonify
 import traceback
 from schemas.classroom_update_schema import ClassroomUpdate
 
-from database.database import SessionLocal
-from models.session import Session
+from database.db_provider import get_db, close_db, is_mongo
 from schemas.teacher_schema import TeacherRegister
 from schemas.teacher_login_schema import TeacherLogin
 from schemas.classroom_schema import ClassroomCreate
@@ -13,16 +12,23 @@ from services.classroom_service import ClassroomService
 from services.jwt_service import JWTService
 from services.session_service import SessionService
 from services.class_status_service import ClassStatusService
-from repositories.attendance_repository import AttendanceRepository
-from repositories.alert_repository import AlertRepository
-from models.engagement import EngagementRecord
+from repositories.active import (
+    AttendanceRepository,
+    AlertRepository,
+    CognitiveStateRepository,
+    EngagementRepository,
+    StudentRepository,
+    ClassroomRepository,
+    SessionRepository,
+    EnrollmentRepository,
+)
 teacher_bp = Blueprint("teacher", __name__)
 
 
 @teacher_bp.route("/teacher/register", methods=["POST"])
 def register_teacher():
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
 
@@ -45,13 +51,13 @@ def register_teacher():
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 
 
 @teacher_bp.route("/teacher/login", methods=["POST"])
 def login_teacher():
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
 
@@ -76,13 +82,13 @@ def login_teacher():
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 
 
 @teacher_bp.route("/teacher/create-classroom", methods=["POST"])
 def create_classroom():
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
 
@@ -118,11 +124,11 @@ def create_classroom():
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 @teacher_bp.route("/teacher/classrooms", methods=["GET"])
 def get_teacher_classrooms():
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
 
@@ -176,11 +182,11 @@ def get_teacher_classrooms():
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 @teacher_bp.route("/teacher/classroom/<int:class_id>", methods=["GET"])
 def get_classroom(class_id):
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
 
@@ -220,11 +226,11 @@ def get_classroom(class_id):
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 @teacher_bp.route("/teacher/classroom/<int:class_id>", methods=["PUT"])
 def update_classroom(class_id):
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
 
@@ -267,11 +273,11 @@ def update_classroom(class_id):
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 @teacher_bp.route("/teacher/classroom/<int:class_id>", methods=["DELETE"])
 def delete_classroom(class_id):
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
 
@@ -302,11 +308,11 @@ def delete_classroom(class_id):
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 @teacher_bp.route("/dashboard", methods=["GET"])
 def teacher_dashboard():
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
 
@@ -337,11 +343,11 @@ def teacher_dashboard():
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 @teacher_bp.route("/teacher/start-session/<int:class_id>", methods=["POST"])
 def start_session(class_id):
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
 
@@ -379,12 +385,12 @@ def start_session(class_id):
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 
 @teacher_bp.route("/teacher/end-session/<int:class_id>", methods=["POST"])
 def end_session(class_id):
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
         auth = request.headers.get("Authorization")
@@ -423,14 +429,14 @@ def end_session(class_id):
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 @teacher_bp.route(
     "/teacher/classroom/<int:class_id>/history",
     methods=["GET"]
 )
 def class_history(class_id):
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
         auth = request.headers.get("Authorization")
@@ -449,13 +455,8 @@ def class_history(class_id):
         if classroom.teacher_id != payload["user_id"]:
             raise Exception("You are not authorized.")
 
-        active_session = (
-            db.query(Session)
-            .filter(
-                Session.class_id == class_id
-            )
-            .order_by(Session.session_id.desc())
-            .first()
+        active_session = SessionRepository.get_latest_session_for_class(
+            db, class_id
         )
 
         if not active_session:
@@ -469,43 +470,38 @@ def class_history(class_id):
                 "students": []
             })
 
-        from models.student import Student
-        from models.enrollment import Enrollment
-
-        students = (
-            db.query(
-                Student.student_id,
-                Student.name,
-                Student.usn
-            )
-            .join(
-                EngagementRecord,
-                EngagementRecord.student_id == Student.student_id
-            )
-            .filter(
-                EngagementRecord.session_id ==
-                active_session.session_id
-            )
-            .distinct()
-            .all()
+        # Every distinct student with at least one engagement_records row
+        # in this session, then each one's name/usn -- app-level
+        # equivalent of the SQL INNER JOIN + DISTINCT (backend-agnostic:
+        # both repository calls work identically under SQLite or
+        # MongoDB, see repositories.active).
+        distinct_student_ids = EngagementRepository.get_distinct_student_ids_for_session(
+            db, active_session.session_id
         )
+
+        students = []
+        for student_id in distinct_student_ids:
+            student = StudentRepository.get_by_id(db, student_id)
+            if student:
+                students.append((student.student_id, student.name, student.usn))
 
         result = []
 
+        # One query for every student's cognitive-state summary in this
+        # session, instead of one per student -- see
+        # CognitiveStateRepository.get_by_session. Summaries are read-only
+        # here: they were already computed ONCE when the session ended
+        # (services/session_service.py's SessionService.end_session ->
+        # _compute_cognitive_states), never recomputed on this GET.
+        cognitive_states = CognitiveStateRepository.get_by_session(
+            db,
+            active_session.session_id,
+        )
+
         for student_id, student_name, student_usn in students:
 
-            records = (
-                db.query(EngagementRecord)
-                .filter(
-                    EngagementRecord.session_id ==
-                    active_session.session_id,
-                    EngagementRecord.student_id ==
-                    student_id
-                )
-                .order_by(
-                    EngagementRecord.timestamp.asc()
-                )
-                .all()
+            records = EngagementRepository.get_student_session_records(
+                db, active_session.session_id, student_id
             )
 
             if not records:
@@ -585,6 +581,36 @@ def class_history(class_id):
                     else 0
                 ),
 
+                # Session-level, rule-based cognitive-state summary (see
+                # services/cognitive_state_service.py) -- read-only here.
+                # None when the session hasn't ended yet (no summary
+                # computed at all), never fabricated.
+                "cognitiveState": (
+                    {
+                        "status": cognitive_states[student_id].status,
+                        "state": cognitive_states[student_id].cognitive_state,
+                        "focusedPercentage": cognitive_states[student_id].focused_percentage,
+                        "neutralPercentage": cognitive_states[student_id].neutral_percentage,
+                        "distractedPercentage": cognitive_states[student_id].distracted_percentage,
+                        "drowsyEpisodeCount": cognitive_states[student_id].drowsy_episode_count,
+                        "reason": cognitive_states[student_id].reason,
+                    }
+                    if student_id in cognitive_states
+                    else {
+                        "status": "not_available",
+                        "state": None,
+                        "focusedPercentage": None,
+                        "neutralPercentage": None,
+                        "distractedPercentage": None,
+                        "drowsyEpisodeCount": 0,
+                        "reason": (
+                            "Not yet available -- calculated once the class ends."
+                            if active_session.is_active
+                            else "Not yet available for this session."
+                        ),
+                    }
+                ),
+
                 "snapshots": [
                     {
                         "timestamp": r.timestamp,
@@ -625,7 +651,7 @@ def class_history(class_id):
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 
 
 @teacher_bp.route("/teacher/future-engagement-predictions", methods=["GET"])
@@ -643,7 +669,7 @@ def teacher_future_engagement_predictions():
     it were, a 0% prediction.
     """
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
         auth = request.headers.get("Authorization")
@@ -655,7 +681,6 @@ def teacher_future_engagement_predictions():
         payload = JWTService.verify_token(token)
         teacher_id = payload["user_id"]
 
-        from repositories.enrollment_repository import EnrollmentRepository
         from services.engagement_prediction_service import (
             EngagementPredictionService,
             future_prediction_status_label,
@@ -707,13 +732,13 @@ def teacher_future_engagement_predictions():
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 
 
 @teacher_bp.route("/teacher/attendance", methods=["GET"])
 def teacher_attendance():
 
-    db = SessionLocal()
+    db = get_db()
 
     try:
         auth = request.headers.get("Authorization")
@@ -724,9 +749,6 @@ def teacher_attendance():
         token = auth.split(" ")[1]
         payload = JWTService.verify_token(token)
 
-        from models.student import Student
-        from models.classroom import Classroom
-
         records = AttendanceRepository.get_for_teacher(
             db,
             payload["user_id"],
@@ -736,30 +758,17 @@ def teacher_attendance():
 
         for record in records:
 
-            student = (
-                db.query(Student)
-                .filter(Student.student_id == record.student_id)
-                .first()
-            )
+            student = StudentRepository.get_by_id(db, record.student_id)
 
-            classroom = (
-                db.query(Classroom)
-                .filter(Classroom.class_id == record.class_id)
-                .first()
-            )
+            classroom = ClassroomRepository.get_by_id(db, record.class_id)
 
-            session = (
-                db.query(Session)
-                .filter(Session.session_id == record.session_id)
-                .first()
-            )
+            session = SessionRepository.get_by_id(db, record.session_id)
 
             engagement_scores = [
                 float(r.engagement_score or 0)
-                for r in db.query(EngagementRecord).filter(
-                    EngagementRecord.session_id == record.session_id,
-                    EngagementRecord.student_id == record.student_id,
-                ).all()
+                for r in EngagementRepository.get_student_session_records(
+                    db, record.session_id, record.student_id
+                )
             ]
 
             avg_engagement = (
@@ -814,5 +823,5 @@ def teacher_attendance():
         }), 400
 
     finally:
-        db.close()
+        close_db(db)
 
