@@ -1,22 +1,29 @@
 import os
-import cv2
 import time
 import threading
 import numpy as np
-import mediapipe as mp
 from pathlib import Path
 
-from scipy.spatial import distance
-from tensorflow.keras.models import load_model
-from ultralytics import YOLO
-
-# Friend's integrated AI components (Phone+Person / Looking-away /
-# Sleeping-Drowsiness / Emotion) -- see backend/services/friend_ai/ and
-# MODEL_INTEGRATION_PACKAGE/ at the project root. Selectable per-component
-# via env vars (AI_OBJECT_DETECTION_MODEL / AI_LOOKING_AWAY_DROWSINESS_SOURCE
-# / AI_EMOTION_MODEL_SOURCE, see loader.py); every existing "current"
-# code path below is untouched and still fully functional as the fallback.
-from services.friend_ai import loader as friend_ai_loader
+# cv2, mediapipe, scipy.spatial, tensorflow.keras, ultralytics, and the
+# friend_ai loader -- along with every model they load -- are NOT imported
+# here anymore. Importing this module (transitively, via
+# app/routers/monitoring.py on FastAPI and services/monitoring_service.py
+# on Flask) used to eagerly pull in TensorFlow + PyTorch + MediaPipe +
+# OpenCV and load every model before the process could even start
+# serving, which alone measured ~658MB resident -- over Render's 512MB
+# free-tier runtime limit, before the rest of the app even loaded. See
+# _ensure_models_loaded() below: everything heavy now loads exactly once,
+# lazily, on the first real call to process_frame() (i.e. the first
+# actual AI request), not at import time. cv2/mp/distance/friend_ai_loader
+# become real module-level globals once that first call completes, so
+# every other function below (calculate_head_pose, calculate_gaze,
+# detect_objects, process_frame) is COMPLETELY UNCHANGED -- same names,
+# same calls, same behavior -- they just resolve those names slightly
+# later than before.
+cv2 = None
+mp = None
+distance = None
+friend_ai_loader = None
 
 # The MediaPipe FaceLandmarker (VIDEO mode, monotonic timestamps) and the
 # TensorFlow/YOLO models below are single shared instances used by every
@@ -25,6 +32,12 @@ from services.friend_ai import loader as friend_ai_loader
 # STATE (blink counters, caches) is scoped separately in ai_state.py and is
 # NOT protected by this lock -- only the model calls themselves are.
 inference_lock = threading.Lock()
+
+# Guards _ensure_models_loaded() so concurrent first requests can't load
+# everything twice -- separate from inference_lock above, which serializes
+# actual per-frame model CALLS, not the one-time loading step.
+_init_lock = threading.Lock()
+_models_loaded = False
 
 
 # ============================================================
@@ -53,61 +66,15 @@ EMOTION_MODEL_PATH = str(
 
 # CURRENT_YOLO_MODEL_PATH is this project's own existing production
 # weights -- kept exactly as-is, never deleted/overwritten. Which one
-# actually loads below is resolved by friend_ai_loader from
+# actually loads is resolved by friend_ai_loader from
 # AI_OBJECT_DETECTION_MODEL (default "friend" -- see loader.py's module
-# docstring); flip that env var to "current" to go back to this model
-# with no code change.
+# docstring) inside _ensure_models_loaded() below, since resolving it
+# needs friend_ai_loader itself, which is now also lazily imported; flip
+# that env var to "current" to go back to this model with no code change.
 CURRENT_YOLO_MODEL_PATH = "yolov8n.pt"
-YOLO_MODEL_PATH, YOLO_MODEL_SOURCE = friend_ai_loader.resolve_object_detection_weights_path(
-    CURRENT_YOLO_MODEL_PATH
-)
+YOLO_MODEL_PATH = None
+YOLO_MODEL_SOURCE = None
 LANDMARKER_PATH = "face_landmarker.task"
-
-
-# ============================================================
-# LOAD MODELS
-# ============================================================
-
-print("Loading Face Recognition Model...")
-
-face_model = None
-if os.path.exists(FACE_MODEL_PATH):
-    try:
-        face_model = load_model(FACE_MODEL_PATH)
-    except Exception as exc:
-        # The file exists but failed to deserialize -- e.g. it was saved
-        # with a different Keras version than is installed here. Degrade
-        # gracefully rather than let this crash the whole process: face
-        # recognition just isn't available, the rest of the pipeline
-        # (blink/gaze/head-pose/YOLO/emotion) must keep working.
-        print(f"WARNING: Face recognition model failed to load ({exc}). "
-              f"Face authentication disabled.")
-else:
-    print("WARNING: Face recognition model not found. Face authentication disabled.")
-
-print("Loading Emotion Model...")
-
-emotion_model = None
-if os.path.exists(EMOTION_MODEL_PATH):
-    try:
-        emotion_model = load_model(EMOTION_MODEL_PATH)
-    except Exception as exc:
-        print(f"WARNING: Emotion model failed to load ({exc}). "
-              f"Emotion recognition disabled.")
-else:
-    print("WARNING: Emotion model not found. Emotion recognition disabled.")
-
-print(f"Loading YOLO ({YOLO_MODEL_SOURCE} model: {YOLO_MODEL_PATH})...")
-yolo_model = YOLO(YOLO_MODEL_PATH)
-
-print(
-    "AI component sources -- "
-    f"object_detection={YOLO_MODEL_SOURCE}, "
-    f"looking_away_drowsiness={friend_ai_loader.LOOKING_AWAY_DROWSINESS_SOURCE}, "
-    f"emotion={friend_ai_loader.EMOTION_SOURCE} "
-    "(override via AI_OBJECT_DETECTION_MODEL / "
-    "AI_LOOKING_AWAY_DROWSINESS_SOURCE / AI_EMOTION_MODEL_SOURCE)"
-)
 
 
 # ============================================================
@@ -128,32 +95,119 @@ emotion_labels = [
 
 
 # ============================================================
-# OPENCV FACE DETECTOR
+# LAZY MODEL LOADING
 # ============================================================
+# Populates every global below (face_model, emotion_model, yolo_model,
+# face_detector, landmarker, plus cv2/mp/distance/friend_ai_loader
+# themselves) exactly once, on the first call. Every later call is a
+# single boolean check and returns immediately -- models are loaded once
+# and reused for every subsequent request, never reloaded per-frame.
+# Thread-safe: double-checked locking under _init_lock so two concurrent
+# first requests can't both start loading. Called at the very top of
+# process_frame() -- the only function anything outside this module ever
+# calls (confirmed: calculate_head_pose/calculate_gaze/detect_objects/
+# eye_aspect_ratio below are only ever reached via process_frame(), so
+# this one call site is sufficient to guarantee every name below is bound
+# before any of them run.
 
-face_detector = cv2.CascadeClassifier(
-    cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-)
+face_model = None
+emotion_model = None
+yolo_model = None
+face_detector = None
+landmarker = None
 
 
-# ============================================================
-# MEDIAPIPE FACE LANDMARKER
-# ============================================================
+def _ensure_models_loaded():
+    global _models_loaded, cv2, mp, distance, friend_ai_loader
+    global face_model, emotion_model, yolo_model, face_detector, landmarker
+    global YOLO_MODEL_PATH, YOLO_MODEL_SOURCE
 
-BaseOptions = mp.tasks.BaseOptions
-FaceLandmarker = mp.tasks.vision.FaceLandmarker
-FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
-VisionRunningMode = mp.tasks.vision.RunningMode
+    if _models_loaded:
+        return
 
-options = FaceLandmarkerOptions(
-    base_options=BaseOptions(
-        model_asset_path=LANDMARKER_PATH
-    ),
-    running_mode=VisionRunningMode.VIDEO,
-    num_faces=1
-)
+    with _init_lock:
+        if _models_loaded:
+            return
 
-landmarker = FaceLandmarker.create_from_options(options)
+        import cv2
+        import mediapipe as mp
+        from scipy.spatial import distance
+        from tensorflow.keras.models import load_model
+        from ultralytics import YOLO
+
+        # Friend's integrated AI components (Phone+Person / Looking-away /
+        # Sleeping-Drowsiness / Emotion) -- see backend/services/friend_ai/
+        # and MODEL_INTEGRATION_PACKAGE/ at the project root. Selectable
+        # per-component via env vars (AI_OBJECT_DETECTION_MODEL /
+        # AI_LOOKING_AWAY_DROWSINESS_SOURCE / AI_EMOTION_MODEL_SOURCE, see
+        # loader.py); every existing "current" code path is untouched and
+        # still fully functional as the fallback.
+        from services.friend_ai import loader as friend_ai_loader
+
+        YOLO_MODEL_PATH, YOLO_MODEL_SOURCE = friend_ai_loader.resolve_object_detection_weights_path(
+            CURRENT_YOLO_MODEL_PATH
+        )
+
+        print("Loading Face Recognition Model...")
+
+        if os.path.exists(FACE_MODEL_PATH):
+            try:
+                face_model = load_model(FACE_MODEL_PATH)
+            except Exception as exc:
+                # The file exists but failed to deserialize -- e.g. it was
+                # saved with a different Keras version than is installed
+                # here. Degrade gracefully rather than let this crash the
+                # whole process: face recognition just isn't available,
+                # the rest of the pipeline (blink/gaze/head-pose/YOLO/
+                # emotion) must keep working.
+                print(f"WARNING: Face recognition model failed to load ({exc}). "
+                      f"Face authentication disabled.")
+        else:
+            print("WARNING: Face recognition model not found. Face authentication disabled.")
+
+        print("Loading Emotion Model...")
+
+        if os.path.exists(EMOTION_MODEL_PATH):
+            try:
+                emotion_model = load_model(EMOTION_MODEL_PATH)
+            except Exception as exc:
+                print(f"WARNING: Emotion model failed to load ({exc}). "
+                      f"Emotion recognition disabled.")
+        else:
+            print("WARNING: Emotion model not found. Emotion recognition disabled.")
+
+        print(f"Loading YOLO ({YOLO_MODEL_SOURCE} model: {YOLO_MODEL_PATH})...")
+        yolo_model = YOLO(YOLO_MODEL_PATH)
+
+        print(
+            "AI component sources -- "
+            f"object_detection={YOLO_MODEL_SOURCE}, "
+            f"looking_away_drowsiness={friend_ai_loader.LOOKING_AWAY_DROWSINESS_SOURCE}, "
+            f"emotion={friend_ai_loader.EMOTION_SOURCE} "
+            "(override via AI_OBJECT_DETECTION_MODEL / "
+            "AI_LOOKING_AWAY_DROWSINESS_SOURCE / AI_EMOTION_MODEL_SOURCE)"
+        )
+
+        face_detector = cv2.CascadeClassifier(
+            cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        )
+
+        BaseOptions = mp.tasks.BaseOptions
+        FaceLandmarker = mp.tasks.vision.FaceLandmarker
+        FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
+        VisionRunningMode = mp.tasks.vision.RunningMode
+
+        options = FaceLandmarkerOptions(
+            base_options=BaseOptions(
+                model_asset_path=LANDMARKER_PATH
+            ),
+            running_mode=VisionRunningMode.VIDEO,
+            num_faces=1
+        )
+
+        landmarker = FaceLandmarker.create_from_options(options)
+
+        _models_loaded = True
 
 
 # ============================================================
@@ -596,6 +650,11 @@ def process_frame(frame, state):
     the caller's copy stays in sync, and also returned as part of the
     result for convenience.
     """
+
+    # First call loads every AI framework/model (~658MB, see
+    # _ensure_models_loaded()'s docstring) exactly once; every call after
+    # that is a single boolean check and returns immediately.
+    _ensure_models_loaded()
 
     if frame is None:
         return None

@@ -1,12 +1,20 @@
-from ai.webcam import get_frame
-from services.ai_service import process_frame
-from services import ai_state
-
 # This local-server-webcam path is unused by the real live classroom flow
 # (the browser sends frames from the student's own camera to the FastAPI
 # /ai/analyze-frame endpoint instead -- see app/routers/monitoring.py). It
 # is kept only so this module still imports/runs cleanly; there is no real
 # session for it, so it uses a single fixed state slot.
+#
+# get_frame/process_frame/ai_state are imported INSIDE get_live_data()
+# below, not here at module level: services.ai_service (imported
+# transitively by this module) eagerly loaded TensorFlow + PyTorch +
+# MediaPipe + every AI model at import time, and this module is imported
+# by routes/student.py, which Flask's app.py registers at startup -- so
+# merely starting the Flask app (importing MonitoringService, never
+# calling get_live_data) paid that ~658MB cost every time, for a code
+# path this file's own comment above already says is unused in
+# production. Deferring the import here means starting Flask no longer
+# loads any of it; behavior of get_live_data() itself is unchanged if it
+# is ever actually called.
 _LOCAL_WEBCAM_SESSION_ID = 0
 _LOCAL_WEBCAM_STUDENT_ID = 0
 
@@ -15,6 +23,9 @@ class MonitoringService:
 
     @staticmethod
     def get_live_data():
+        from ai.webcam import get_frame
+        from services.ai_service import process_frame
+        from services import ai_state
 
         frame = get_frame()
 
