@@ -136,3 +136,24 @@ services:
         value: friend
       - key: AI_EMOTION_MODEL_SOURCE
         value: friend
+      # backend/config.py is executed top-to-bottom on first import
+      # (triggered here via repositories/active.py's `from config import
+      # DB_BACKEND`), including several SQLite/Flask-only lines this
+      # service's own logic never uses -- DATABASE_NAME has no default
+      # and crashes the whole module (and thus every route) if unset;
+      # DB_BACKEND has a "sqlite" default that would otherwise silently
+      # point this service at SQLite while Flask uses MongoDB Atlas.
+      # Same values as engagement-flask-api's identical block above, for
+      # the same reasons.
+      - key: DB_BACKEND
+        value: mongodb
+      - key: DATABASE_NAME
+        value: student_engagement.db
+      - key: PROJECT_ROOT
+        value: ..
+      - key: LOG_FOLDER
+        value: ../logs
+      - key: REPORT_FOLDER
+        value: ../reports
+      - key: UPLOAD_FOLDER
+        value: ../uploads
