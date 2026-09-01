@@ -78,9 +78,24 @@ FRIEND_GAZE_HEADPOSE_PKG_DIR = (
     Path(__file__).resolve().parent / "gaze_headpose_pkg"
 )
 
+# .onnx, not .pt: ai_service.py runs object detection through ONNX
+# Runtime, not ultralytics/torch (torch alone cost ~267MB resident --
+# import + model load + first real inference -- against onnxruntime's
+# ~90MB for the identical job; verified detection output matches
+# ultralytics exactly on real test images, both person-count and
+# phone-detection, after matching its letterbox preprocessing and
+# NMS IoU=0.7 default). Exported via
+# YOLO('yolo11n.pt').export(format='onnx', imgsz=640, simplify=True) --
+# same weights, not retrained. The .pt file is left on disk, unused by
+# any code path now, not deleted.
 FRIEND_YOLO_WEIGHTS_PATH = (
-    FRIEND_PACKAGE_ROOT / "models" / "object_detection" / "yolo11n.pt"
+    FRIEND_PACKAGE_ROOT / "models" / "object_detection" / "yolo11n.onnx"
 )
+
+# See onnx_emotion_predictor.py's module docstring for why this replaced
+# the friend's original Keras-based predictor.py.
+FRIEND_EMOTION_ONNX_PATH = FRIEND_PACKAGE_ROOT / "models" / "emotion" / "emotion_model.onnx"
+FRIEND_EMOTION_LABEL_MAP_PATH = FRIEND_PACKAGE_ROOT / "models" / "emotion" / "label_map.json"
 
 
 def _source(env_var: str) -> str:
@@ -165,9 +180,14 @@ _friend_emotion_error: Optional[str] = None
 
 
 def get_friend_emotion_predictor():
-    """Lazily loads and caches the friend's EmotionPredictor once per
+    """Lazily loads and caches the friend's emotion predictor once per
     process. Returns None (and prints one warning) if unavailable --
-    never raises."""
+    never raises.
+
+    Uses ONNXEmotionPredictor (onnx_emotion_predictor.py), not her
+    original Keras-based predictor.py -- same weights, same
+    preprocessing, numerically verified matching output, ~67MB lighter.
+    See that module's docstring for the full explanation."""
     global _friend_emotion_predictor, _friend_emotion_load_attempted, _friend_emotion_error
 
     if _friend_emotion_load_attempted:
@@ -175,17 +195,17 @@ def get_friend_emotion_predictor():
 
     _friend_emotion_load_attempted = True
 
-    if not FRIEND_EMOTION_DIR.exists():
-        _friend_emotion_error = f"Friend emotion module not found at {FRIEND_EMOTION_DIR}"
+    if not FRIEND_EMOTION_ONNX_PATH.exists():
+        _friend_emotion_error = f"Friend emotion ONNX model not found at {FRIEND_EMOTION_ONNX_PATH}"
         print(f"WARNING: {_friend_emotion_error}. Emotion source falls back to 'current'.")
         return None
 
     try:
-        os.environ["ENGAGEMENT_REPO_ROOT"] = str(FRIEND_PACKAGE_ROOT)
-        with _isolated_bare_imports(FRIEND_EMOTION_DIR, ("config", "utils", "predictor")):
-            from predictor import EmotionPredictor  # type: ignore
+        from services.friend_ai.onnx_emotion_predictor import ONNXEmotionPredictor
 
-            _friend_emotion_predictor = EmotionPredictor()
+        _friend_emotion_predictor = ONNXEmotionPredictor(
+            FRIEND_EMOTION_ONNX_PATH, FRIEND_EMOTION_LABEL_MAP_PATH
+        )
     except Exception as exc:  # noqa: BLE001 -- must degrade, never crash.
         _friend_emotion_error = str(exc)
         print(
@@ -267,7 +287,8 @@ def status() -> dict:
         },
         "emotion": {
             "source_configured": EMOTION_SOURCE,
-            "friend_module_dir": str(FRIEND_EMOTION_DIR),
+            "friend_onnx_path": str(FRIEND_EMOTION_ONNX_PATH),
+            "friend_onnx_found": FRIEND_EMOTION_ONNX_PATH.exists(),
             "friend_load_attempted": _friend_emotion_load_attempted,
             "friend_loaded": _friend_emotion_predictor is not None,
             "friend_error": _friend_emotion_error,

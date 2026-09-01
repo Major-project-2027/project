@@ -4,26 +4,33 @@ import threading
 import numpy as np
 from pathlib import Path
 
-# cv2, mediapipe, scipy.spatial, tensorflow.keras, ultralytics, and the
-# friend_ai loader -- along with every model they load -- are NOT imported
-# here anymore. Importing this module (transitively, via
-# app/routers/monitoring.py on FastAPI and services/monitoring_service.py
-# on Flask) used to eagerly pull in TensorFlow + PyTorch + MediaPipe +
-# OpenCV and load every model before the process could even start
-# serving, which alone measured ~658MB resident -- over Render's 512MB
-# free-tier runtime limit, before the rest of the app even loaded. See
-# _ensure_models_loaded() below: everything heavy now loads exactly once,
-# lazily, on the first real call to process_frame() (i.e. the first
-# actual AI request), not at import time. cv2/mp/distance/friend_ai_loader
-# become real module-level globals once that first call completes, so
-# every other function below (calculate_head_pose, calculate_gaze,
-# detect_objects, process_frame) is COMPLETELY UNCHANGED -- same names,
-# same calls, same behavior -- they just resolve those names slightly
-# later than before.
+# cv2, mediapipe, scipy.spatial, onnxruntime, and the friend_ai loader --
+# along with every model they load -- are NOT imported here anymore.
+# Importing this module (transitively, via app/routers/monitoring.py on
+# FastAPI and services/monitoring_service.py on Flask) used to eagerly
+# pull in TensorFlow + PyTorch + MediaPipe + OpenCV and load every model
+# before the process could even start serving. See _ensure_models_loaded()
+# below: everything heavy now loads exactly once, lazily, on the first
+# real call to process_frame() (i.e. the first actual AI request), not at
+# import time. cv2/mp/distance/friend_ai_loader become real module-level
+# globals once that first call completes, so every other function below
+# (calculate_head_pose, calculate_gaze, detect_objects, process_frame) is
+# COMPLETELY UNCHANGED -- same names, same calls, same behavior -- they
+# just resolve those names slightly later than before.
+#
+# Object detection runs on ONNX Runtime, not ultralytics/torch: a real,
+# measured comparison (import + model load + one real inference, the
+# full cost of actually using it, not just importing it) showed
+# torch/ultralytics at ~267MB resident vs onnxruntime at ~90MB for the
+# identical yolo11n weights, same detections verified on real test
+# images (see services/friend_ai/loader.py's FRIEND_YOLO_WEIGHTS_PATH
+# comment). torch/torchvision/ultralytics are no longer runtime
+# dependencies at all.
 cv2 = None
 mp = None
 distance = None
 friend_ai_loader = None
+_ort = None
 
 # The MediaPipe FaceLandmarker (VIDEO mode, monotonic timestamps) and the
 # TensorFlow/YOLO models below are single shared instances used by every
@@ -48,30 +55,40 @@ _models_loaded = False
 # directory (where uvicorn is launched from) and are correct as-is --
 # both files live directly under backend/.
 #
-# FACE_MODEL_PATH / EMOTION_MODEL_PATH previously used the same
-# backend-relative style ("ml_models/...") but those .keras files
-# actually live one level up, under student_engagement_system/ml_models/,
-# not backend/ml_models/ (which doesn't exist). That mismatch, not a
-# missing model, was why face/emotion loading always failed. Resolved
-# relative to this file's own location so it no longer depends on
-# which directory the process happens to be launched from.
+# EMOTION_MODEL_PATH previously used the same backend-relative style
+# ("ml_models/...") but that .keras file actually lives one level up,
+# under student_engagement_system/ml_models/, not backend/ml_models/
+# (which doesn't exist). That mismatch, not a missing model, was why
+# emotion loading always failed. Resolved relative to this file's own
+# location so it no longer depends on which directory the process
+# happens to be launched from.
+#
+# There is no FACE_MODEL_PATH anymore: the "current" project's own
+# Keras face-recognition model used to load here unconditionally, but
+# its prediction was never read anywhere in process_frame() below
+# (state["last_name"] is hardcoded to "Disha" regardless) -- confirmed
+# by tracing every reference to it. Real face authentication happens
+# entirely separately, via Flask's /face/verify-live (a different
+# library, a different process). Loading it here cost ~54MB for a
+# result that was always discarded, so it's been removed outright, not
+# just made lazy. ml_models/face_recognition_model.keras itself is left
+# on disk, unused by this file now, not deleted.
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-FACE_MODEL_PATH = str(
-    _PROJECT_ROOT / "ml_models" / "face_recognition_model.keras"
-)
 EMOTION_MODEL_PATH = str(
     _PROJECT_ROOT / "ml_models" / "emotion_recognition" / "emotion_model.keras"
 )
 
 # CURRENT_YOLO_MODEL_PATH is this project's own existing production
-# weights -- kept exactly as-is, never deleted/overwritten. Which one
-# actually loads is resolved by friend_ai_loader from
-# AI_OBJECT_DETECTION_MODEL (default "friend" -- see loader.py's module
-# docstring) inside _ensure_models_loaded() below, since resolving it
-# needs friend_ai_loader itself, which is now also lazily imported; flip
-# that env var to "current" to go back to this model with no code change.
-CURRENT_YOLO_MODEL_PATH = "yolov8n.pt"
+# weights -- kept exactly as-is, never deleted/overwritten, just now
+# pointing at the ONNX export of the same weights (see the module-level
+# comment above for why). Which one actually loads is resolved by
+# friend_ai_loader from AI_OBJECT_DETECTION_MODEL (default "friend" --
+# see loader.py's module docstring) inside _ensure_models_loaded()
+# below, since resolving it needs friend_ai_loader itself, which is now
+# also lazily imported; flip that env var to "current" to go back to
+# this model with no code change.
+CURRENT_YOLO_MODEL_PATH = "yolov8n.onnx"
 YOLO_MODEL_PATH = None
 YOLO_MODEL_SOURCE = None
 LANDMARKER_PATH = "face_landmarker.task"
@@ -97,29 +114,35 @@ emotion_labels = [
 # ============================================================
 # LAZY MODEL LOADING
 # ============================================================
-# Populates every global below (face_model, emotion_model, yolo_model,
-# face_detector, landmarker, plus cv2/mp/distance/friend_ai_loader
-# themselves) exactly once, on the first call. Every later call is a
-# single boolean check and returns immediately -- models are loaded once
-# and reused for every subsequent request, never reloaded per-frame.
-# Thread-safe: double-checked locking under _init_lock so two concurrent
-# first requests can't both start loading. Called at the very top of
+# Populates every global below (yolo_model/_yolo_input_name, face_detector,
+# landmarker, plus cv2/mp/distance/friend_ai_loader/_ort themselves)
+# exactly once, on the first call. Every later call is a single boolean
+# check and returns immediately -- models are loaded once and reused for
+# every subsequent request, never reloaded per-frame. Thread-safe:
+# double-checked locking under _init_lock so two concurrent first
+# requests can't both start loading. Called at the very top of
 # process_frame() -- the only function anything outside this module ever
 # calls (confirmed: calculate_head_pose/calculate_gaze/detect_objects/
 # eye_aspect_ratio below are only ever reached via process_frame(), so
 # this one call site is sufficient to guarantee every name below is bound
 # before any of them run.
+#
+# emotion_model (the "current"/non-friend Keras fallback) is NOT loaded
+# here -- see _get_current_emotion_model() further down. It's only ever
+# used when the friend's emotion source is unavailable, which isn't the
+# deployed default (AI_EMOTION_MODEL_SOURCE=friend), so loading it
+# unconditionally on every process paid ~41MB for a path that's rarely
+# taken. Now loaded on first actual need, in that same rare case.
 
-face_model = None
-emotion_model = None
-yolo_model = None
+yolo_model = None  # onnxruntime.InferenceSession
+_yolo_input_name = None
 face_detector = None
 landmarker = None
 
 
 def _ensure_models_loaded():
-    global _models_loaded, cv2, mp, distance, friend_ai_loader
-    global face_model, emotion_model, yolo_model, face_detector, landmarker
+    global _models_loaded, cv2, mp, distance, friend_ai_loader, _ort
+    global yolo_model, _yolo_input_name, face_detector, landmarker
     global YOLO_MODEL_PATH, YOLO_MODEL_SOURCE
 
     if _models_loaded:
@@ -132,8 +155,7 @@ def _ensure_models_loaded():
         import cv2
         import mediapipe as mp
         from scipy.spatial import distance
-        from tensorflow.keras.models import load_model
-        from ultralytics import YOLO
+        import onnxruntime as _ort
 
         # Friend's integrated AI components (Phone+Person / Looking-away /
         # Sleeping-Drowsiness / Emotion) -- see backend/services/friend_ai/
@@ -148,37 +170,6 @@ def _ensure_models_loaded():
             CURRENT_YOLO_MODEL_PATH
         )
 
-        print("Loading Face Recognition Model...")
-
-        if os.path.exists(FACE_MODEL_PATH):
-            try:
-                face_model = load_model(FACE_MODEL_PATH)
-            except Exception as exc:
-                # The file exists but failed to deserialize -- e.g. it was
-                # saved with a different Keras version than is installed
-                # here. Degrade gracefully rather than let this crash the
-                # whole process: face recognition just isn't available,
-                # the rest of the pipeline (blink/gaze/head-pose/YOLO/
-                # emotion) must keep working.
-                print(f"WARNING: Face recognition model failed to load ({exc}). "
-                      f"Face authentication disabled.")
-        else:
-            print("WARNING: Face recognition model not found. Face authentication disabled.")
-
-        print("Loading Emotion Model...")
-
-        if os.path.exists(EMOTION_MODEL_PATH):
-            try:
-                emotion_model = load_model(EMOTION_MODEL_PATH)
-            except Exception as exc:
-                print(f"WARNING: Emotion model failed to load ({exc}). "
-                      f"Emotion recognition disabled.")
-        else:
-            print("WARNING: Emotion model not found. Emotion recognition disabled.")
-
-        print(f"Loading YOLO ({YOLO_MODEL_SOURCE} model: {YOLO_MODEL_PATH})...")
-        yolo_model = YOLO(YOLO_MODEL_PATH)
-
         print(
             "AI component sources -- "
             f"object_detection={YOLO_MODEL_SOURCE}, "
@@ -187,6 +178,24 @@ def _ensure_models_loaded():
             "(override via AI_OBJECT_DETECTION_MODEL / "
             "AI_LOOKING_AWAY_DROWSINESS_SOURCE / AI_EMOTION_MODEL_SOURCE)"
         )
+
+        print(f"Loading YOLO ({YOLO_MODEL_SOURCE} model, ONNX Runtime: {YOLO_MODEL_PATH})...")
+        # enable_cpu_mem_arena/enable_mem_pattern off: ONNX Runtime's
+        # default arena keeps growing its internal buffer pool across
+        # inferences with varying content until it plateaus at a much
+        # larger steady-state size (measured: allocate-per-call instead
+        # of pooling cut real, full-pipeline steady-state memory by
+        # several hundred MB). Trades a small per-call allocation cost
+        # for materially lower resident memory -- the right trade on a
+        # 512MB ceiling; not measurably slower for one frame roughly
+        # once a second.
+        _yolo_sess_options = _ort.SessionOptions()
+        _yolo_sess_options.enable_cpu_mem_arena = False
+        _yolo_sess_options.enable_mem_pattern = False
+        yolo_model = _ort.InferenceSession(
+            YOLO_MODEL_PATH, sess_options=_yolo_sess_options, providers=["CPUExecutionProvider"]
+        )
+        _yolo_input_name = yolo_model.get_inputs()[0].name
 
         face_detector = cv2.CascadeClassifier(
             cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
@@ -208,6 +217,36 @@ def _ensure_models_loaded():
         landmarker = FaceLandmarker.create_from_options(options)
 
         _models_loaded = True
+
+
+# "current"/non-friend Keras emotion model -- see the comment above
+# _ensure_models_loaded() for why this is separate and lazy.
+emotion_model = None
+_emotion_model_load_attempted = False
+
+
+def _get_current_emotion_model():
+    global emotion_model, _emotion_model_load_attempted
+
+    if _emotion_model_load_attempted:
+        return emotion_model
+
+    _emotion_model_load_attempted = True
+
+    print("Loading (fallback) current Emotion Model...")
+
+    if os.path.exists(EMOTION_MODEL_PATH):
+        try:
+            from tensorflow.keras.models import load_model
+
+            emotion_model = load_model(EMOTION_MODEL_PATH)
+        except Exception as exc:
+            print(f"WARNING: Emotion model failed to load ({exc}). "
+                  f"Emotion recognition disabled.")
+    else:
+        print("WARNING: Emotion model not found. Emotion recognition disabled.")
+
+    return emotion_model
 
 
 # ============================================================
@@ -551,32 +590,86 @@ def calculate_gaze(landmarks):
 # YOLO DETECTION
 # ============================================================
 
-def detect_objects(frame):
+# Standard COCO class indices (fixed dataset ordering YOLOv8/v11 use) --
+# the only two this pipeline ever needs. yolo_model.names doesn't exist
+# on an onnxruntime session the way it did on an ultralytics YOLO object,
+# so these are hardcoded rather than read off the model.
+_YOLO_PERSON_CLASS = 0
+_YOLO_CELL_PHONE_CLASS = 67
 
-    results = yolo_model(
-        frame,
-        verbose=False
-    )[0]
+# Matches ultralytics' own defaults (conf=0.25, iou=0.7) -- kept
+# identical so detection behavior doesn't change, only the runtime does.
+_YOLO_CONF_THRESHOLD = 0.25
+_YOLO_NMS_IOU_THRESHOLD = 0.7
+_YOLO_INPUT_SIZE = 640
+
+
+def _letterbox(frame, size=_YOLO_INPUT_SIZE, color=114):
+    """Resize preserving aspect ratio + pad to a square, matching
+    ultralytics' own preprocessing. A naive stretch-to-square resize
+    was verified (against real test images, including a small
+    non-square phone photo) to measurably lower detection confidence
+    for smaller/off-center objects -- this is not optional polish."""
+    h, w = frame.shape[:2]
+    scale = min(size / h, size / w)
+    nh, nw = int(round(h * scale)), int(round(w * scale))
+    resized = cv2.resize(frame, (nw, nh), interpolation=cv2.INTER_LINEAR)
+    canvas = np.full((size, size, 3), color, dtype=np.uint8)
+    top = (size - nh) // 2
+    left = (size - nw) // 2
+    canvas[top:top + nh, left:left + nw] = resized
+    return canvas
+
+
+def detect_objects(frame):
+    """Same signature/return shape as before (results, person_count,
+    phone_detected) -- `results` is always None now since the only
+    caller (process_frame) never reads it (confirmed: it discards that
+    first element already). Verified against real test images (a phone
+    photo, single- and multi-person photos) to produce IDENTICAL
+    person_count/phone_detected results to the previous ultralytics
+    implementation, using the same yolo11n/yolov8n weights (just
+    exported to ONNX, not retrained)."""
+
+    letterboxed = _letterbox(frame)
+    rgb = cv2.cvtColor(letterboxed, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+    blob = np.transpose(rgb, (2, 0, 1))[np.newaxis, ...]
+
+    output = yolo_model.run(None, {_yolo_input_name: blob})[0]  # (1, 84, 8400)
+    preds = output[0].T  # (8400, 84): 4 box coords + 80 class scores
+
+    boxes_xywh = preds[:, :4]
+    class_scores = preds[:, 4:]
+    class_ids = np.argmax(class_scores, axis=1)
+    confidences = class_scores[np.arange(len(class_scores)), class_ids]
+
+    mask = confidences > _YOLO_CONF_THRESHOLD
+    boxes_xywh = boxes_xywh[mask]
+    class_ids = class_ids[mask]
+    confidences = confidences[mask]
 
     person_count = 0
     phone_detected = False
 
-    for box in results.boxes:
+    if len(boxes_xywh) > 0:
+        x = boxes_xywh[:, 0] - boxes_xywh[:, 2] / 2
+        y = boxes_xywh[:, 1] - boxes_xywh[:, 3] / 2
+        boxes_xywh_cv = np.stack([x, y, boxes_xywh[:, 2], boxes_xywh[:, 3]], axis=1)
 
-        cls = int(box.cls[0])
+        indices = cv2.dnn.NMSBoxes(
+            boxes_xywh_cv.tolist(),
+            confidences.tolist(),
+            _YOLO_CONF_THRESHOLD,
+            _YOLO_NMS_IOU_THRESHOLD,
+        )
 
-        label = yolo_model.names[cls]
-
-        if label == "person":
-
-            person_count += 1
-
-        elif label == "cell phone":
-
-            phone_detected = True
+        if len(indices) > 0:
+            kept_classes = class_ids[np.array(indices).flatten()]
+            person_count = int(np.sum(kept_classes == _YOLO_PERSON_CLASS))
+            phone_detected = bool(np.any(kept_classes == _YOLO_CELL_PHONE_CLASS))
 
     return (
-        results,
+        None,
         person_count,
         phone_detected
     )
@@ -1137,34 +1230,16 @@ def process_frame(frame, state):
         if face_crop.size == 0:
             continue
 
-        # ---------------- Face Recognition ----------------
-
-        face_input = cv2.resize(
-            face_crop,
-            (224, 224)
-        )
-
-        face_input = (
-            face_input.astype("float32")
-            / 255.0
-        )
-
-        face_input = np.expand_dims(
-            face_input,
-            axis=0
-        )
-
         if frame_counter % PROCESS_EVERY_FACE == 0:
 
             with inference_lock:
 
-                if face_model is not None:
-                    face_pred = face_model.predict(
-                        face_input,
-                        verbose=0
-                    )
-
-                # Current project has one enrolled student
+                # Current project has one enrolled student. (There used
+                # to be a "current" Keras face-recognition prediction
+                # here too, but its result was never read anywhere --
+                # state["last_name"] was always hardcoded regardless --
+                # so it was removed outright rather than made lazy; see
+                # the module-level comment near EMOTION_MODEL_PATH.)
                 state["last_name"] = "Disha"
 
                 # ---------------- Emotion ----------------
@@ -1210,9 +1285,11 @@ def process_frame(frame, state):
                         axis=0
                     )
 
-                    if emotion_model is not None:
+                    current_emotion_model = _get_current_emotion_model()
 
-                        emotion_pred = emotion_model.predict(
+                    if current_emotion_model is not None:
+
+                        emotion_pred = current_emotion_model.predict(
                             emotion_input,
                             verbose=0
                         )

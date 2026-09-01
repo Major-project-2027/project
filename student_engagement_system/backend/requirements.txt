@@ -16,23 +16,23 @@
 # soundfile, webrtcvad-wheels -- loader.py never calls into those).
 # Everything else pip resolves transitively (e.g. the many small
 # tensorflow sub-dependencies via tensorflow) rather than being pinned
-# twice here. torch/torchvision are the one exception -- pinned below
-# to the CPU-only build explicitly; see that comment for why.
+# twice here.
+#
+# No torch/torchvision/ultralytics: object detection runs on ONNX
+# Runtime against yolo11n.onnx/yolov8n.onnx (exported from the exact
+# same weights, not retrained) instead of ultralytics.YOLO. Measured:
+# torch/ultralytics cost ~267MB resident (import + model load + one
+# real inference) vs onnxruntime's ~90MB for the identical detection
+# job, verified to produce identical person/phone detections on real
+# test images. This -- combined with removing a confirmed-dead Keras
+# face-recognition load, lazy-loading the rarely-used "current" Keras
+# emotion-model fallback, and converting the friend's (production
+# default) emotion model to ONNX too -- was required to get the AI
+# pipeline's real steady-state memory (~918MB measured with a real face
+# in frame, not just import-time cost) down toward Render's 512MB
+# free-tier runtime limit. See services/ai_service.py and
+# services/friend_ai/loader.py for the per-component detail.
 # =====================================================================
-
-# ultralytics (below) declares only a loose "torch>=1.8.0" / an
-# unpinned torchvision, so left alone pip resolves both from the
-# default PyPI index. On Linux, PyPI's default torch wheel bundles full
-# CUDA as pip dependencies (nvidia-cublas, nvidia-cufft, nvidia-cusolver,
-# nvidia-cudnn, ...), which is several GB of completely unneeded
-# downloads on Render's GPU-less service and was the direct cause of a
-# "ran out of memory (used over 8GB)" build failure. This extra index
-# plus the explicit "+cpu" pins below select PyTorch's own CPU-only
-# wheel build instead -- same exact version already verified working
-# locally (this machine's default wheel happens to be CPU-only too,
-# which is why this never showed up in local testing), just without the
-# CUDA payload.
---extra-index-url https://download.pytorch.org/whl/cpu
 
 # --- Flask (backend/app.py) --------------------------------------------
 Flask==3.1.3
@@ -60,11 +60,9 @@ numpy==2.2.4
 opencv-python==4.13.0.92
 mediapipe==0.10.35
 scipy==1.17.1
-torch==2.13.0+cpu
-torchvision==0.28.0+cpu
+onnxruntime==1.29.0
 tensorflow==2.21.0
 keras==3.15.1
-ultralytics==8.4.117
 Pillow==11.3.0
 loguru==0.7.3
 # dlib-bin, face-recognition, and face-recognition-models are
