@@ -34,6 +34,40 @@ class EnrollmentRepository:
             .count()
         )
 
+    # -- Class access control: an enrollment row is a student's
+    # permission to join that class (granted by the class's teacher). --
+
+    @staticmethod
+    def student_ids_for_class(db: Session, class_id: int):
+        return sorted(
+            row[0]
+            for row in db.query(Enrollment.student_id)
+            .filter(Enrollment.class_id == class_id)
+            .distinct()
+        )
+
+    @staticmethod
+    def class_ids_for_student(db: Session, student_id: int):
+        return {
+            row[0]
+            for row in db.query(Enrollment.class_id)
+            .filter(Enrollment.student_id == student_id)
+            .distinct()
+        }
+
+    @staticmethod
+    def remove(db: Session, student_id: int, class_id: int):
+        deleted = (
+            db.query(Enrollment)
+            .filter(
+                Enrollment.student_id == student_id,
+                Enrollment.class_id == class_id,
+            )
+            .delete()
+        )
+        db.commit()
+        return deleted
+
     @staticmethod
     def already_joined(db: Session, student_id: int, class_id: int):
 

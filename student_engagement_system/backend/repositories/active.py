@@ -32,6 +32,7 @@ if DB_BACKEND == "mongodb":
     from repositories.mongo.attendance_repository import AttendanceRepository
     from repositories.mongo.future_engagement_repository import FutureEngagementRepository
     from repositories.mongo.cognitive_state_repository import CognitiveStateRepository
+    from repositories.mongo.roster_repository import RosterRepository
 else:
     from repositories.teacher_repository import TeacherRepository
     from repositories.student_repository import StudentRepository
@@ -44,6 +45,7 @@ else:
     from repositories.attendance_repository import AttendanceRepository
     from repositories.future_engagement_repository import FutureEngagementRepository
     from repositories.cognitive_state_repository import CognitiveStateRepository
+    from repositories.roster_repository import RosterRepository
 
 __all__ = [
     "TeacherRepository",
@@ -57,4 +59,5 @@ __all__ = [
     "AttendanceRepository",
     "FutureEngagementRepository",
     "CognitiveStateRepository",
+    "RosterRepository",
 ]

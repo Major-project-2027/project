@@ -110,6 +110,27 @@ class EnrollmentRepository:
     def count_for_class(db, class_id: int):
         return db[COLLECTION_ENROLLMENTS].count_documents({"class_id": class_id})
 
+    # -- Class access control: an enrollment row is a student's
+    # permission to join that class (granted by the class's teacher). --
+
+    @staticmethod
+    def student_ids_for_class(db, class_id: int):
+        return sorted(
+            db[COLLECTION_ENROLLMENTS].distinct("student_id", {"class_id": class_id})
+        )
+
+    @staticmethod
+    def class_ids_for_student(db, student_id: int):
+        return set(
+            db[COLLECTION_ENROLLMENTS].distinct("class_id", {"student_id": student_id})
+        )
+
+    @staticmethod
+    def remove(db, student_id: int, class_id: int):
+        return db[COLLECTION_ENROLLMENTS].delete_many(
+            {"student_id": student_id, "class_id": class_id}
+        ).deleted_count
+
     @staticmethod
     def count_teacher_students(db, teacher_id: int):
         """Count of enrollment rows (not distinct students -- mirrors

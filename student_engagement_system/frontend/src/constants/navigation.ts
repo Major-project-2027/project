@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, CalendarClock, Users, ClipboardList,
   FileText, Settings, HelpCircle, ShieldCheck, GraduationCap,
-  Info, LifeBuoy, Sparkles,
+  Info, LifeBuoy, Sparkles, UserCheck,
 } from 'lucide-react'
 import type { UserRole } from '@/types/domain'
 
@@ -14,6 +14,7 @@ export interface NavItem {
 export const teacherNav: NavItem[] = [
   { label: 'Dashboard', to: '/teacher', icon: LayoutDashboard },
   { label: 'Classes', to: '/teacher/classes', icon: CalendarClock },
+  { label: 'Students', to: '/teacher/students', icon: UserCheck },
   { label: 'Attendance', to: '/teacher/attendance', icon: Users },
   { label: 'Future Engagement', to: '/teacher/future-engagement-prediction', icon: Sparkles },
   { label: 'Settings', to: '/teacher/settings', icon: Settings },

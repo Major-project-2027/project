@@ -1,4 +1,4 @@
-import { API_BASE_URL, FLASK_API_BASE_URL, simulateNetwork } from './client'
+import { API_BASE_URL, ApiError, FLASK_API_BASE_URL, simulateNetwork } from './client'
 import {
   generateLiveStudents, generateAlerts,
   generateEngagementTrend, generateNotifications, generateTests,
@@ -287,15 +287,53 @@ joinLive: async (classId: string) => {
   return result
 },
 
-get: (id: string) =>
-  simulateNetwork<ClassSession | undefined>(
-    getClassesStore().find((c) => c.id === id)
-  ),
+// GET /teacher/classroom/:id -- the class's own teacher, or a student the
+// teacher allowed (403 otherwise). The live pages rely on that check.
+get: async (id: string): Promise<ClassSession | undefined> => {
+  const token = sessionStorage.getItem('access_token')
+
+  if (!token || !id) {
+    throw new Error('Please login again.')
+  }
+
+  const response = await fetch(
+    `${FLASK_API_BASE_URL}/teacher/classroom/${encodeURIComponent(id)}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+
+  const result = await response.json()
+
+  if (!response.ok || !result.success) {
+    throw new ApiError(
+      response.status,
+      result.error || 'Unable to load this class',
+    )
+  }
+
+  const c = result.classroom
+
+  return {
+    id: String(c.class_id),
+    title: c.classroom_name,
+    subject: c.subject,
+    teacherId: String(c.teacher_id ?? ''),
+    teacherName: '',
+    scheduledStart: new Date().toISOString(),
+    scheduledEnd: new Date().toISOString(),
+    status: 'live',
+    studentsEnrolled: 0,
+    studentsPresent: 0,
+    avgEngagement: undefined,
+    coverColor: '#6366f1',
+  }
+},
   create: async (input: {
   title: string
   subject: string
   scheduledStart: string
   startNow: boolean
+  // Students allowed to join this class (teacher's choice).
+  studentIds?: number[]
 }): Promise<ClassSession> => {
   const token = sessionStorage.getItem('access_token')
 
@@ -316,6 +354,7 @@ get: (id: string) =>
         subject: input.subject,
         semester: 1,
         section: 'A',
+        student_ids: input.studentIds ?? [],
       }),
     },
   )
@@ -442,10 +481,13 @@ export const monitoringApi = {
   liveStudents: async (classId?: string) => {
     const query = classId ? `?class_id=${encodeURIComponent(classId)}` : ''
 
+    const token = sessionStorage.getItem('access_token')
+
     const response = await fetch(
       `${API_BASE_URL}/live-monitor${query}`,
       {
         cache: 'no-store',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       },
     )
 
@@ -957,4 +999,92 @@ export const notificationsApi = {
 // ----------------------------------------------------------------------------
 export const testsApi = {
   list: () => simulateNetwork<Test[]>(generateTests()),
+}
+
+// ----------------------------------------------------------------------------
+// CLASS ACCESS CONTROL -- teacher's student roster and each class's
+// allowed students. Enforced server-side; these only manage the lists.
+// GET /teacher/students · PUT /teacher/roster
+// GET|PUT /teacher/classroom/:id/students
+// ----------------------------------------------------------------------------
+export interface StudentSummary {
+  studentId: number
+  name: string
+  email: string
+  usn: string
+  department?: string
+  inRoster: boolean
+  allowed?: boolean
+}
+
+function toStudentSummary(s: any): StudentSummary {
+  return {
+    studentId: Number(s.student_id),
+    name: s.name,
+    email: s.email,
+    usn: s.usn,
+    department: s.department ?? undefined,
+    inRoster: Boolean(s.in_roster),
+    allowed: typeof s.allowed === 'boolean' ? s.allowed : undefined,
+  }
+}
+
+async function teacherRequest(path: string, init: RequestInit = {}) {
+  const token = sessionStorage.getItem('access_token')
+
+  if (!token) {
+    throw new Error('Please login again.')
+  }
+
+  const response = await fetch(`${FLASK_API_BASE_URL}${path}`, {
+    ...init,
+    headers: {
+      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  const result = await response.json()
+
+  if (!response.ok || !result.success) {
+    throw new ApiError(response.status, result.error || 'Request failed')
+  }
+
+  return result
+}
+
+export const accessApi = {
+  listStudents: async (): Promise<StudentSummary[]> => {
+    const result = await teacherRequest('/teacher/students')
+    return (result.students ?? []).map(toStudentSummary)
+  },
+
+  saveRoster: async (studentIds: number[]): Promise<number[]> => {
+    const result = await teacherRequest('/teacher/roster', {
+      method: 'PUT',
+      body: JSON.stringify({ student_ids: studentIds }),
+    })
+    return result.roster_student_ids ?? []
+  },
+
+  classStudents: async (classId: string): Promise<{
+    allowedStudentIds: number[]
+    students: StudentSummary[]
+    isLive: boolean
+  }> => {
+    const result = await teacherRequest(`/teacher/classroom/${encodeURIComponent(classId)}/students`)
+    return {
+      allowedStudentIds: result.allowed_student_ids ?? [],
+      students: (result.students ?? []).map(toStudentSummary),
+      isLive: Boolean(result.is_live),
+    }
+  },
+
+  setClassStudents: async (classId: string, studentIds: number[]): Promise<number[]> => {
+    const result = await teacherRequest(`/teacher/classroom/${encodeURIComponent(classId)}/students`, {
+      method: 'PUT',
+      body: JSON.stringify({ student_ids: studentIds }),
+    })
+    return result.allowed_student_ids ?? []
+  },
 }

@@ -27,7 +27,23 @@ from repositories.active import (
     StudentRepository,
     EngagementRepository,
 )
+from services.access_control import (
+    http_status_for,
+    payload_from_auth_header,
+    require_role,
+    require_student_allowed,
+)
+
 student_bp = Blueprint("student", __name__)
+
+
+def _student_payload():
+    """Verified token payload of a STUDENT account. Student and teacher
+    ids are separate sequences, so without this role check a teacher
+    whose id matched a student's could act as that student."""
+    payload = payload_from_auth_header(request.headers.get("Authorization"))
+    require_role(payload, "student")
+    return payload
 
 
 def _decode_frame(image_b64: str):
@@ -59,11 +75,7 @@ def _require_student_id():
     if not auth:
         raise Exception("Authorization token missing.")
 
-    token = auth.split(" ")[1]
-
-    payload = JWTService.verify_token(token)
-
-    return payload["user_id"]
+    return _student_payload()["user_id"]
 
 
 @student_bp.route("/register", methods=["POST"])
@@ -90,7 +102,7 @@ def register_student():
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -130,7 +142,7 @@ def validate_face_sample():
         return jsonify({
             "success": False,
             "error": str(e),
-        }), 400
+        }), http_status_for(e)
 
 
 @student_bp.route("/face/register", methods=["POST"])
@@ -176,7 +188,7 @@ def register_face():
         return jsonify({
             "success": False,
             "error": str(e),
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -201,6 +213,8 @@ def verify_face_live():
         student_id = _require_student_id()
 
         data = FaceVerifyLive(**request.json)
+
+        require_student_allowed(db, student_id, data.class_id, require_live=True)
 
         registration = FaceRepository.get_face_by_student_id(db, student_id)
 
@@ -283,7 +297,7 @@ def verify_face_live():
         return jsonify({
             "success": False,
             "error": str(e),
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -316,7 +330,7 @@ def login_student():
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -326,14 +340,7 @@ def join_class():
     db = get_db()
 
     try:
-        auth = request.headers.get("Authorization")
-
-        if not auth:
-            raise Exception("Authorization token missing.")
-
-        token = auth.split(" ")[1]
-
-        payload = JWTService.verify_token(token)
+        payload = _student_payload()
 
         data = JoinClass(**request.json)
 
@@ -354,7 +361,7 @@ def join_class():
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -369,16 +376,19 @@ def live_classes():
     db = get_db()
 
     try:
-        auth = request.headers.get("Authorization")
+        payload = _student_payload()
 
-        if not auth:
-            raise Exception("Authorization token missing.")
+        allowed_class_ids = EnrollmentRepository.class_ids_for_student(
+            db, payload["user_id"]
+        )
 
-        token = auth.split(" ")[1]
-
-        JWTService.verify_token(token)
-
-        active_sessions = SessionRepository.get_all_active_sessions(db)
+        # Only classes whose teacher allowed this student -- never
+        # every live class in the system.
+        active_sessions = [
+            session
+            for session in SessionRepository.get_all_active_sessions(db)
+            if session.class_id in allowed_class_ids
+        ]
 
         result = []
 
@@ -414,7 +424,7 @@ def live_classes():
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -429,14 +439,7 @@ def join_live_class():
     db = get_db()
 
     try:
-        auth = request.headers.get("Authorization")
-
-        if not auth:
-            raise Exception("Authorization token missing.")
-
-        token = auth.split(" ")[1]
-
-        payload = JWTService.verify_token(token)
+        payload = _student_payload()
 
         data = JoinLiveClass(**request.json)
 
@@ -458,7 +461,7 @@ def join_live_class():
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -470,10 +473,9 @@ def my_classes():
     db = get_db()
 
     try:
-        token = request.headers.get("Authorization")
+        _student_payload()
 
-        if not token:
-            raise Exception("Authorization token missing.")
+        token = request.headers.get("Authorization")
 
         classes = StudentService.get_my_classes(
             db,
@@ -492,7 +494,7 @@ def my_classes():
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -503,14 +505,7 @@ def student_dashboard():
 
     try:
 
-        auth = request.headers.get("Authorization")
-
-        if not auth:
-            raise Exception("Authorization token missing.")
-
-        token = auth.split(" ")[1]
-
-        payload = JWTService.verify_token(token)
+        payload = _student_payload()
 
         dashboard = StudentService.get_dashboard(
             db,
@@ -527,7 +522,7 @@ def student_dashboard():
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -548,7 +543,7 @@ def live_monitor():
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 @student_bp.route(
     "/history/class/<int:class_id>",
     methods=["GET"]
@@ -558,13 +553,7 @@ def student_class_history(class_id):
     db = get_db()
 
     try:
-        auth = request.headers.get("Authorization")
-
-        if not auth:
-            raise Exception("Authorization token missing.")
-
-        token = auth.split(" ")[1]
-        payload = JWTService.verify_token(token)
+        payload = _student_payload()
 
         student_id = payload["user_id"]
 
@@ -700,7 +689,7 @@ def student_class_history(class_id):
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -712,13 +701,7 @@ def student_attendance():
     db = get_db()
 
     try:
-        auth = request.headers.get("Authorization")
-
-        if not auth:
-            raise Exception("Authorization token missing.")
-
-        token = auth.split(" ")[1]
-        payload = JWTService.verify_token(token)
+        payload = _student_payload()
         student_id = payload["user_id"]
 
         records = AttendanceRepository.get_for_student(
@@ -786,7 +769,7 @@ def student_attendance():
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)

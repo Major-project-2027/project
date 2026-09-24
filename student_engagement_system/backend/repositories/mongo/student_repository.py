@@ -31,6 +31,16 @@ class StudentRepository:
         return StudentRepository.get_by_email(db, email)
 
     @staticmethod
+    def list_all(db):
+        """Every registered student (password hash never fetched)."""
+        return [
+            doc_to_model(Student, doc)
+            for doc in db[COLLECTION_STUDENTS]
+            .find({}, {"password_hash": 0})
+            .sort("student_id", 1)
+        ]
+
+    @staticmethod
     def create_student(db, student: Student):
         student.student_id = next_id(db, COUNTER_STUDENT_ID)
         if student.created_at is None:

@@ -13,6 +13,7 @@ const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage').
 
 const TeacherDashboardPage = lazy(() => import('@/pages/teacher/TeacherDashboardPage').then((m) => ({ default: m.TeacherDashboardPage })))
 const TeacherClassesPage = lazy(() => import('@/pages/teacher/TeacherClassesPage').then((m) => ({ default: m.TeacherClassesPage })))
+const ManageStudentsPage = lazy(() => import('@/pages/teacher/ManageStudentsPage').then((m) => ({ default: m.ManageStudentsPage })))
 const AnalyticsPage = lazy(() => import('@/pages/teacher/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })))
 const FutureEngagementPredictionPage = lazy(() => import('@/pages/teacher/FutureEngagementPredictionPage').then((m) => ({ default: m.FutureEngagementPredictionPage })))
 const TeacherTestsPage = lazy(() => import('@/pages/test/TeacherTestsPage').then((m) => ({ default: m.TeacherTestsPage })))
@@ -68,6 +69,7 @@ function App() {
         {/* Teacher */}
         <Route path="/teacher" element={<ProtectedRoute role="teacher"><TeacherDashboardPage /></ProtectedRoute>} />
         <Route path="/teacher/classes" element={<ProtectedRoute role="teacher"><TeacherClassesPage /></ProtectedRoute>} />
+        <Route path="/teacher/students" element={<ProtectedRoute role="teacher"><ManageStudentsPage /></ProtectedRoute>} />
         <Route path="/teacher/attendance" element={<ProtectedRoute role="teacher"><AttendancePage role="teacher" /></ProtectedRoute>} />
         <Route path="/teacher/analytics" element={<ProtectedRoute role="teacher"><AnalyticsPage /></ProtectedRoute>} />
         <Route path="/teacher/future-engagement-prediction" element={<ProtectedRoute role="teacher"><FutureEngagementPredictionPage /></ProtectedRoute>} />

@@ -6,7 +6,9 @@ import { AlertTriangle, X, ShieldAlert } from 'lucide-react'
 import { VideoTile } from '@/components/classroom/VideoTile'
 import { ParticipantsPanel } from '@/components/classroom/ParticipantsPanel'
 import { ChatPanel } from '@/components/classroom/ChatPanel'
-import { ClassroomControls } from '@/components/classroom/ClassroomControls'
+import { ClassroomControls, type ClassroomPanel } from '@/components/classroom/ClassroomControls'
+import { StageTile } from '@/components/classroom/StreamVideo'
+import { Whiteboard } from '@/components/classroom/Whiteboard'
 import { AIMonitoringPanel } from '@/components/monitoring/AIMonitoringPanel'
 import { ConfidenceRing } from '@/components/monitoring/ConfidenceRing'
 import {
@@ -18,16 +20,22 @@ import {
   monitoringApi,
   classesApi,
 } from '@/services/api/endpoints'
-import { WS_API_BASE_URL, getIceServers } from '@/services/api/client'
+import { ApiError, getIceServers } from '@/services/api/client'
+import { acquireCameraTrack, acquireLocalMedia, describeMediaError } from '@/lib/media'
+import {
+  openClassroomSocket,
+  sendJson,
+  WS_CLOSE_FORBIDDEN,
+  WS_CLOSE_REPLACED,
+  WS_CLOSE_UNAUTHENTICATED,
+  type ClassChatMessage,
+  type RoomParticipant,
+  type WelcomeMessage,
+  type WhiteboardStroke,
+} from '@/lib/classroomSocket'
 
 import { Badge } from '@/components/ui/Badge'
 import type { StudentLiveState } from '@/types/domain'
-
-type SidePanel =
-  | 'none'
-  | 'participants'
-  | 'chat'
-  | 'monitoring'
 
 // Section 5 requirement: the teacher's student list is sorted by LOWEST
 // predicted future engagement first, so at-risk students surface
@@ -234,42 +242,84 @@ function convertAIResultToStudent(
   }
 }
 
+// A student who is connected (presence) but has no AI result yet. No
+// fabricated engagement number: 0 with an empty history, excluded from the
+// class average until real results arrive.
+function baseStudent(p: RoomParticipant): StudentLiveState {
+  return {
+    studentId: p.userId,
+    studentName: p.name,
+    cameraOn: p.media.camera,
+    micOn: p.media.mic,
+    handRaised: p.media.hand,
+    currentEngagement: 0,
+    currentEmotion: 'neutral',
+    cognitiveState: 'focused',
+    authenticated: true,
+    history: [],
+  }
+}
+
 export function TeacherLiveClassroomPage() {
   const { classId } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const [micOn, setMicOn] = useState(true)
-  const [cameraOn, setCameraOn] = useState(true)
-  const [screenSharing, setScreenSharing] = useState(false)
+  // -------------------------------------------------------------------------
+  // Local media (real devices only -- nothing here is faked)
+  // -------------------------------------------------------------------------
 
-  const [panel, setPanel] = useState<SidePanel>('monitoring')
+  const cameraTrackRef = useRef<MediaStreamTrack | null>(null)
+  const micTrackRef = useRef<MediaStreamTrack | null>(null)
+  const screenTrackRef = useRef<MediaStreamTrack | null>(null)
+
+  const [cameraOn, setCameraOn] = useState(false)
+  const [micOn, setMicOn] = useState(false)
+  const [screenSharing, setScreenSharing] = useState(false)
+  const [micAvailable, setMicAvailable] = useState(true)
+  const [mediaReady, setMediaReady] = useState(false)
+  const [mediaNotice, setMediaNotice] = useState<string | null>(null)
+  // What the teacher currently sends as video (camera or screen), shown
+  // in their own preview tile.
+  const [previewStream, setPreviewStream] = useState<MediaStream | null>(null)
+
+  const [panel, setPanel] = useState<ClassroomPanel>('monitoring')
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [seconds, setSeconds] = useState(0)
   const [dismissedAlert, setDismissedAlert] = useState(false)
 
   // -------------------------------------------------------------------------
-  // WebRTC / signaling refs
+  // Classroom socket / WebRTC
   // -------------------------------------------------------------------------
 
   const alertedIds = useRef<Set<string>>(new Set())
-
   const signalingRef = useRef<WebSocket | null>(null)
-
+  // key: participant key ("student:<id>")
   const peersRef = useRef<Record<string, RTCPeerConnection>>({})
+  const pendingCandidatesRef = useRef<Record<string, RTCIceCandidateInit[]>>({})
 
-  const pendingCandidatesRef = useRef<
-    Record<string, RTCIceCandidateInit[]>
-  >({})
+  const [socketError, setSocketError] = useState<string | null>(null)
+  const [selfKey, setSelfKey] = useState<string | null>(null)
+  const [participants, setParticipants] = useState<RoomParticipant[]>([])
+  // key: studentId
+  const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({})
+
+  const [chat, setChat] = useState<ClassChatMessage[]>([])
+  const [unreadChat, setUnreadChat] = useState(0)
+  const panelRef = useRef<ClassroomPanel>(panel)
+  panelRef.current = panel
+
+  const strokesRef = useRef<WhiteboardStroke[]>([])
+  const [strokeCount, setStrokeCount] = useState(0)
+  const [clearToken, setClearToken] = useState(0)
+  const [whiteboardOpen, setWhiteboardOpen] = useState(false)
 
   // -------------------------------------------------------------------------
-  // Students received through WebRTC
+  // Students received through WebRTC / AI results
   // -------------------------------------------------------------------------
 
-  const [connectedStudents, setConnectedStudents] = useState<
-    StudentLiveState[]
-  >([])
+  const [connectedStudents, setConnectedStudents] = useState<StudentLiveState[]>([])
 
   // -------------------------------------------------------------------------
   // API data
@@ -278,42 +328,47 @@ export function TeacherLiveClassroomPage() {
   const classQuery = useQuery({
     queryKey: ['class', classId],
     queryFn: () => classesApi.get(classId ?? ''),
+    enabled: Boolean(classId),
+    retry: false,
   })
 
   const studentsQuery = useQuery({
-  queryKey: ['live-students', classId],
-  queryFn: () => monitoringApi.liveStudents(classId),
-  refetchInterval: 8000,
-  enabled: Boolean(classId),
-})
+    queryKey: ['live-students', classId],
+    queryFn: () => monitoringApi.liveStudents(classId),
+    refetchInterval: 8000,
+    enabled: Boolean(classId),
+  })
 
   const apiStudents = studentsQuery.data ?? []
 
   // -------------------------------------------------------------------------
-  // Merge AI monitoring students + WebRTC-connected students
+  // Merge presence + AI monitoring students + WebRTC-connected students
   // -------------------------------------------------------------------------
+
+  const presentStudents = participants.filter((p) => p.role === 'student')
 
   const students: StudentLiveState[] = (() => {
     const merged = new Map<string, StudentLiveState>()
 
-    // First add AI/backend students.
     for (const student of apiStudents) {
       merged.set(student.studentId, student)
     }
 
-    // Then add/update students connected through WebRTC.
     for (const student of connectedStudents) {
       const existing = merged.get(student.studentId)
+      merged.set(student.studentId, existing ? { ...student, ...existing } : student)
+    }
 
-      if (existing) {
-        merged.set(student.studentId, {
-          ...student,
-          ...existing,
-          cameraOn: true,
-        })
-      } else {
-        merged.set(student.studentId, student)
-      }
+    // Connected students always get a tile; their real camera/mic/hand
+    // state comes from presence, never assumed.
+    for (const p of presentStudents) {
+      const existing = merged.get(p.userId)
+      merged.set(p.userId, {
+        ...(existing ?? baseStudent(p)),
+        cameraOn: p.media.camera,
+        micOn: p.media.mic,
+        handRaised: p.media.hand,
+      })
     }
 
     // Sorted dynamically on every render (re-evaluated whenever
@@ -326,11 +381,9 @@ export function TeacherLiveClassroomPage() {
     students.find((s) => s.studentId === selectedId) ??
     students[0]
 
+  const withAi = students.filter((s) => s.history.length > 0)
   const avgEngagement = Math.round(
-    students.reduce(
-      (total, student) => total + student.currentEngagement,
-      0,
-    ) / (students.length || 1),
+    withAi.reduce((total, student) => total + student.currentEngagement, 0) / (withAi.length || 1),
   )
 
   const activeAlerts = students.filter(
@@ -338,33 +391,62 @@ export function TeacherLiveClassroomPage() {
   )
 
   // -------------------------------------------------------------------------
+  // Helpers
+  // -------------------------------------------------------------------------
+
+  const send = (payload: unknown) => sendJson(signalingRef.current, payload)
+
+  const currentVideoTrack = () =>
+    screenTrackRef.current ?? cameraTrackRef.current
+
+  const refreshPreview = () => {
+    const track = currentVideoTrack()
+    setPreviewStream(track ? new MediaStream([track]) : null)
+  }
+
+  // Swap the outgoing video on every student connection -- no
+  // renegotiation needed, the video transceiver already exists.
+  const replaceOutgoing = (kind: 'video' | 'audio', track: MediaStreamTrack | null) => {
+    for (const peer of Object.values(peersRef.current)) {
+      for (const transceiver of peer.getTransceivers()) {
+        if (transceiver.receiver.track?.kind === kind && transceiver.currentDirection !== 'stopped') {
+          transceiver.sender.replaceTrack(track).catch((error) =>
+            console.warn(`Unable to replace ${kind} track:`, error),
+          )
+        }
+      }
+    }
+  }
+
+  const broadcastMediaState = (state: { camera: boolean; mic: boolean; screen: boolean }) => {
+    send({ type: 'media_state', ...state })
+  }
+
+  const closePeer = (key: string) => {
+    peersRef.current[key]?.close()
+    delete peersRef.current[key]
+    delete pendingCandidatesRef.current[key]
+  }
+
+  // -------------------------------------------------------------------------
   // End class
   // -------------------------------------------------------------------------
 
   const endMutation = useMutation({
-  mutationFn: () => classesApi.end(classId ?? ''),
+    mutationFn: () => classesApi.end(classId ?? ''),
 
-  onSuccess: () => {
-    // Tell every currently-connected student immediately, over the same
-    // signaling socket already used for WebRTC + AI results, instead of
-    // making them wait for their next analyze-frame poll to notice.
-    if (signalingRef.current?.readyState === WebSocket.OPEN) {
-      signalingRef.current.send(
-        JSON.stringify({ type: 'class_ended' }),
-      )
-    }
+    onSuccess: () => {
+      // Tell every currently-connected student immediately, over the same
+      // classroom socket already used for WebRTC + AI results, instead of
+      // making them wait for their next analyze-frame poll to notice.
+      send({ type: 'class_ended' })
 
-    queryClient.invalidateQueries({
-      queryKey: ['classes'],
-    })
+      queryClient.invalidateQueries({ queryKey: ['classes'] })
+      queryClient.invalidateQueries({ queryKey: ['attendance'] })
 
-    queryClient.invalidateQueries({
-      queryKey: ['attendance'],
-    })
-
-    navigate('/teacher')
-  },
-})
+      navigate('/teacher')
+    },
+  })
 
   // -------------------------------------------------------------------------
   // Timer
@@ -379,7 +461,7 @@ export function TeacherLiveClassroomPage() {
   }, [])
 
   // =========================================================================
-  // WEBRTC SIGNALING
+  // MEDIA + CLASSROOM SOCKET
   // =========================================================================
 
   useEffect(() => {
@@ -387,531 +469,498 @@ export function TeacherLiveClassroomPage() {
       return
     }
 
-    const ws = new WebSocket(
-      `${WS_API_BASE_URL}/ws/classes/${classId}/signaling`,
-    )
-
-    signalingRef.current = ws
+    let cancelled = false
+    let ws: WebSocket | null = null
 
     // -----------------------------------------------------------------------
-    // WebSocket connected
+    // Student offer -> answer with the teacher's camera + microphone
     // -----------------------------------------------------------------------
 
-    ws.onopen = () => {
-      console.log('Teacher signaling connected')
-    }
+    const handleOffer = async (message: any) => {
+      const key: string = message.from
+      const studentId: string = message.studentId
+      const studentName: string = message.studentName ?? 'Student'
 
-    // -----------------------------------------------------------------------
-    // Messages from students
-    // -----------------------------------------------------------------------
+      closePeer(key)
 
-    ws.onmessage = async (event) => {
-  try {
-    const message = JSON.parse(event.data)
+      const peer = new RTCPeerConnection({ iceServers: getIceServers() })
+      peersRef.current[key] = peer
+      pendingCandidatesRef.current[key] = pendingCandidatesRef.current[key] ?? []
 
-    // ===================================================================
-    // REAL AI RESULT FROM STUDENT
-    // ===================================================================
-
-    if (message.type === 'ai_result') {
-      const studentId = message.studentId
-      const studentName =
-        message.studentName ?? 'Student'
-
-      console.log(
-        'REAL AI RESULT FROM STUDENT:',
-        studentId,
-        message.data,
+      setConnectedStudents((current) =>
+        current.some((s) => s.studentId === studentId)
+          ? current
+          : [...current, { ...baseStudent({ key, role: 'student', userId: studentId, name: studentName, media: { camera: true, mic: false, screen: false, hand: false }, connectedAt: '' }) }],
       )
 
-      setConnectedStudents((current) => {
-        const existing = current.find(
-          (student) =>
-            student.studentId === studentId,
-        )
-
-        const updatedStudent =
-          convertAIResultToStudent(
-            message,
-            existing,
-          ) as StudentLiveState
-
-        // Engagement history used for attendance/history is now persisted
-        // server-side (engagement_records, keyed by session_id + student_id)
-        // by the /ai/analyze-frame endpoint itself -- nothing to record here.
-
-        // ---------------------------------------------------------------
-        // Student already connected through WebRTC.
-        // ---------------------------------------------------------------
-
-        if (existing) {
-          return current.map((student) =>
-            student.studentId === studentId
-              ? {
-                  ...student,
-                  ...updatedStudent,
-                  cameraOn: true,
-                }
-              : student,
-          )
-        }
-
-        // ---------------------------------------------------------------
-        // AI result arrived before WebRTC entry.
-        // Create the student so the teacher still sees the AI data.
-        // ---------------------------------------------------------------
-
-        const newStudent: StudentLiveState = {
-          ...updatedStudent,
-
-          studentId,
-
-          studentName,
-
-          cameraOn: true,
-          micOn: false,
-          handRaised: false,
-
-          currentEngagement:
-            updatedStudent.currentEngagement ?? 0,
-
-          currentEmotion:
-            updatedStudent.currentEmotion ?? 'neutral',
-
-          cognitiveState:
-            updatedStudent.cognitiveState ?? 'focused',
-
-          authenticated:
-            updatedStudent.authenticated ?? false,
-
-          history:
-            updatedStudent.history ?? [
-              updatedStudent.currentEngagement ?? 0,
-            ],
-        }
-
-        return [
-          ...current,
-          newStudent,
-        ]
-      })
-
-      return
-    }
-
-    // ===================================================================
-    // STUDENT OFFER
-    // ===================================================================
-
-    if (message.type === 'offer') {
-      const studentId = message.studentId
-      const studentName =
-        message.studentName ?? 'Student'
-
-      console.log(
-        'WebRTC offer received from student:',
-        studentId,
-      )
-
-      // Close an old peer if one somehow exists.
-      const oldPeer =
-        peersRef.current[studentId]
-
-      if (oldPeer) {
-        oldPeer.close()
-      }
-
-      // Create new peer connection.
-      const peer = new RTCPeerConnection({
-        iceServers: getIceServers(),
-      })
-
-      peersRef.current[studentId] = peer
-
-      pendingCandidatesRef.current[
-        studentId
-      ] = []
-
-      // ---------------------------------------------------------------
-      // Create student entry immediately.
-      // This makes VideoTile render before ontrack fires.
-      // ---------------------------------------------------------------
-
-      setConnectedStudents((current) => {
-        const alreadyExists =
-          current.some(
-            (student) =>
-              student.studentId === studentId,
-          )
-
-        if (alreadyExists) {
-          return current
-        }
-
-        const newStudent:
-          StudentLiveState = {
-          studentId,
-          studentName,
-
-          cameraOn: true,
-          micOn: false,
-          handRaised: false,
-
-          currentEngagement: 74,
-          currentEmotion: 'neutral',
-          cognitiveState: 'focused',
-
-          authenticated: true,
-
-          activeAlert: undefined,
-
-          history: [74],
-        }
-
-        return [
-          ...current,
-          newStudent,
-        ]
-      })
-
-      // ---------------------------------------------------------------
-      // Receive student's camera
-      // ---------------------------------------------------------------
-
+      // Receive the student's camera + microphone.
       peer.ontrack = (event) => {
-        console.log(
-          'Remote student camera received:',
-          studentId,
-        )
-
-        const stream =
-          event.streams[0]
-
-        if (!stream) {
-          return
-        }
-
-        const video =
-          document.getElementById(
-            `student-video-${studentId}`,
-          ) as HTMLVideoElement | null
-
-        if (video) {
-          video.srcObject = stream
-
-          video.play().catch(() => {})
-        }
-
-        // Make sure student remains visible.
-        setConnectedStudents(
-          (current) =>
-            current.map((student) =>
-              student.studentId ===
-              studentId
-                ? {
-                    ...student,
-                    cameraOn: true,
-                  }
-                : student,
-            ),
-        )
+        setRemoteStreams((current) => {
+          const stream = event.streams[0] ?? current[studentId] ?? new MediaStream()
+          if (!stream.getTracks().includes(event.track)) {
+            stream.addTrack(event.track)
+          }
+          return { ...current, [studentId]: stream }
+        })
       }
 
-      // ---------------------------------------------------------------
-      // Send ICE candidates to student
-      // ---------------------------------------------------------------
-
-      peer.onicecandidate = (
-        event,
-      ) => {
-        if (
-          event.candidate &&
-          ws.readyState ===
-            WebSocket.OPEN
-        ) {
-          ws.send(
-            JSON.stringify({
-              type: 'candidate',
-              role: 'teacher',
-              studentId,
-              candidate:
-                event.candidate,
-            }),
-          )
+      peer.onicecandidate = (event) => {
+        if (event.candidate) {
+          send({ type: 'candidate', to: key, candidate: event.candidate })
         }
       }
 
-      // ---------------------------------------------------------------
-      // Connection state
-      // ---------------------------------------------------------------
-
-      peer.onconnectionstatechange =
-        () => {
-          console.log(
-            `Student ${studentId} WebRTC state:`,
-            peer.connectionState,
-          )
-
-          if (
-            peer.connectionState ===
-              'failed' ||
-            peer.connectionState ===
-              'closed' ||
-            peer.connectionState ===
-              'disconnected'
-          ) {
-            setConnectedStudents(
-              (current) =>
-                current.filter(
-                  (student) =>
-                    student.studentId !==
-                    studentId,
-                ),
-            )
-
-            delete peersRef.current[
-              studentId
-            ]
+      peer.onconnectionstatechange = () => {
+        if (peer.connectionState === 'failed' || peer.connectionState === 'closed') {
+          if (peersRef.current[key] === peer) {
+            closePeer(key)
+            setRemoteStreams(({ [studentId]: _gone, ...rest }) => rest)
           }
         }
+      }
 
-      // ---------------------------------------------------------------
-      // Receive student's offer
-      // ---------------------------------------------------------------
+      await peer.setRemoteDescription(new RTCSessionDescription(message.offer))
 
-      await peer.setRemoteDescription(
-        new RTCSessionDescription(
-          message.offer,
-        ),
-      )
-
-      // ---------------------------------------------------------------
-      // Add any ICE candidates that arrived early
-      // ---------------------------------------------------------------
-
-      const pending =
-        pendingCandidatesRef.current[
-          studentId
-        ] ?? []
-
-      for (const candidate of pending) {
-        try {
-          await peer.addIceCandidate(
-            new RTCIceCandidate(
-              candidate,
-            ),
-          )
-        } catch (error) {
-          console.error(
-            'Failed to add queued ICE candidate:',
-            error,
-          )
+      // Attach the teacher's current outgoing media to the transceivers
+      // the student's offer created (video + audio).
+      for (const transceiver of peer.getTransceivers()) {
+        const kind = transceiver.receiver.track?.kind
+        if (kind === 'video') {
+          await transceiver.sender.replaceTrack(currentVideoTrack())
+          transceiver.direction = 'sendrecv'
+        } else if (kind === 'audio') {
+          await transceiver.sender.replaceTrack(micTrackRef.current)
+          transceiver.direction = 'sendrecv'
         }
       }
 
-      pendingCandidatesRef.current[
-        studentId
-      ] = []
-
-      // ---------------------------------------------------------------
-      // Create answer
-      // ---------------------------------------------------------------
-
-      const answer =
-        await peer.createAnswer()
-
-      await peer.setLocalDescription(
-        answer,
-      )
-
-      if (
-        ws.readyState ===
-        WebSocket.OPEN
-      ) {
-        ws.send(
-          JSON.stringify({
-            type: 'answer',
-            role: 'teacher',
-            studentId,
-            answer,
-          }),
-        )
+      for (const candidate of pendingCandidatesRef.current[key] ?? []) {
+        try {
+          await peer.addIceCandidate(new RTCIceCandidate(candidate))
+        } catch (error) {
+          console.error('Failed to add queued ICE candidate:', error)
+        }
       }
+      pendingCandidatesRef.current[key] = []
 
-      console.log(
-        'WebRTC answer sent to student:',
-        studentId,
-      )
+      const answer = await peer.createAnswer()
+      await peer.setLocalDescription(answer)
 
-      return
+      send({ type: 'answer', to: key, answer })
     }
 
-    // ===================================================================
-    // STUDENT ICE CANDIDATE
-    // ===================================================================
+    const handleCandidate = async (message: any) => {
+      const key: string = message.from
+      const peer = peersRef.current[key]
 
-    if (message.type === 'candidate') {
-      const studentId =
-        message.studentId
-
-      const peer =
-        peersRef.current[
-          studentId
+      if (!peer || !peer.remoteDescription) {
+        pendingCandidatesRef.current[key] = [
+          ...(pendingCandidatesRef.current[key] ?? []),
+          message.candidate,
         ]
-
-      if (!peer) {
-        return
-      }
-
-      const candidate =
-        message.candidate
-
-      // If remote description is not ready yet,
-      // queue the candidate.
-      if (
-        !peer.remoteDescription
-      ) {
-        if (
-          !pendingCandidatesRef
-            .current[studentId]
-        ) {
-          pendingCandidatesRef.current[
-            studentId
-          ] = []
-        }
-
-        pendingCandidatesRef.current[
-          studentId
-        ].push(candidate)
-
-        console.log(
-          'ICE candidate queued until remote description arrives:',
-          studentId,
-        )
-
         return
       }
 
       try {
-        await peer.addIceCandidate(
-          new RTCIceCandidate(
-            candidate,
-          ),
-        )
+        await peer.addIceCandidate(new RTCIceCandidate(message.candidate))
       } catch (error) {
-        console.error(
-          'Failed to add ICE candidate:',
-          error,
-        )
+        console.error('Failed to add ICE candidate:', error)
       }
     }
-  } catch (error) {
-    console.error(
-      'Teacher signaling message error:',
-      error,
-    )
-  }
-}
 
-    // -----------------------------------------------------------------------
-    // WebSocket error
-    // -----------------------------------------------------------------------
+    const handleAiResult = (message: any) => {
+      const studentId = message.studentId
 
-    ws.onerror = (error) => {
-      console.error(
-        'Teacher signaling error:',
-        error,
-      )
+      setConnectedStudents((current) => {
+        const existing = current.find((student) => student.studentId === studentId)
+        const updatedStudent = convertAIResultToStudent(message, existing) as StudentLiveState
+
+        // Engagement history used for attendance/history is persisted
+        // server-side (engagement_records, keyed by session_id +
+        // student_id) by the /ai/analyze-frame endpoint itself.
+        if (existing) {
+          return current.map((student) =>
+            student.studentId === studentId ? { ...student, ...updatedStudent } : student,
+          )
+        }
+
+        return [
+          ...current,
+          {
+            ...updatedStudent,
+            studentId,
+            studentName: message.studentName ?? 'Student',
+            cameraOn: true,
+            micOn: false,
+            handRaised: false,
+            currentEngagement: updatedStudent.currentEngagement ?? 0,
+            currentEmotion: updatedStudent.currentEmotion ?? 'neutral',
+            cognitiveState: updatedStudent.cognitiveState ?? 'focused',
+            authenticated: updatedStudent.authenticated ?? false,
+            history: updatedStudent.history ?? [updatedStudent.currentEngagement ?? 0],
+          },
+        ]
+      })
     }
 
-    // -----------------------------------------------------------------------
-    // Cleanup
-    // -----------------------------------------------------------------------
+    const start = async () => {
+      // 1. Camera + microphone (before connecting, so the first answer to
+      //    every student already carries them).
+      const media = await acquireLocalMedia({ video: true, audio: true })
+
+      if (cancelled) {
+        media.stream.getTracks().forEach((t) => t.stop())
+        return
+      }
+
+      cameraTrackRef.current = media.videoTrack
+      micTrackRef.current = media.audioTrack
+      setCameraOn(Boolean(media.videoTrack))
+      setMicOn(Boolean(media.audioTrack))
+      setMicAvailable(Boolean(media.audioTrack))
+      setMediaNotice([media.cameraError, media.micError].filter(Boolean).join(' ') || null)
+      setPreviewStream(media.videoTrack ? new MediaStream([media.videoTrack]) : null)
+      setMediaReady(true)
+
+      // 2. Authenticated classroom socket.
+      ws = openClassroomSocket(classId)
+      signalingRef.current = ws
+
+      ws.onmessage = async (event) => {
+        let message: any
+        try {
+          message = JSON.parse(event.data)
+        } catch {
+          return
+        }
+
+        try {
+          switch (message.type) {
+            case 'welcome': {
+              const welcome = message as WelcomeMessage
+              setSelfKey(welcome.self.key)
+              setParticipants([welcome.self, ...welcome.participants])
+              strokesRef.current = [...welcome.whiteboard.strokes]
+              setStrokeCount(strokesRef.current.length)
+              setClearToken((t) => t + 1)
+              setWhiteboardOpen(welcome.whiteboard.open)
+              setChat(welcome.chat)
+              send({
+                type: 'media_state',
+                camera: Boolean(cameraTrackRef.current),
+                mic: Boolean(micTrackRef.current?.enabled),
+                screen: false,
+              })
+              break
+            }
+            case 'participant_joined':
+              setParticipants((current) => [
+                ...current.filter((p) => p.key !== message.participant.key),
+                message.participant,
+              ])
+              break
+            case 'participant_updated':
+              setParticipants((current) =>
+                current.map((p) => (p.key === message.participant.key ? message.participant : p)),
+              )
+              break
+            case 'participant_left': {
+              const key: string = message.key
+              setParticipants((current) => current.filter((p) => p.key !== key))
+              if (key.startsWith('student:')) {
+                const studentId = key.slice('student:'.length)
+                closePeer(key)
+                setRemoteStreams(({ [studentId]: _gone, ...rest }) => rest)
+                setConnectedStudents((current) => current.filter((s) => s.studentId !== studentId))
+              }
+              break
+            }
+            case 'offer':
+              await handleOffer(message)
+              break
+            case 'candidate':
+              await handleCandidate(message)
+              break
+            case 'ai_result':
+              handleAiResult(message)
+              break
+            case 'chat':
+              setChat((current) => [...current, message as ClassChatMessage])
+              if (panelRef.current !== 'chat') {
+                setUnreadChat((n) => n + 1)
+              }
+              break
+            case 'error':
+              if (message.code === 401 || message.code === 403 || message.code === 409) {
+                setSocketError(message.message ?? 'You are not authorized to open this class.')
+              } else {
+                console.warn('Classroom socket error:', message.message)
+              }
+              break
+          }
+        } catch (error) {
+          console.error('Teacher classroom message error:', error)
+        }
+      }
+
+      ws.onclose = (event) => {
+        if (event.code === WS_CLOSE_FORBIDDEN || event.code === WS_CLOSE_UNAUTHENTICATED || event.code === WS_CLOSE_REPLACED) {
+          setSocketError((current) => current ?? 'The classroom connection was closed.')
+        }
+      }
+    }
+
+    start().catch((error) => {
+      console.error('Unable to start the live classroom:', error)
+      setMediaNotice('Unable to start the live classroom. Please reload the page.')
+    })
 
     return () => {
-      ws.close()
+      cancelled = true
+      ws?.close()
+      signalingRef.current = null
 
-      Object.values(peersRef.current).forEach(
-        (peer) => peer.close(),
-      )
-
+      Object.keys(peersRef.current).forEach(closePeer)
       peersRef.current = {}
-
       pendingCandidatesRef.current = {}
 
+      cameraTrackRef.current?.stop()
+      micTrackRef.current?.stop()
+      screenTrackRef.current?.stop()
+      cameraTrackRef.current = null
+      micTrackRef.current = null
+      screenTrackRef.current = null
+
       setConnectedStudents([])
+      setRemoteStreams({})
+      setParticipants([])
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId])
+
+  // =========================================================================
+  // CONTROLS
+  // =========================================================================
+
+  const toggleMic = async () => {
+    const track = micTrackRef.current
+
+    if (track) {
+      track.enabled = !track.enabled
+      setMicOn(track.enabled)
+      broadcastMediaState({ camera: Boolean(cameraTrackRef.current), mic: track.enabled, screen: screenSharing })
+      return
+    }
+
+    // No microphone yet (denied/unavailable at start) -- try again.
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const newTrack = stream.getAudioTracks()[0]
+      micTrackRef.current = newTrack
+      replaceOutgoing('audio', newTrack)
+      setMicOn(true)
+      setMicAvailable(true)
+      setMediaNotice(null)
+      broadcastMediaState({ camera: Boolean(cameraTrackRef.current), mic: true, screen: screenSharing })
+    } catch (error) {
+      setMediaNotice(describeMediaError(error, 'microphone'))
+    }
+  }
+
+  const toggleCamera = async () => {
+    if (cameraTrackRef.current) {
+      // Really stop the camera (the light goes off), and tell students to
+      // show the placeholder rather than a frozen frame.
+      cameraTrackRef.current.stop()
+      cameraTrackRef.current = null
+      if (!screenTrackRef.current) {
+        replaceOutgoing('video', null)
+      }
+      setCameraOn(false)
+      refreshPreview()
+      broadcastMediaState({ camera: false, mic: Boolean(micTrackRef.current?.enabled), screen: screenSharing })
+      return
+    }
+
+    try {
+      const track = await acquireCameraTrack()
+      cameraTrackRef.current = track
+      if (!screenTrackRef.current) {
+        replaceOutgoing('video', track)
+      }
+      setCameraOn(true)
+      setMediaNotice(null)
+      refreshPreview()
+      broadcastMediaState({ camera: true, mic: Boolean(micTrackRef.current?.enabled), screen: screenSharing })
+    } catch (error) {
+      setMediaNotice(describeMediaError(error, 'camera'))
+    }
+  }
+
+  const stopScreenShare = () => {
+    const track = screenTrackRef.current
+    if (!track) return
+    screenTrackRef.current = null
+    track.stop()
+    // Back to the camera (or nothing, if the camera is off).
+    replaceOutgoing('video', cameraTrackRef.current)
+    setScreenSharing(false)
+    refreshPreview()
+    broadcastMediaState({ camera: Boolean(cameraTrackRef.current), mic: Boolean(micTrackRef.current?.enabled), screen: false })
+  }
+
+  const toggleScreenShare = async () => {
+    if (screenTrackRef.current) {
+      stopScreenShare()
+      return
+    }
+
+    try {
+      const display = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
+      const track = display.getVideoTracks()[0]
+      screenTrackRef.current = track
+      // The browser's own "Stop sharing" button ends the track.
+      track.addEventListener('ended', stopScreenShare)
+      replaceOutgoing('video', track)
+      setScreenSharing(true)
+      setMediaNotice(null)
+      refreshPreview()
+      broadcastMediaState({ camera: Boolean(cameraTrackRef.current), mic: Boolean(micTrackRef.current?.enabled), screen: true })
+    } catch (error) {
+      setMediaNotice(describeMediaError(error, 'screen'))
+    }
+  }
+
+  const toggleWhiteboard = () => {
+    const next = !whiteboardOpen
+    setWhiteboardOpen(next)
+    send({ type: next ? 'wb_open' : 'wb_close' })
+  }
+
+  const onStroke = (stroke: WhiteboardStroke) => {
+    strokesRef.current.push(stroke)
+    setStrokeCount(strokesRef.current.length)
+    send({ type: 'wb_stroke', stroke })
+  }
+
+  const clearBoard = () => {
+    strokesRef.current.length = 0
+    setStrokeCount(0)
+    setClearToken((t) => t + 1)
+    send({ type: 'wb_clear' })
+  }
+
+  const togglePanel = (next: Exclude<ClassroomPanel, 'none'>) => {
+    setPanel((value) => (value === next ? 'none' : next))
+    if (next === 'chat') {
+      setUnreadChat(0)
+    }
+  }
 
   // =========================================================================
   // ALERT TOASTS
   // =========================================================================
 
+  useEffect(() => {
+    const currentlyActive = new Set<string>()
+
+    for (const student of students) {
+      if (!student.activeAlert) {
+        continue
+      }
+
+      const alertKey = `${student.studentId}-${student.activeAlert}`
+
+      currentlyActive.add(alertKey)
+
+      // Only show a toast when this alert is newly detected.
+      if (!alertedIds.current.has(alertKey)) {
+        alertedIds.current.add(alertKey)
+
+        pushAlertToast({
+          studentName: student.studentName,
+
+          message: ALERT_LABEL[student.activeAlert] ?? 'Attention issue detected',
+
+          severity:
+            student.activeAlert === 'phone_detected' ||
+            student.activeAlert === 'multiple_person' ||
+            student.activeAlert === 'no_person_detected' ||
+            student.activeAlert === 'drowsiness'
+              ? 'critical'
+              : 'warning',
+
+          // Sound plays once here specifically for a newly-confirmed
+          // sleeping episode -- exactly once per continuous episode.
+          sound: student.activeAlert === 'drowsiness',
+        })
+      }
+    }
+
+    // Remove cleared alerts so the same alert can trigger again later.
+    for (const key of alertedIds.current) {
+      if (!currentlyActive.has(key)) {
+        alertedIds.current.delete(key)
+      }
+    }
+  }, [students])
+
+  const timer = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
+
   // =========================================================================
-// ALERT TOASTS
-// =========================================================================
+  // UI
+  // =========================================================================
 
-useEffect(() => {
-  const currentlyActive = new Set<string>()
-
-  for (const student of students) {
-    if (!student.activeAlert) {
-      continue
-    }
-
-    const alertKey =
-      `${student.studentId}-${student.activeAlert}`
-
-    currentlyActive.add(alertKey)
-
-    // ---------------------------------------------------------------
-    // Only show a toast when this alert is newly detected.
-    // ---------------------------------------------------------------
-
-    if (!alertedIds.current.has(alertKey)) {
-      alertedIds.current.add(alertKey)
-
-      pushAlertToast({
-        studentName: student.studentName,
-
-        message:
-          ALERT_LABEL[student.activeAlert] ??
-          'Attention issue detected',
-
-        severity:
-          student.activeAlert === 'phone_detected' ||
-          student.activeAlert === 'multiple_person' ||
-          student.activeAlert === 'no_person_detected' ||
-          student.activeAlert === 'drowsiness'
-            ? 'critical'
-            : 'warning',
-
-        // Sound plays once here specifically for a newly-confirmed
-        // sleeping episode -- this whole block only runs when alertKey
-        // (studentId + alert type) is NEW, i.e. exactly once per
-        // continuous episode, never once per frame/poll. No other
-        // existing alert type gets a sound (unchanged from before).
-        sound: student.activeAlert === 'drowsiness',
-      })
-    }
+  if (socketError || (classQuery.error && (classQuery.error as ApiError).status === 403)) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#080b12] p-6">
+        <div className="max-w-md rounded-2xl bg-[#171923] p-6 text-center shadow-2xl">
+          <ShieldAlert className="mx-auto h-8 w-8 text-critical-400" />
+          <p className="mt-3 text-lg font-semibold text-white">Can't open this class</p>
+          <p className="mt-1 text-sm text-white/60">
+            {socketError ?? (classQuery.error as Error).message}
+          </p>
+          <button
+            onClick={() => navigate('/teacher')}
+            className="mt-4 rounded-lg bg-focus-500 px-4 py-2 text-sm font-medium text-white hover:bg-focus-600"
+          >
+            Back to dashboard
+          </button>
+        </div>
+      </div>
+    )
   }
 
-  // ---------------------------------------------------------------
-  // Remove cleared alerts from the memory.
-  //
-  // This allows the same alert to trigger again later.
-  // ---------------------------------------------------------------
+  const selfName = sessionStorage.getItem('user_name') ?? 'You'
 
-  for (const key of alertedIds.current) {
-    if (!currentlyActive.has(key)) {
-      alertedIds.current.delete(key)
-    }
-  }
-}, [students])
+  const selfTile = (
+    <div className="relative aspect-video overflow-hidden rounded-xl bg-[#161b28]">
+      <StageTile
+        name={selfName}
+        label={screenSharing ? 'You (sharing screen)' : 'You (teacher)'}
+        stream={previewStream}
+        videoOn={Boolean(previewStream)}
+        micOn={micOn}
+        screenSharing={screenSharing}
+        muted
+        mirrored
+        testId="teacher-self-video"
+      />
+    </div>
+  )
 
-  const timer = `${String(
-    Math.floor(seconds / 60),
-  ).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
+  const studentTiles = students.map((student) => (
+    <VideoTile
+      key={student.studentId}
+      student={student}
+      stream={remoteStreams[student.studentId] ?? null}
+      selected={student.studentId === selected?.studentId}
+      onSelect={() => {
+        setSelectedId(student.studentId)
+        setPanel('monitoring')
+      }}
+    />
+  ))
 
   return (
     <div className="flex h-screen flex-col bg-[#080b12]">
@@ -930,28 +979,32 @@ useEffect(() => {
             {classQuery.data?.title ?? 'Live class'}
           </p>
 
-          <Badge
-            variant="neutral"
-            className="bg-white/10 text-white"
-          >
-            {students.length} students
+          <Badge variant="neutral" className="bg-white/10 text-white" data-testid="connected-count">
+            {presentStudents.length} connected
           </Badge>
         </div>
 
         <div className="flex items-center gap-3">
           <div className="hidden items-center gap-2 sm:flex">
-            <ConfidenceRing
-              value={avgEngagement}
-              size={36}
-              strokeWidth={4}
-            />
-
-            <span className="text-xs text-white/60">
-              class avg.
-            </span>
+            <ConfidenceRing value={avgEngagement} size={36} strokeWidth={4} />
+            <span className="text-xs text-white/60">class avg.</span>
           </div>
         </div>
       </div>
+
+      {/* Device notice (permission denied / unavailable / in use) */}
+
+      {mediaNotice && (
+        <div className="flex items-center justify-between gap-3 bg-attention-500/15 px-4 py-2 text-sm text-attention-200" role="status">
+          <span className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            {mediaNotice}
+          </span>
+          <button onClick={() => setMediaNotice(null)} aria-label="Dismiss">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* Alert banner */}
 
@@ -959,18 +1012,11 @@ useEffect(() => {
         <div className="flex items-center justify-between gap-3 bg-critical-500/15 px-4 py-2 text-sm text-critical-300">
           <span className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
-
-            {activeAlerts.length} student(s) currently need
-            attention — {activeAlerts[0].studentName} (
-            {ALERT_LABEL[
-              activeAlerts[0].activeAlert ?? ''
-            ] ?? 'flagged'}
-            )
+            {activeAlerts.length} student(s) currently need attention — {activeAlerts[0].studentName} (
+            {ALERT_LABEL[activeAlerts[0].activeAlert ?? ''] ?? 'flagged'})
           </span>
 
-          <button
-            onClick={() => setDismissedAlert(true)}
-          >
+          <button onClick={() => setDismissedAlert(true)} aria-label="Dismiss">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -979,37 +1025,39 @@ useEffect(() => {
       {/* Main content */}
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Video grid */}
-
-        <div className="flex-1 overflow-y-auto p-3">
-          {students.length === 0 ? (
-            <div className="flex h-full items-center justify-center">
-              <div className="text-center text-white/50">
-                <p className="text-sm">
-                  Waiting for students to join...
-                </p>
-
-                <p className="mt-1 text-xs">
-                  WebRTC connection is ready.
-                </p>
+        <div className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
+          {whiteboardOpen ? (
+            <>
+              <div className="min-h-[320px] flex-1">
+                <Whiteboard
+                  strokes={strokesRef.current}
+                  strokeCount={strokeCount}
+                  clearToken={clearToken}
+                  editable
+                  onStroke={onStroke}
+                  onClear={clearBoard}
+                  onClose={toggleWhiteboard}
+                />
               </div>
-            </div>
+              <div className="grid shrink-0 grid-cols-3 gap-2.5 sm:grid-cols-4 lg:grid-cols-6">
+                {selfTile}
+                {studentTiles}
+              </div>
+            </>
           ) : (
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {students.map((student) => (
-                <VideoTile
-                  key={student.studentId}
-                  student={student}
-                  selected={
-                    student.studentId ===
-                    selected?.studentId
-                  }
-                  onSelect={() => {
-                    setSelectedId(student.studentId)
-                    setPanel('monitoring')
-                  }}
-                />
-              ))}
+              {selfTile}
+              {studentTiles}
+              {students.length === 0 && (
+                <div className="col-span-full flex items-center justify-center rounded-xl border border-dashed border-white/10 p-8 text-center text-white/50">
+                  <div>
+                    <p className="text-sm">Waiting for students to join…</p>
+                    <p className="mt-1 text-xs">
+                      {mediaReady ? 'Only students you allowed for this class can join.' : 'Starting your camera and microphone…'}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1019,10 +1067,17 @@ useEffect(() => {
         {panel !== 'none' && (
           <div className="w-[320px] shrink-0 border-l border-white/10 bg-[#0f131e]">
             {panel === 'participants' && (
-              <ParticipantsPanel students={students} />
+              <ParticipantsPanel participants={participants} selfKey={selfKey} students={students} />
             )}
 
-            {panel === 'chat' && <ChatPanel />}
+            {panel === 'chat' && (
+              <ChatPanel
+                messages={chat}
+                selfKey={selfKey}
+                disabled={!selfKey}
+                onSend={(text) => send({ type: 'chat', text })}
+              />
+            )}
 
             {panel === 'monitoring' && selected && (
               <div className="dark h-full">
@@ -1033,11 +1088,7 @@ useEffect(() => {
             {panel === 'monitoring' && !selected && (
               <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center text-white/60">
                 <ShieldAlert className="h-6 w-6" />
-
-                <p className="text-sm">
-                  Select a student tile to view their AI
-                  monitoring detail.
-                </p>
+                <p className="text-sm">Select a student tile to view their AI monitoring detail.</p>
               </div>
             )}
           </div>
@@ -1050,38 +1101,17 @@ useEffect(() => {
         role="teacher"
         micOn={micOn}
         cameraOn={cameraOn}
-        handRaised={false}
+        micAvailable={micAvailable || !micTrackRef.current}
         screenSharing={screenSharing}
+        whiteboardOpen={whiteboardOpen}
         recording
-        onToggleMic={() =>
-          setMicOn((value) => !value)
-        }
-        onToggleCamera={() =>
-          setCameraOn((value) => !value)
-        }
-        onToggleHand={() => {}}
-        onToggleScreenShare={() =>
-          setScreenSharing((value) => !value)
-        }
-        onToggleParticipants={() =>
-          setPanel((value) =>
-            value === 'participants'
-              ? 'none'
-              : 'participants',
-          )
-        }
-        onToggleChat={() =>
-          setPanel((value) =>
-            value === 'chat' ? 'none' : 'chat',
-          )
-        }
-        onToggleMonitoring={() =>
-          setPanel((value) =>
-            value === 'monitoring'
-              ? 'none'
-              : 'monitoring',
-          )
-        }
+        panel={panel}
+        unreadChat={unreadChat}
+        onToggleMic={toggleMic}
+        onToggleCamera={toggleCamera}
+        onToggleScreenShare={toggleScreenShare}
+        onToggleWhiteboard={toggleWhiteboard}
+        onTogglePanel={togglePanel}
         onLeave={() => endMutation.mutate()}
         leaveLabel="End class"
         timer={timer}

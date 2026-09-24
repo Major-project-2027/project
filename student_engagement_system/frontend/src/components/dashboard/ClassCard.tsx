@@ -1,12 +1,14 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Users, Clock, Radio, PlayCircle, LogIn } from 'lucide-react'
+import { Users, Clock, Radio, PlayCircle, LogIn, ShieldCheck } from 'lucide-react'
 import type { ClassSession } from '@/types/domain'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { formatTime, engagementTone, cn } from '@/lib/utils'
 import { classesApi } from '@/services/api/endpoints'
+import { AllowedStudentsModal } from '@/components/access/AllowedStudentsModal'
 
 const STATUS_BADGE: Record<ClassSession['status'], { variant: 'neutral' | 'engaged' | 'attention' | 'critical'; label: string }> = {
   scheduled: { variant: 'neutral', label: 'Scheduled' },
@@ -19,6 +21,7 @@ export function ClassCard({ session, role }: { session: ClassSession; role: 'tea
   const badge = STATUS_BADGE[session.status]
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [accessOpen, setAccessOpen] = useState(false)
 
   const startMutation = useMutation({
     mutationFn: () => classesApi.start(session.id),
@@ -44,6 +47,17 @@ export function ClassCard({ session, role }: { session: ClassSession; role: 'tea
           <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{formatTime(session.scheduledStart)}</span>
           <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{session.studentsPresent ?? session.studentsEnrolled} {session.status !== 'scheduled' ? `/ ${session.studentsEnrolled}` : 'enrolled'}</span>
         </div>
+
+        {role === 'teacher' && (
+          <button
+            onClick={() => setAccessOpen(true)}
+            className="mt-2 flex items-center gap-1.5 text-xs text-focus-500 hover:underline"
+            data-testid={`manage-access-${session.id}`}
+          >
+            <ShieldCheck className="h-3.5 w-3.5" />
+            {session.studentsEnrolled} allowed · Manage access
+          </button>
+        )}
 
         {session.avgEngagement !== undefined && (
           <div className="mt-3 flex items-center gap-2">
@@ -101,6 +115,14 @@ export function ClassCard({ session, role }: { session: ClassSession; role: 'tea
           )}
         </div>
       </div>
+      {role === 'teacher' && accessOpen && (
+        <AllowedStudentsModal
+          classId={session.id}
+          className={session.title}
+          open={accessOpen}
+          onClose={() => setAccessOpen(false)}
+        />
+      )}
     </Card>
   )
 }

@@ -22,7 +22,29 @@ from repositories.active import (
     SessionRepository,
     EnrollmentRepository,
 )
+from services.access_control import (
+    http_status_for,
+    payload_from_auth_header,
+    require_class_owner,
+    require_role,
+    require_student_allowed,
+)
+from services.enrollment_service import EnrollmentService
+
 teacher_bp = Blueprint("teacher", __name__)
+
+
+def _auth_payload():
+    return payload_from_auth_header(request.headers.get("Authorization"))
+
+
+def _teacher_payload():
+    """Verified token payload of a TEACHER account. Student and teacher
+    ids are separate sequences, so without this role check a student
+    whose id matched a teacher's could act as that teacher."""
+    payload = _auth_payload()
+    require_role(payload, "teacher")
+    return payload
 
 
 @teacher_bp.route("/teacher/register", methods=["POST"])
@@ -48,7 +70,7 @@ def register_teacher():
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -79,7 +101,7 @@ def login_teacher():
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -92,14 +114,7 @@ def create_classroom():
 
     try:
 
-        auth = request.headers.get("Authorization")
-
-        if not auth:
-            raise Exception("Authorization token missing.")
-
-        token = auth.split(" ")[1]
-
-        payload = JWTService.verify_token(token)
+        payload = _teacher_payload()
 
         data = ClassroomCreate(**request.json)
 
@@ -109,10 +124,18 @@ def create_classroom():
             data
         )
 
+        allowed = EnrollmentService.set_allowed_students(
+            db,
+            payload["user_id"],
+            classroom.class_id,
+            data.student_ids,
+        )
+
         return jsonify({
             "success": True,
             "class_id": classroom.class_id,
             "class_code": classroom.class_code,
+            "allowed_student_ids": allowed,
             "message": "Classroom Created Successfully"
         }), 201
 
@@ -121,7 +144,7 @@ def create_classroom():
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -132,14 +155,7 @@ def get_teacher_classrooms():
 
     try:
 
-        auth = request.headers.get("Authorization")
-
-        if not auth:
-            raise Exception("Authorization token missing.")
-
-        token = auth.split(" ")[1]
-
-        payload = JWTService.verify_token(token)
+        payload = _teacher_payload()
 
         classrooms = ClassroomService.get_teacher_classrooms(
             db,
@@ -183,7 +199,7 @@ def get_teacher_classrooms():
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -194,14 +210,15 @@ def get_classroom(class_id):
 
     try:
 
-        auth = request.headers.get("Authorization")
+        payload = _auth_payload()
 
-        if not auth:
-            raise Exception("Authorization token missing.")
-
-        token = auth.split(" ")[1]
-
-        JWTService.verify_token(token)
+        # The class's own teacher, or a student it allows -- the student
+        # live page reads this too, so it can't be role-restricted.
+        if payload.get("role") == "teacher":
+            require_class_owner(db, payload["user_id"], class_id)
+        else:
+            require_role(payload, "student")
+            require_student_allowed(db, payload["user_id"], class_id)
 
         classroom = ClassroomService.get_classroom(
             db,
@@ -227,7 +244,7 @@ def get_classroom(class_id):
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -238,14 +255,7 @@ def update_classroom(class_id):
 
     try:
 
-        auth = request.headers.get("Authorization")
-
-        if not auth:
-            raise Exception("Authorization token missing.")
-
-        token = auth.split(" ")[1]
-
-        payload = JWTService.verify_token(token)
+        payload = _teacher_payload()
 
         data = ClassroomUpdate(**request.json)
 
@@ -274,7 +284,7 @@ def update_classroom(class_id):
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -285,14 +295,9 @@ def delete_classroom(class_id):
 
     try:
 
-        auth = request.headers.get("Authorization")
+        payload = _teacher_payload()
 
-        if not auth:
-            raise Exception("Authorization token missing.")
-
-        token = auth.split(" ")[1]
-
-        JWTService.verify_token(token)
+        require_class_owner(db, payload["user_id"], class_id)
 
         ClassroomService.delete_classroom(
             db,
@@ -309,7 +314,7 @@ def delete_classroom(class_id):
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -320,14 +325,7 @@ def teacher_dashboard():
 
     try:
 
-        auth = request.headers.get("Authorization")
-
-        if not auth:
-            raise Exception("Authorization token missing.")
-
-        token = auth.split(" ")[1]
-
-        payload = JWTService.verify_token(token)
+        payload = _teacher_payload()
 
         dashboard = TeacherService.get_dashboard(
             db,
@@ -344,7 +342,7 @@ def teacher_dashboard():
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -355,14 +353,7 @@ def start_session(class_id):
 
     try:
 
-        auth = request.headers.get("Authorization")
-
-        if not auth:
-            raise Exception("Authorization token missing.")
-
-        token = auth.split(" ")[1]
-
-        payload = JWTService.verify_token(token)
+        payload = _teacher_payload()
 
         session = SessionService.start_session(
             db,
@@ -386,7 +377,7 @@ def start_session(class_id):
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -397,14 +388,7 @@ def end_session(class_id):
     db = get_db()
 
     try:
-        auth = request.headers.get("Authorization")
-
-        if not auth:
-            raise Exception("Authorization token missing.")
-
-        token = auth.split(" ")[1]
-
-        payload = JWTService.verify_token(token)
+        payload = _teacher_payload()
 
         session = SessionService.end_session(
             db,
@@ -430,7 +414,7 @@ def end_session(class_id):
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -443,13 +427,7 @@ def class_history(class_id):
     db = get_db()
 
     try:
-        auth = request.headers.get("Authorization")
-
-        if not auth:
-            raise Exception("Authorization token missing.")
-
-        token = auth.split(" ")[1]
-        payload = JWTService.verify_token(token)
+        payload = _teacher_payload()
 
         classroom = ClassroomService.get_classroom(
             db,
@@ -652,7 +630,7 @@ def class_history(class_id):
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -676,13 +654,7 @@ def teacher_future_engagement_predictions():
     db = get_db()
 
     try:
-        auth = request.headers.get("Authorization")
-
-        if not auth:
-            raise Exception("Authorization token missing.")
-
-        token = auth.split(" ")[1]
-        payload = JWTService.verify_token(token)
+        payload = _teacher_payload()
         teacher_id = payload["user_id"]
 
         from services.engagement_prediction_service import (
@@ -733,7 +705,7 @@ def teacher_future_engagement_predictions():
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
@@ -745,13 +717,7 @@ def teacher_attendance():
     db = get_db()
 
     try:
-        auth = request.headers.get("Authorization")
-
-        if not auth:
-            raise Exception("Authorization token missing.")
-
-        token = auth.split(" ")[1]
-        payload = JWTService.verify_token(token)
+        payload = _teacher_payload()
 
         records = AttendanceRepository.get_for_teacher(
             db,
@@ -824,8 +790,145 @@ def teacher_attendance():
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        }), http_status_for(e)
 
     finally:
         close_db(db)
 
+
+
+# =====================================================================
+# Student roster + per-class allowed students (class access control)
+# =====================================================================
+
+def _student_summary(student):
+    # Only what a teacher needs to pick students -- never password hashes
+    # or face data.
+    return {
+        "student_id": student.student_id,
+        "name": student.name,
+        "email": student.email,
+        "usn": student.usn,
+        "department": student.department,
+    }
+
+
+def _student_ids_from_body():
+    body = request.get_json(silent=True) or {}
+    ids = body.get("student_ids")
+    if not isinstance(ids, list) or not all(isinstance(i, int) and not isinstance(i, bool) for i in ids):
+        raise Exception("student_ids must be a list of integer student ids.")
+    return ids
+
+
+@teacher_bp.route("/teacher/students", methods=["GET"])
+def list_students_for_teacher():
+    """Every registered student, flagged with whether they're on this
+    teacher's roster."""
+
+    db = get_db()
+
+    try:
+        from repositories.active import RosterRepository
+
+        payload = _teacher_payload()
+        roster = set(RosterRepository.get_student_ids(db, payload["user_id"]))
+
+        return jsonify({
+            "success": True,
+            "students": [
+                {**_student_summary(s), "in_roster": s.student_id in roster}
+                for s in StudentRepository.list_all(db)
+            ],
+            "roster_student_ids": sorted(roster),
+        }), 200
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), http_status_for(e)
+
+    finally:
+        close_db(db)
+
+
+@teacher_bp.route("/teacher/roster", methods=["PUT"])
+def save_teacher_roster():
+    db = get_db()
+
+    try:
+        from repositories.active import RosterRepository
+
+        payload = _teacher_payload()
+        ids = _student_ids_from_body()
+
+        for student_id in ids:
+            if not StudentRepository.get_by_id(db, student_id):
+                raise Exception(f"Student {student_id} does not exist.")
+
+        saved = RosterRepository.set_student_ids(db, payload["user_id"], ids)
+
+        return jsonify({"success": True, "roster_student_ids": saved}), 200
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), http_status_for(e)
+
+    finally:
+        close_db(db)
+
+
+@teacher_bp.route("/teacher/classroom/<int:class_id>/students", methods=["GET"])
+def get_class_allowed_students(class_id):
+    """The class's allowed students, plus the teacher's roster to choose
+    from (details for the union of both)."""
+
+    db = get_db()
+
+    try:
+        from repositories.active import RosterRepository
+
+        payload = _teacher_payload()
+        allowed = EnrollmentService.get_allowed_students(db, payload["user_id"], class_id)
+        roster = RosterRepository.get_student_ids(db, payload["user_id"])
+
+        students = []
+        for student_id in sorted(set(allowed) | set(roster)):
+            student = StudentRepository.get_by_id(db, student_id)
+            if student:
+                students.append({
+                    **_student_summary(student),
+                    "allowed": student_id in allowed,
+                    "in_roster": student_id in roster,
+                })
+
+        return jsonify({
+            "success": True,
+            "class_id": class_id,
+            "allowed_student_ids": allowed,
+            "roster_student_ids": roster,
+            "students": students,
+            "is_live": SessionRepository.get_active_session(db, class_id) is not None,
+        }), 200
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), http_status_for(e)
+
+    finally:
+        close_db(db)
+
+
+@teacher_bp.route("/teacher/classroom/<int:class_id>/students", methods=["PUT"])
+def set_class_allowed_students(class_id):
+    db = get_db()
+
+    try:
+        payload = _teacher_payload()
+        allowed = EnrollmentService.set_allowed_students(
+            db, payload["user_id"], class_id, _student_ids_from_body()
+        )
+
+        return jsonify({"success": True, "class_id": class_id, "allowed_student_ids": allowed}), 200
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), http_status_for(e)
+
+    finally:
+        close_db(db)

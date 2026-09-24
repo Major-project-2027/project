@@ -28,6 +28,10 @@ class StudentRepository:
             .filter(Student.student_id == student_id)
             .first()
         )
+
+    @staticmethod
+    def list_all(db: Session):
+        return db.query(Student).order_by(Student.student_id).all()
     @staticmethod
     def get_student_by_email(db: Session, email: str):
         return (

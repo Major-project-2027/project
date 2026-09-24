@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react'
 import { MicOff, VideoOff, Hand, ShieldAlert } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
 import { ConfidenceRing } from '@/components/monitoring/ConfidenceRing'
+import { StreamVideo } from '@/components/classroom/StreamVideo'
 import { cn, engagementTone } from '@/lib/utils'
 import type { StudentLiveState } from '@/types/domain'
 
@@ -13,26 +13,17 @@ const TONE_RING = {
 
 export function VideoTile({
   student,
+  stream,
   onSelect,
   selected,
 }: {
   student: StudentLiveState
+  // The student's live WebRTC stream (video + audio), if connected.
+  stream?: MediaStream | null
   onSelect?: () => void
   selected?: boolean
 }) {
   const tone = engagementTone(student.currentEngagement)
-
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-
-  useEffect(() => {
-    const video = document.getElementById(
-      `student-video-${student.studentId}`
-    ) as HTMLVideoElement | null
-
-    if (video) {
-      videoRef.current = video
-    }
-  }, [student.studentId])
 
   return (
     <button
@@ -43,17 +34,17 @@ export function VideoTile({
         student.activeAlert && 'ring-2 ' + TONE_RING.critical,
       )}
     >
-      {/* Camera / avatar */}
-      {student.cameraOn ? (
-        <video
-          id={`student-video-${student.studentId}`}
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="absolute inset-0 h-full w-full object-cover"
+      {/* Live stream stays mounted (so the student's audio keeps playing
+          when their camera is off); the avatar covers it when off. */}
+      <div className={cn('absolute inset-0', !student.cameraOn && 'invisible')}>
+        <StreamVideo
+          stream={stream ?? null}
+          muted={!student.micOn}
+          testId={`student-video-${student.studentId}`}
         />
-      ) : (
+      </div>
+
+      {student.cameraOn ? null : (
         <div className="absolute inset-0 flex items-center justify-center">
           <Avatar
             name={student.studentName}

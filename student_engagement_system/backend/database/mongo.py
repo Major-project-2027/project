@@ -100,6 +100,9 @@ COLLECTION_ALERTS = "alerts"
 COLLECTION_ATTENDANCE = "attendance"
 COLLECTION_FUTURE_ENGAGEMENT_PREDICTIONS = "future_engagement_predictions"
 COLLECTION_COGNITIVE_STATE_SUMMARIES = "cognitive_state_summaries"
+# A teacher's managed student roster ({teacher_id, student_id} pairs) --
+# the students offered when choosing who may join each class.
+COLLECTION_TEACHER_ROSTER = "teacher_roster"
 
 ALL_COLLECTIONS = (
     COLLECTION_STUDENTS,
@@ -113,6 +116,7 @@ ALL_COLLECTIONS = (
     COLLECTION_ATTENDANCE,
     COLLECTION_FUTURE_ENGAGEMENT_PREDICTIONS,
     COLLECTION_COGNITIVE_STATE_SUMMARIES,
+    COLLECTION_TEACHER_ROSTER,
 )
 
 
@@ -162,6 +166,11 @@ def ensure_indexes(db: Optional[Database] = None) -> None:
         [("student_id", 1), ("class_id", 1)], unique=True
     )
     database[COLLECTION_ENROLLMENTS].create_index("class_id")
+
+    # ---------------- teacher_roster ----------------
+    database[COLLECTION_TEACHER_ROSTER].create_index(
+        [("teacher_id", 1), ("student_id", 1)], unique=True
+    )
 
     # ---------------- class_sessions ----------------
     # SessionRepository.get_active_session (class_id + is_active),

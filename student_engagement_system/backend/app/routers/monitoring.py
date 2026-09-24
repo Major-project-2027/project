@@ -1,5 +1,9 @@
 import base64
+import json
 import time
+import uuid
+from collections import deque
+from datetime import datetime, timezone
 from typing import Optional
 
 try:
@@ -12,10 +16,23 @@ from models.classroom import Classroom  # noqa: F401 -- registers `classrooms` t
 from models.teacher import Teacher  # noqa: F401 -- registers `teachers` table for Session's FK
 from repositories.active import SessionRepository, AlertRepository, EngagementRepository
 from services import ai_state
+from services.access_control import (
+    AccessDenied,
+    Unauthenticated,
+    http_status_for,
+    payload_from_auth_header,
+    payload_from_token,
+    require_class_member,
+    require_class_owner,
+    require_role,
+    require_student_allowed,
+)
 import cv2
 import numpy as np
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, Header, WebSocket, WebSocketDisconnect, Query
+from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 
 from services.ai_service import process_frame
@@ -80,17 +97,33 @@ def get_active_alert(result):
     return None
 
 
+def _error_response(exc):
+    return JSONResponse(
+        status_code=http_status_for(exc),
+        content={"success": False, "error": str(exc)},
+    )
+
+
 @router.get("/live-monitor")
-def live_monitor(class_id: Optional[int] = Query(default=None)):
+def live_monitor(
+    class_id: Optional[int] = Query(default=None),
+    authorization: Optional[str] = Header(default=None),
+):
     """Latest known AI result per student, scoped to ONE class's current
-    live session. Without a class_id (legacy callers) nothing is returned
-    rather than falling back to some other class's data."""
+    live session -- for that class's own teacher only. Without a class_id
+    (legacy callers) nothing is returned rather than falling back to some
+    other class's data."""
 
     if class_id is None:
         return {"success": True, "data": []}
 
     db = get_db()
     try:
+        try:
+            teacher_id = require_role(payload_from_auth_header(authorization), "teacher")
+            require_class_owner(db, teacher_id, class_id)
+        except (Unauthenticated, AccessDenied) as exc:
+            return _error_response(exc)
         active_session = SessionRepository.get_active_session(db, class_id)
     finally:
         close_db(db)
@@ -196,59 +229,270 @@ def ai_model_sources():
 
 
 # ---------------------------------------------------------------------------
-# WebRTC signaling
+# WebRTC signaling + classroom hub (presence, chat, whiteboard)
 # ---------------------------------------------------------------------------
+#
+# ONE authenticated WebSocket per participant per class, shared by WebRTC
+# signaling, presence, chat, the whiteboard, AI results and "class ended".
+#
+# * Identity comes only from the JWT (?token=...), verified on connect:
+#   the class's own teacher, or a student the teacher allowed while the
+#   class is live. Anyone else gets {"type": "error", "code": 403} and the
+#   socket is closed -- changing the class id in the URL doesn't help.
+# * Every message is scoped to this class's room. WebRTC messages are
+#   delivered only to their addressee ("to"); students can only address
+#   the teacher. The server stamps the sender -- ids/names in client
+#   messages are never trusted.
+# * Whiteboard and class_ended are teacher-only (enforced here). Board
+#   strokes and recent chat are kept in memory for the room's lifetime so
+#   late joiners catch up; nothing here is written to the database.
+#
+# In-process state: FastAPI must keep running a single worker (see
+# render.yaml), as for ai_state.
 
-_connections: dict[str, set[WebSocket]] = {}
+
+class _Member:
+    __slots__ = ("websocket", "key", "role", "user_id", "name", "media", "connected_at")
+
+    def __init__(self, websocket, role, user_id, name):
+        self.websocket = websocket
+        self.role = role
+        self.user_id = user_id
+        self.name = name
+        self.key = f"{role}:{user_id}"
+        self.media = {"camera": False, "mic": False, "screen": False, "hand": False}
+        self.connected_at = datetime.now(timezone.utc).isoformat()
+
+    def public(self):
+        # Name + role + media state only -- nothing private.
+        return {
+            "key": self.key,
+            "role": self.role,
+            "userId": str(self.user_id),
+            "name": self.name,
+            "media": dict(self.media),
+            "connectedAt": self.connected_at,
+        }
 
 
-@router.websocket(
-    "/ws/classes/{class_id}/signaling"
-)
+class _Room:
+    MAX_STROKES = 20000
+    MAX_CHAT = 200
+
+    def __init__(self):
+        self.members: dict = {}
+        self.whiteboard = {"open": False, "strokes": []}
+        self.chat: deque = deque(maxlen=self.MAX_CHAT)
+
+
+_rooms: dict = {}
+
+_TEACHER_ONLY = {"wb_open", "wb_close", "wb_stroke", "wb_clear", "class_ended"}
+_WEBRTC = {"offer", "answer", "candidate"}
+
+
+async def _send(member, payload):
+    try:
+        await member.websocket.send_json(payload)
+    except Exception:  # noqa: BLE001 -- a dead socket is cleaned up by its own handler
+        pass
+
+
+async def _broadcast(room, payload, exclude=None):
+    for member in list(room.members.values()):
+        if member.key != exclude:
+            await _send(member, payload)
+
+
+def _authorize_ws(token, class_id):
+    db = get_db()
+    try:
+        payload = payload_from_token(token)
+        return require_class_member(db, payload, class_id, require_live_for_students=True)
+    finally:
+        close_db(db)
+
+
+def _clean_stroke(raw):
+    """Validated whiteboard stroke chunk with normalized 0..1 points."""
+    if not isinstance(raw, dict):
+        return None
+    points = raw.get("points")
+    if not isinstance(points, list) or not (1 <= len(points) <= 1000):
+        return None
+    clean = []
+    for point in points:
+        if not (isinstance(point, (list, tuple)) and len(point) == 2):
+            return None
+        x, y = point
+        if not all(isinstance(v, (int, float)) for v in (x, y)):
+            return None
+        clean.append([round(min(max(float(x), 0.0), 1.0), 4), round(min(max(float(y), 0.0), 1.0), 4)])
+    width = raw.get("width", 3)
+    width = min(max(float(width), 1.0), 60.0) if isinstance(width, (int, float)) else 3.0
+    color = str(raw.get("color", "#111827"))[:16]
+    mode = "erase" if raw.get("mode") == "erase" else "pen"
+    return {"id": str(raw.get("id", ""))[:64], "points": clean, "width": width, "color": color, "mode": mode}
+
+
+@router.websocket("/ws/classes/{class_id}/signaling")
 async def classroom_signaling(
     websocket: WebSocket,
-    class_id: str
+    class_id: int,
+    token: Optional[str] = Query(default=None),
 ):
-
     await websocket.accept()
 
-    if class_id not in _connections:
-        _connections[class_id] = set()
+    try:
+        identity = await run_in_threadpool(_authorize_ws, token, class_id)
+    except (Unauthenticated, AccessDenied) as exc:
+        await websocket.send_json({"type": "error", "code": http_status_for(exc), "message": str(exc)})
+        await websocket.close(code=4401 if isinstance(exc, Unauthenticated) else 4403)
+        return
 
-    _connections[class_id].add(websocket)
+    member = _Member(websocket, identity["role"], identity["user_id"], identity["name"])
+    room = _rooms.setdefault(class_id, _Room())
+
+    # One connection per person per class: a reload or second tab replaces
+    # the old one instead of leaving a ghost participant behind.
+    previous = room.members.get(member.key)
+    room.members[member.key] = member
+    if previous is not None:
+        await _send(previous, {"type": "error", "code": 409, "message": "You joined this class from another tab or device."})
+        try:
+            await previous.websocket.close(code=4409)
+        except Exception:  # noqa: BLE001
+            pass
+
+    await _send(member, {
+        "type": "welcome",
+        "self": member.public(),
+        "participants": [m.public() for m in room.members.values() if m.key != member.key],
+        "whiteboard": room.whiteboard,
+        "chat": list(room.chat),
+    })
+    await _broadcast(room, {"type": "participant_joined", "participant": member.public()}, exclude=member.key)
 
     try:
-
         while True:
+            text = await websocket.receive_text()
+            try:
+                message = json.loads(text)
+            except ValueError:
+                continue
+            if not isinstance(message, dict):
+                continue
 
-            message = await websocket.receive_json()
+            kind = message.get("type")
 
-            # Forward signaling messages to the other participant(s)
-            # in the same classroom.
+            if kind == "ping":
+                await _send(member, {"type": "pong"})
+                continue
 
-            for connection in _connections[class_id]:
+            if kind in _TEACHER_ONLY and member.role != "teacher":
+                await _send(member, {"type": "error", "code": 403, "message": "Only the teacher can do that."})
+                continue
 
-                if connection is not websocket:
+            if kind in _WEBRTC:
+                target = message.get("to")
+                if member.role == "student":
+                    # Students talk to the teacher only.
+                    recipients = [m for m in room.members.values() if m.role == "teacher"]
+                else:
+                    recipient = room.members.get(target) if isinstance(target, str) else None
+                    recipients = [recipient] if recipient is not None and recipient.role == "student" else []
+                relayed = {
+                    "type": kind,
+                    "from": member.key,
+                    "fromRole": member.role,
+                    "fromName": member.name,
+                }
+                if member.role == "student":
+                    relayed["studentId"] = str(member.user_id)
+                    relayed["studentName"] = member.name
+                for field in ("offer", "answer", "candidate"):
+                    if field in message:
+                        relayed[field] = message[field]
+                for recipient in recipients:
+                    await _send(recipient, relayed)
+                continue
 
-                    await connection.send_json(
-                        message
-                    )
+            if kind == "ai_result":
+                if member.role != "student":
+                    continue
+                payload = {
+                    "type": "ai_result",
+                    "studentId": str(member.user_id),
+                    "studentName": member.name,
+                    "data": message.get("data"),
+                }
+                for recipient in list(room.members.values()):
+                    if recipient.role == "teacher":
+                        await _send(recipient, payload)
+                continue
+
+            if kind == "media_state":
+                for field in ("camera", "mic", "screen", "hand"):
+                    if isinstance(message.get(field), bool):
+                        if field == "screen" and member.role != "teacher":
+                            continue  # students can't screen-share
+                        member.media[field] = message[field]
+                await _broadcast(room, {"type": "participant_updated", "participant": member.public()})
+                continue
+
+            if kind == "chat":
+                body = str(message.get("text", "")).strip()[:1000]
+                if not body:
+                    continue
+                chat = {
+                    "type": "chat",
+                    "id": uuid.uuid4().hex,
+                    "senderKey": member.key,
+                    "senderName": member.name,
+                    "senderRole": member.role,
+                    "text": body,
+                    "ts": datetime.now(timezone.utc).isoformat(),
+                }
+                room.chat.append(chat)
+                await _broadcast(room, chat)
+                continue
+
+            if kind in ("wb_open", "wb_close"):
+                room.whiteboard["open"] = kind == "wb_open"
+                await _broadcast(room, {"type": kind}, exclude=member.key)
+                continue
+
+            if kind == "wb_stroke":
+                stroke = _clean_stroke(message.get("stroke"))
+                if stroke is None:
+                    continue
+                strokes = room.whiteboard["strokes"]
+                strokes.append(stroke)
+                if len(strokes) > _Room.MAX_STROKES:
+                    del strokes[: len(strokes) - _Room.MAX_STROKES]
+                await _broadcast(room, {"type": "wb_stroke", "stroke": stroke}, exclude=member.key)
+                continue
+
+            if kind == "wb_clear":
+                room.whiteboard["strokes"] = []
+                await _broadcast(room, {"type": "wb_clear"}, exclude=member.key)
+                continue
+
+            if kind == "class_ended":
+                await _broadcast(room, {"type": "class_ended"}, exclude=member.key)
+                continue
 
     except WebSocketDisconnect:
         pass
+    except Exception:  # noqa: BLE001 -- never let one bad socket kill the room
+        pass
 
     finally:
-
-        _connections.get(
-            class_id,
-            set()
-        ).discard(websocket)
-
-        if (
-            class_id in _connections
-            and not _connections[class_id]
-        ):
-            del _connections[class_id]
+        if room.members.get(member.key) is member:
+            del room.members[member.key]
+            await _broadcast(room, {"type": "participant_left", "key": member.key})
+        if not room.members and _rooms.get(class_id) is room:
+            del _rooms[class_id]
 
 
 # ---------------------------------------------------------------------------
@@ -262,12 +506,42 @@ class AIFrameRequest(BaseModel):
     student_name: str
 
 
+# (class_id, student_id) -> monotonic expiry of a successful
+# "allowed in this class" check, so the per-frame path doesn't add a
+# database round trip every frame. Revocations take effect within this
+# window.
+_frame_auth_cache: dict = {}
+_FRAME_AUTH_TTL_SECONDS = 60.0
+
+
+def _authorize_frame(db, authorization, request):
+    """The frame must come from a logged-in STUDENT, for themselves, in a
+    class their teacher allowed them into. student_id in the body must
+    match the token -- a student can't submit frames as someone else."""
+    student_id = require_role(payload_from_auth_header(authorization), "student")
+    if student_id != request.student_id:
+        raise AccessDenied("You can only submit frames for your own account.")
+    key = (request.class_id, student_id)
+    if _frame_auth_cache.get(key, 0.0) > time.monotonic():
+        return
+    require_student_allowed(db, student_id, request.class_id)
+    _frame_auth_cache[key] = time.monotonic() + _FRAME_AUTH_TTL_SECONDS
+
+
 @router.post("/ai/analyze-frame")
-def analyze_frame(request: AIFrameRequest):
+def analyze_frame(
+    request: AIFrameRequest,
+    authorization: Optional[str] = Header(default=None),
+):
 
     db = get_db()
 
     try:
+        try:
+            _authorize_frame(db, authorization, request)
+        except (Unauthenticated, AccessDenied) as exc:
+            return _error_response(exc)
+
         # ----------------------------------------------------
         # A session must be live for this class, or there is
         # nothing to analyze -- and nothing further should run.
