@@ -49,3 +49,11 @@ student_engagement_system/backend/services/friend_ai/gaze_headpose_pkg/ml/traini
 *.db
 *.sqlite
 *.sqlite3
+
+# Full-project snapshot archives (each bundles old copies of the source
+# plus frontend/frontend_old node_modules). Not used by the application;
+# previously LFS-tracked and pulled on every Render clone (~850MB).
+# Backed up outside the repo, left on disk locally.
+demo.zip
+dome.zip
+before cursor.zip
