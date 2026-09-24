@@ -706,54 +706,6 @@ def student_class_history(class_id):
         close_db(db)
 
 
-@student_bp.route("/student/future-engagement-prediction", methods=["GET"])
-def student_future_engagement_prediction():
-    """The logged-in student's own cross-session HISTORICAL/FUTURE
-    engagement prediction ONLY -- built from their own COMPLETED sessions
-    (never the current live one). Separate feature from /live-monitor's
-    per-session live prediction; see
-    services/engagement_prediction_service.py's get_future_prediction()."""
-
-    db = get_db()
-
-    try:
-        auth = request.headers.get("Authorization")
-
-        if not auth:
-            raise Exception("Authorization token missing.")
-
-        token = auth.split(" ")[1]
-        payload = JWTService.verify_token(token)
-        student_id = payload["user_id"]
-
-        from services.engagement_prediction_service import (
-            EngagementPredictionService,
-            future_prediction_status_label,
-        )
-
-        result = EngagementPredictionService.get_future_prediction(
-            db, student_id
-        )
-
-        return jsonify({
-            "success": True,
-            "prediction": {
-                **result,
-                "status_label": future_prediction_status_label(result),
-            },
-        }), 200
-
-    except Exception as e:
-
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 400
-
-    finally:
-        close_db(db)
-
-
 @student_bp.route("/student/attendance", methods=["GET"])
 def student_attendance():
 

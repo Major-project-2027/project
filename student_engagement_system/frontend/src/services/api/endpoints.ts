@@ -8,7 +8,7 @@ import {
 import type {
   ClassSession, StudentLiveState, AIAlert, AttendanceRecord,
   EngagementTrendPoint, AppNotification, Test, User, LiveClassSummary,
-  FutureEngagementPrediction, FutureEngagementPredictionRow,
+  FutureEngagementPredictionRow,
 } from '@/types/domain'
 
 // ----------------------------------------------------------------------------
@@ -900,35 +900,9 @@ export const faceApi = {
 // ----------------------------------------------------------------------------
 // FUTURE ENGAGEMENT PREDICTION (HISTORICAL / cross-session -- a SEPARATE
 // feature from monitoringApi's live, per-session prediction above)
-// GET /student/future-engagement-prediction · GET /teacher/future-engagement-predictions
+// GET /teacher/future-engagement-predictions
 // ----------------------------------------------------------------------------
 export const futureEngagementApi = {
-  // The logged-in student's own cross-session prediction only -- the
-  // backend derives the student from the auth token, never from a
-  // client-supplied id.
-  student: async (): Promise<FutureEngagementPrediction> => {
-    const token = sessionStorage.getItem('access_token')
-
-    if (!token) {
-      throw new Error('Please login again.')
-    }
-
-    const response = await fetch(
-      `${FLASK_API_BASE_URL}/student/future-engagement-prediction`,
-      { headers: { Authorization: `Bearer ${token}` } },
-    )
-
-    const result = await response.json()
-
-    if (!response.ok || !result.success) {
-      throw new Error(
-        result.error || 'Unable to fetch future engagement prediction',
-      )
-    }
-
-    return result.prediction as FutureEngagementPrediction
-  },
-
   // Every student in the teacher's own classrooms, split into `ready`
   // (sorted ascending by predictedScore -- lowest first) and
   // `insufficient` (insufficient_data/unavailable/error -- never

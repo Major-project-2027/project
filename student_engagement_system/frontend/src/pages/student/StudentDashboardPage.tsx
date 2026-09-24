@@ -1,7 +1,6 @@
 import {
   CalendarCheck2,
   Plus,
-  Sparkles,
 } from "lucide-react";
 
 import { useQuery } from "@tanstack/react-query";
@@ -21,18 +20,8 @@ import {
 } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Badge } from "@/components/ui/Badge";
 
-import {
-  classesApi,
-  futureEngagementApi,
-} from "@/services/api/endpoints";
-
-import {
-  formatDateTime,
-  futureEngagementLabelText,
-  futureEngagementLabelTone,
-} from "@/lib/utils";
+import { classesApi } from "@/services/api/endpoints";
 
 export function StudentDashboardPage() {
   const [joinOpen, setJoinOpen] = useState(false);
@@ -48,22 +37,6 @@ export function StudentDashboardPage() {
 });
   console.log("STUDENT CLASSES:", classesQuery.data);
   console.log("STUDENT CLASSES ERROR:", classesQuery.error);
-
-  // ------------------------------------------------------------
-  // FUTURE ENGAGEMENT PREDICTION -- built from this student's own
-  // COMPLETED sessions only (never a live/current session, never a
-  // classmate's data -- the backend derives the student from the auth
-  // token). Not gated on being in a live class at all. A modest refetch
-  // interval is enough since the backend itself only actually
-  // recomputes when new completed-session data exists.
-  // ------------------------------------------------------------
-
-  const futurePredictionQuery = useQuery({
-    queryKey: ["future-engagement-prediction"],
-    queryFn: futureEngagementApi.student,
-    refetchOnMount: "always",
-    refetchInterval: 60000,
-  });
 
   // ------------------------------------------------------------
   // CLASSES
@@ -88,77 +61,6 @@ export function StudentDashboardPage() {
             {/* -------------------------------------------------- */}
 
             <LiveClassesCard />
-
-            {/* -------------------------------------------------- */}
-            {/* FUTURE ENGAGEMENT PREDICTION -- historical/cross-  */}
-            {/* session, based on completed session history        */}
-            {/* -------------------------------------------------- */}
-
-            <Card>
-              <CardHeader className="pb-3">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-focus-500" />
-                    Future engagement prediction
-                  </CardTitle>
-                  <CardDescription>
-                    Predicted engagement for your next class, based on your completed session history
-                  </CardDescription>
-                </div>
-              </CardHeader>
-
-              <CardContent className="pt-3">
-                {futurePredictionQuery.isLoading ? (
-                  <Skeleton className="h-24" />
-                ) : !futurePredictionQuery.data || futurePredictionQuery.data.status === "insufficient_data" ? (
-                  <div>
-                    <p className="text-sm font-medium text-text-light dark:text-text-dark">
-                      Not enough historical data
-                    </p>
-                    <p className="mt-1 text-sm text-textmuted-light dark:text-textmuted-dark">
-                      Complete at least 3 sessions to generate a future engagement prediction.
-                    </p>
-                    {futurePredictionQuery.data && (
-                      <p className="mt-1 text-xs text-textmuted-light dark:text-textmuted-dark">
-                        {futurePredictionQuery.data.historical_sessions_used}/3 completed sessions so far
-                      </p>
-                    )}
-                  </div>
-                ) : futurePredictionQuery.data.status !== "ready" || typeof futurePredictionQuery.data.prediction_score !== "number" ? (
-                  <p className="text-sm text-textmuted-light dark:text-textmuted-dark">
-                    Future engagement prediction is temporarily unavailable
-                    {futurePredictionQuery.data.reason ? `: ${futurePredictionQuery.data.reason}` : "."}
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <p className="text-xs text-textmuted-light dark:text-textmuted-dark">
-                          Predicted future engagement
-                        </p>
-                        <p className="text-2xl font-semibold text-text-light dark:text-text-dark">
-                          {Math.round(futurePredictionQuery.data.prediction_score)}%
-                        </p>
-                      </div>
-
-                      <Badge variant={futureEngagementLabelTone(futurePredictionQuery.data.status_label)}>
-                        {futureEngagementLabelText(futurePredictionQuery.data.status_label)}
-                      </Badge>
-                    </div>
-
-                    <p className="text-xs text-textmuted-light dark:text-textmuted-dark">
-                      Historical sessions analyzed: {futurePredictionQuery.data.historical_sessions_used}
-                    </p>
-
-                    {futurePredictionQuery.data.generated_at && (
-                      <p className="text-xs text-textmuted-light dark:text-textmuted-dark">
-                        Last updated: {formatDateTime(futurePredictionQuery.data.generated_at)}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
 
             {/* -------------------------------------------------- */}
             {/* UPCOMING CLASSES                                  */}
