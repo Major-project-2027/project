@@ -70,3 +70,11 @@ student_engagement_system/datasets/raw/fer2013/fer2013.csv
 # not source; loguru and backend/config.py recreate log files/folders on
 # demand. logs/.gitkeep stays tracked so the folder exists on clone.
 *.log
+
+# Byte-identical duplicate YOLO weights. The kept, tracked copies are
+# student_engagement_system/backend/yolov8n.pt and the friend package's
+# models/object_detection/yolo11n.pt (sources of the .onnx files the app
+# actually runs). Anchored paths so only these copies are ignored.
+/yolo11n.pt
+/student_engagement_system/yolo11n.pt
+/student_engagement_system/yolov8n.pt
