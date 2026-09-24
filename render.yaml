@@ -41,19 +41,10 @@ services:
     # PyPI distribution from dlib-bin. --no-deps stops pip from ever
     # attempting that; requirements.txt deliberately excludes these
     # three for the same reason (see its own comment).
-    # Step 2: TEMPORARY, first-deploy-only diagnostic (remove the
-    # `ls -la ...;` segment once confirmed) -- prints the size of every
-    # LFS-tracked model file this service loads to the build log before
-    # installing anything else, so we can see whether Render's clone
-    # step already resolved real LFS content (tens of MB each) or left
-    # ~130-byte pointer files. Uses `;`, not `&&`, so a missing/renamed
-    # path can never fail the build. Does not fetch/modify/replace any
-    # file.
-    # Step 3: the rest of requirements.txt, which now also pins
-    # torch/torchvision to PyTorch's CPU-only wheel build via
-    # --extra-index-url (see that file's comment) instead of letting
-    # ultralytics pull the default CUDA-bundled Linux wheel.
-    buildCommand: 'pip install "setuptools==80.9.0" && pip install dlib-bin==20.0.1 && pip install --no-deps face-recognition==1.3.0 face-recognition-models==0.3.0 && ls -la yolov8n.pt face_landmarker.task "../MODEL_INTEGRATION_PACKAGE (2)/MODEL_INTEGRATION_PACKAGE/models/object_detection/yolo11n.pt" "../MODEL_INTEGRATION_PACKAGE (2)/MODEL_INTEGRATION_PACKAGE/models/emotion/emotion_model.keras" ; pip install -r requirements.txt'
+    # Step 2: the rest of requirements.txt. No torch/ultralytics and no
+    # tensorflow/keras: YOLO, the friend's emotion model, and both LSTM
+    # engagement models all run on onnxruntime (see that file's comment).
+    buildCommand: 'pip install "setuptools==80.9.0" && pip install dlib-bin==20.0.1 && pip install --no-deps face-recognition==1.3.0 face-recognition-models==0.3.0 && pip install -r requirements.txt'
     # gunicorn, not `python app.py` -- app.run(debug=True) is a dev-only
     # server that doesn't handle concurrent requests safely. Points at
     # wsgi:app, NOT app:app -- backend/app.py (Flask) and backend/app/
@@ -61,8 +52,19 @@ services:
     # `import app` resolves to the PACKAGE, not app.py, so gunicorn
     # app:app would fail. wsgi.py loads app.py unambiguously by file
     # path; see that file's docstring.
-    startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT
+    # --timeout 120: gunicorn's default 30s kills a worker whose request
+    # runs longer, returning a 502. The first face-verification or
+    # future-prediction request after a (cold) start loads dlib's face
+    # models / the LSTM on the free tier's 0.1 CPU, which can exceed 30s.
+    startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --timeout 120
+    # "/" returns 200 without touching the database, so Render's frequent
+    # health checks never depend on MongoDB Atlas latency.
+    healthCheckPath: /
     envVars:
+      # Pinned to the version requirements.txt was frozen and verified
+      # against, instead of whatever Render's default is at build time.
+      - key: PYTHON_VERSION
+        value: 3.13.7
       - key: SECRET_KEY
         sync: false
       - key: DB_BACKEND
@@ -122,17 +124,23 @@ services:
     plan: free
     rootDir: student_engagement_system/backend
     # setuptools pin, then dlib-bin / face-recognition --no-deps step,
-    # then the TEMPORARY first-deploy-only LFS diagnostic, then
-    # requirements.txt (which now also pins CPU-only torch/torchvision)
-    # -- see the matching comment on engagement-flask-api above for the
-    # full explanation of each step; identical here since both services
-    # install from the same requirements.txt. FastAPI's own routers don't
-    # currently import face_recognition (confirmed), so this pin is
-    # preventive here rather than fixing an observed crash -- it costs
-    # nothing and keeps both services' build steps identical.
-    buildCommand: 'pip install "setuptools==80.9.0" && pip install dlib-bin==20.0.1 && pip install --no-deps face-recognition==1.3.0 face-recognition-models==0.3.0 && ls -la yolov8n.pt face_landmarker.task "../MODEL_INTEGRATION_PACKAGE (2)/MODEL_INTEGRATION_PACKAGE/models/object_detection/yolo11n.pt" "../MODEL_INTEGRATION_PACKAGE (2)/MODEL_INTEGRATION_PACKAGE/models/emotion/emotion_model.keras" ; pip install -r requirements.txt'
+    # then requirements.txt -- see the matching comment on
+    # engagement-flask-api above for the full explanation of each step;
+    # identical here since both services install from the same
+    # requirements.txt. FastAPI's own routers don't currently import
+    # face_recognition (confirmed), so this pin is preventive here rather
+    # than fixing an observed crash -- it costs nothing and keeps both
+    # services' build steps identical.
+    buildCommand: 'pip install "setuptools==80.9.0" && pip install dlib-bin==20.0.1 && pip install --no-deps face-recognition==1.3.0 face-recognition-models==0.3.0 && pip install -r requirements.txt'
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # "/" rather than "/health": /health pings MongoDB on every call (up to
+    # a 3s timeout), which would tie liveness to Atlas latency and add a
+    # database round-trip to every health check. "/" is DB-free.
+    healthCheckPath: /
     envVars:
+      # Same pin as engagement-flask-api.
+      - key: PYTHON_VERSION
+        value: 3.13.7
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
