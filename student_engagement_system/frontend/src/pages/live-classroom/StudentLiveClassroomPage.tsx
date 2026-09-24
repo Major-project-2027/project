@@ -104,6 +104,9 @@ export function StudentLiveClassroomPage() {
 
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const aiCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  // True while an /ai/analyze-frame request is still running -- see the
+  // AI analysis interval below.
+  const aiRequestInFlightRef = useRef(false)
 
   const peerRef = useRef<RTCPeerConnection | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
@@ -431,12 +434,24 @@ export function StudentLiveClassroomPage() {
         return
       }
 
+      // Never overlap requests: on Render's free tier one frame takes
+      // ~1-8s, so posting every 600ms regardless piled requests up
+      // server-side -- results arrived for frames sent long before (e.g.
+      // still "100" after a phone appeared) and the backlog of concurrent
+      // inferences risked OOM restarts. Skip this tick instead; the next
+      // frame goes out as soon as the previous result is back.
+      if (aiRequestInFlightRef.current) {
+        return
+      }
+
       const video = videoRef.current
 
       // Camera/video is not ready yet.
       if (!video || video.readyState < 2) {
         return
       }
+
+      aiRequestInFlightRef.current = true
 
       try {
         // Create canvas once.
@@ -597,6 +612,8 @@ export function StudentLiveClassroomPage() {
           'Unable to send frame to AI:',
           error,
         )
+      } finally {
+        aiRequestInFlightRef.current = false
       }
     }, 600)
     // 600ms (~1.6 fps) instead of the previous 2000ms. A blink only lasts
