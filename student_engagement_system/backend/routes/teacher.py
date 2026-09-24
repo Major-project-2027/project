@@ -146,8 +146,12 @@ def get_teacher_classrooms():
             payload["user_id"]
         )
 
+        # Batched: one summarize() per classroom was too slow on Render
+        # for teachers with many classrooms (see summarize_many()).
+        summaries = ClassStatusService.summarize_many(db, classrooms)
+
         def serialize(classroom):
-            summary = ClassStatusService.summarize(db, classroom)
+            summary = summaries[classroom.class_id]
 
             return {
                 "class_id": classroom.class_id,
