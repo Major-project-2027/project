@@ -86,3 +86,8 @@ student_engagement_system/datasets/raw/fer2013/fer2013.csv
 # training notebooks stay tracked.
 anaconda_projects/
 Untitled*.ipynb
+
+# AI-assistant context dumps (whole-project text snapshots generated for
+# Claude sessions, ~2.5MB). Not used by the application; kept locally
+# only (backed up outside the repo).
+CLAUDE_*.txt
