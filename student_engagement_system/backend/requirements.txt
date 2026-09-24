@@ -70,7 +70,13 @@ motor==3.7.1
 # --- Computer vision / AI pipeline (backend/services/ai_service.py) ----
 numpy==2.2.4
 opencv-python==4.13.0.92
-mediapipe==0.10.35
+# 0.10.32, NOT newer: from 0.10.33 on, mediapipe's Linux wheel links
+# tasks/c/libmediapipe.so against the system libGLESv2.so.2/libEGL.so.1,
+# which Render's native Python runtime doesn't ship (and can't apt-get) --
+# every /ai/analyze-frame failed with "libGLESv2.so.2: cannot open shared
+# object file". 0.10.32 has no GL/EGL dependency and produced identical
+# process_frame() output to 0.10.35 on every test frame.
+mediapipe==0.10.32
 scipy==1.17.1
 onnxruntime==1.29.0
 Pillow==11.3.0
