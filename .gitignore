@@ -57,3 +57,10 @@ student_engagement_system/backend/services/friend_ai/gaze_headpose_pkg/ml/traini
 demo.zip
 dome.zip
 before cursor.zip
+
+# FER2013 training dataset (~300MB). Only read by training/evaluation
+# scripts (ml_models/emotion_recognition/train_emotion_model.py,
+# ml_models/evaluation/evaluate_emotion_fer2013.py), never by the running
+# application; previously LFS-tracked and pulled on every Render clone.
+# Backed up outside the repo, left on disk locally.
+student_engagement_system/datasets/raw/fer2013/fer2013.csv
