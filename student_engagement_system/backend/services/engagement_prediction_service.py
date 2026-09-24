@@ -55,6 +55,7 @@ how these were chosen and measured -- this is not a guess):
   genuine but early/low-confidence model output, not a mature one.
 """
 
+import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
@@ -127,7 +128,39 @@ STABLE_THRESHOLD = 70.0
 NO_PERSON_STATUS = "No Person Detected"
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
-MODEL_PATH = _PROJECT_ROOT / "ml_models" / "engagement_prediction" / "lstm_engagement_model.keras"
+_MODEL_DIR = _PROJECT_ROOT / "ml_models" / "engagement_prediction"
+
+# Which runtime loads BOTH LSTM models (this one and the future model
+# below): "onnx" (default) -- the .onnx exports of the same weights, run
+# through onnxruntime (see services/onnx_lstm_predictor.py for why and for
+# the parity verification), so neither process needs TensorFlow; or
+# "keras" -- the original .keras files through TensorFlow, kept as-is as
+# the rollback path (requires tensorflow installed). Anything else falls
+# back to "onnx", same convention as friend_ai/loader.py's _source().
+LSTM_BACKEND = os.environ.get("AI_LSTM_BACKEND", "onnx").strip().lower()
+if LSTM_BACKEND not in ("onnx", "keras"):
+    LSTM_BACKEND = "onnx"
+
+_MODEL_SUFFIX = ".onnx" if LSTM_BACKEND == "onnx" else ".keras"
+
+MODEL_PATH = _MODEL_DIR / f"lstm_engagement_model{_MODEL_SUFFIX}"
+
+
+def _load_lstm(path: Path):
+    """Load one LSTM with the selected backend. Both return an object with
+    the same predict(x, verbose=0) -> (batch, 1) contract, so callers don't
+    branch on the backend."""
+    if LSTM_BACKEND == "onnx":
+        from services.onnx_lstm_predictor import ONNXLSTMPredictor
+
+        return ONNXLSTMPredictor(path)
+
+    # Imported lazily so importing this module never pays the TensorFlow
+    # import cost, or risks crashing app startup -- same defensive
+    # pattern already used for the fallback emotion model in ai_service.py.
+    from tensorflow.keras.models import load_model
+
+    return load_model(path)
 
 STATUS_OK = "ok"
 STATUS_INSUFFICIENT_DATA = "insufficient_data"
@@ -210,12 +243,7 @@ FUTURE_ALERT_FEATURES = [
 # engagement_mean + one rate per FUTURE_ALERT_FEATURES entry.
 FUTURE_NUM_FEATURES = 1 + len(FUTURE_ALERT_FEATURES)
 
-FUTURE_MODEL_PATH = (
-    _PROJECT_ROOT
-    / "ml_models"
-    / "engagement_prediction"
-    / "lstm_future_engagement_model.keras"
-)
+FUTURE_MODEL_PATH = _MODEL_DIR / f"lstm_future_engagement_model{_MODEL_SUFFIX}"
 
 FUTURE_STATUS_INSUFFICIENT_DATA = "insufficient_data"
 FUTURE_STATUS_READY = "ready"
@@ -262,14 +290,9 @@ class EngagementPredictionService:
             return None
 
         try:
-            # Imported lazily so importing this module (and therefore the
-            # whole prediction feature) never pays the TensorFlow import
-            # cost, or risks crashing app startup, when no model file
-            # exists at all -- same defensive pattern already used for
-            # face_model/emotion_model in ai_service.py.
-            from tensorflow.keras.models import load_model
-
-            cls._model = load_model(MODEL_PATH)
+            # Backend (onnx/keras) and its lazy import are handled by
+            # _load_lstm() -- see LSTM_BACKEND above.
+            cls._model = _load_lstm(MODEL_PATH)
         except Exception as exc:  # noqa: BLE001 -- must degrade, never crash.
             cls._model_error = (
                 f"LSTM model file exists at {MODEL_PATH} but failed to "
@@ -470,9 +493,7 @@ class EngagementPredictionService:
             return None
 
         try:
-            from tensorflow.keras.models import load_model
-
-            cls._future_model = load_model(FUTURE_MODEL_PATH)
+            cls._future_model = _load_lstm(FUTURE_MODEL_PATH)
             cls._future_model_error = None
         except Exception as exc:  # noqa: BLE001 -- must degrade, never crash.
             cls._future_model = None

@@ -14,9 +14,9 @@
 # by the friend's UN-wired inference/voice + inference/face_authentication
 # + inference/engagement modules (deepface, retina-face, librosa,
 # soundfile, webrtcvad-wheels -- loader.py never calls into those).
-# Everything else pip resolves transitively (e.g. the many small
-# tensorflow sub-dependencies via tensorflow) rather than being pinned
-# twice here.
+# Everything else pip resolves transitively (e.g. mediapipe's and
+# onnxruntime's own sub-dependencies) rather than being pinned twice
+# here.
 #
 # No torch/torchvision/ultralytics: object detection runs on ONNX
 # Runtime against yolo11n.onnx/yolov8n.onnx (exported from the exact
@@ -32,6 +32,18 @@
 # in frame, not just import-time cost) down toward Render's 512MB
 # free-tier runtime limit. See services/ai_service.py and
 # services/friend_ai/loader.py for the per-component detail.
+#
+# No tensorflow/keras: the two LSTM engagement models (the last
+# production users of TensorFlow) run on ONNX Runtime too, via
+# services/onnx_lstm_predictor.py -- same weights, verified identical by
+# ml_models/evaluation/validate_lstm_onnx_parity.py. Measured peak with
+# TensorFlow vs without: FastAPI ~597MB -> ~336MB, Flask ~525MB ->
+# ~230MB. Consequence, accepted: ai_service.py's "current" Keras
+# emotion-model FALLBACK (only used if the friend's ONNX emotion model
+# is unavailable) now fails to load and just disables emotion for that
+# case, with a warning. Training/evaluation scripts under ml_models/ and
+# AI_LSTM_BACKEND=keras still need TensorFlow -- install it separately
+# for local development only; never add it back here.
 # =====================================================================
 
 # --- Flask (backend/app.py) --------------------------------------------
@@ -61,8 +73,6 @@ opencv-python==4.13.0.92
 mediapipe==0.10.35
 scipy==1.17.1
 onnxruntime==1.29.0
-tensorflow==2.21.0
-keras==3.15.1
 Pillow==11.3.0
 loguru==0.7.3
 # dlib-bin, face-recognition, and face-recognition-models are
