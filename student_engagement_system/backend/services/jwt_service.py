@@ -4,7 +4,19 @@ print("JWT FILE:", __file__)
 import jwt
 from datetime import datetime, timedelta
 
-SECRET_KEY = "student_engagement_secret_key"
+from config import SECRET_KEY
+
+# No fallback on purpose: SECRET_KEY signs and verifies every login token,
+# so a default would let anyone who knows it forge tokens. Fail at import
+# (i.e. the Flask service refuses to start) instead of running with a
+# guessable key.
+if not (SECRET_KEY or "").strip():
+    raise RuntimeError(
+        "SECRET_KEY is not set. It is required to sign and verify login "
+        "tokens -- set it in backend/.env for local development, or in the "
+        "service's environment variables on Render."
+    )
+
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_HOURS = 24
 
@@ -15,7 +27,6 @@ class JWTService:
     def generate_token(user_id, role):
 
         print("GENERATING TOKEN")
-        print("SECRET:", SECRET_KEY)
 
         payload = {
             "user_id": user_id,
@@ -29,7 +40,7 @@ class JWTService:
             algorithm=ALGORITHM
         )
 
-        print("TOKEN GENERATED:", token)
+        print("TOKEN GENERATED")
 
         return token
 
@@ -37,8 +48,7 @@ class JWTService:
     @staticmethod
     def verify_token(token):
 
-        print("VERIFY SECRET:", SECRET_KEY)
-        print("TOKEN RECEIVED:", token)
+        print("TOKEN RECEIVED")
 
         payload = jwt.decode(
             token,
