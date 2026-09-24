@@ -78,3 +78,11 @@ student_engagement_system/datasets/raw/fer2013/fer2013.csv
 /yolo11n.pt
 /student_engagement_system/yolo11n.pt
 /student_engagement_system/yolov8n.pt
+
+# Local tool state and scratch notebooks. anaconda_projects/ is Anaconda
+# Navigator's per-machine file-browser database; Untitled*.ipynb are
+# unnamed scratch notebooks (plus their Jupyter autosave checkpoints).
+# Neither is referenced by the application. The named Phase*.ipynb
+# training notebooks stay tracked.
+anaconda_projects/
+Untitled*.ipynb
