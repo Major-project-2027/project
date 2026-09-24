@@ -157,6 +157,16 @@ def _ensure_models_loaded():
         from scipy.spatial import distance
         import onnxruntime as _ort
 
+        from services.ort_options import single_thread_ort_options
+
+        # One compute thread, no spin-waiting (see services/ort_options.py
+        # for the ONNX Runtime side). OpenCV otherwise starts a thread per
+        # host core whose idle workers spin; on Render's 0.1-CPU container
+        # that spinning consumed the CPU quota -- measured: the Haar face
+        # detector's CPU cost per frame fell from 450ms to 18ms. Results
+        # are unchanged (same algorithms, same inputs).
+        cv2.setNumThreads(1)
+
         # Friend's integrated AI components (Phone+Person / Looking-away /
         # Sleeping-Drowsiness / Emotion) -- see backend/services/friend_ai/
         # and MODEL_INTEGRATION_PACKAGE/ at the project root. Selectable
@@ -189,7 +199,7 @@ def _ensure_models_loaded():
         # for materially lower resident memory -- the right trade on a
         # 512MB ceiling; not measurably slower for one frame roughly
         # once a second.
-        _yolo_sess_options = _ort.SessionOptions()
+        _yolo_sess_options = single_thread_ort_options(_ort)
         _yolo_sess_options.enable_cpu_mem_arena = False
         _yolo_sess_options.enable_mem_pattern = False
         yolo_model = _ort.InferenceSession(

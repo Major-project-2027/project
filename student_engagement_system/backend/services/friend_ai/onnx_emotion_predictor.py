@@ -64,7 +64,9 @@ class ONNXEmotionPredictor:
         # disabling the memory arena/pattern pooling trades a small
         # per-call allocation cost for materially lower resident memory,
         # which is what a 512MB ceiling needs.
-        session_options = ort.SessionOptions()
+        from services.ort_options import single_thread_ort_options
+
+        session_options = single_thread_ort_options(ort)
         session_options.enable_cpu_mem_arena = False
         session_options.enable_mem_pattern = False
         self.session = ort.InferenceSession(

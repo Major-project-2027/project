@@ -37,7 +37,9 @@ class ONNXLSTMPredictor:
 
         # Same memory-oriented session options as ai_service.py's YOLO
         # session and onnx_emotion_predictor.py -- no numerical effect.
-        session_options = ort.SessionOptions()
+        from services.ort_options import single_thread_ort_options
+
+        session_options = single_thread_ort_options(ort)
         session_options.enable_cpu_mem_arena = False
         session_options.enable_mem_pattern = False
         self.session = ort.InferenceSession(
