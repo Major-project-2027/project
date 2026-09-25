@@ -22,6 +22,7 @@ import {
 } from '@/services/api/endpoints'
 import { ApiError, getIceServers } from '@/services/api/client'
 import { acquireCameraTrack, acquireLocalMedia, describeMediaError } from '@/lib/media'
+import { describeSdp, describeTrack, logInboundStats, rtcLog, watchPeerStates } from '@/lib/rtcDebug'
 import {
   openClassroomSocket,
   sendJson,
@@ -350,13 +351,18 @@ export function TeacherLiveClassroomPage() {
   const students: StudentLiveState[] = (() => {
     const merged = new Map<string, StudentLiveState>()
 
+    // Ids are normalized to strings: /live-monitor returns numeric ids while
+    // presence/signaling use strings, and a 5 vs "5" mismatch would split
+    // one student into two tiles (one with the video, one without).
     for (const student of apiStudents) {
-      merged.set(student.studentId, student)
+      const studentId = String(student.studentId)
+      merged.set(studentId, { ...student, studentId })
     }
 
     for (const student of connectedStudents) {
-      const existing = merged.get(student.studentId)
-      merged.set(student.studentId, existing ? { ...student, ...existing } : student)
+      const studentId = String(student.studentId)
+      const existing = merged.get(studentId)
+      merged.set(studentId, existing ? { ...student, ...existing, studentId } : { ...student, studentId })
     }
 
     // Connected students always get a tile; their real camera/mic/hand
@@ -478,14 +484,20 @@ export function TeacherLiveClassroomPage() {
 
     const handleOffer = async (message: any) => {
       const key: string = message.from
-      const studentId: string = message.studentId
+      const studentId = String(message.studentId)
       const studentName: string = message.studentName ?? 'Student'
 
+      rtcLog('WEBRTC', 'teacher offer received', studentId, describeSdp(message.offer?.sdp))
+
+      // Candidates that arrived for this student before/while the offer
+      // was handled must survive the close of any previous connection.
+      const queued = pendingCandidatesRef.current[key] ?? []
       closePeer(key)
 
       const peer = new RTCPeerConnection({ iceServers: getIceServers() })
       peersRef.current[key] = peer
-      pendingCandidatesRef.current[key] = pendingCandidatesRef.current[key] ?? []
+      pendingCandidatesRef.current[key] = queued
+      watchPeerStates(peer, `teacher<-student ${studentId}`)
 
       setConnectedStudents((current) =>
         current.some((s) => s.studentId === studentId)
@@ -493,15 +505,20 @@ export function TeacherLiveClassroomPage() {
           : [...current, { ...baseStudent({ key, role: 'student', userId: studentId, name: studentName, media: { camera: true, mic: false, screen: false, hand: false }, connectedAt: '' }) }],
       )
 
-      // Receive the student's camera + microphone.
+      // Receive the student's camera + microphone. One stream per peer
+      // connection (so it always belongs to THIS student), and a new
+      // MediaStream object per added track so the tile re-attaches it.
+      const remote = new MediaStream()
       peer.ontrack = (event) => {
-        setRemoteStreams((current) => {
-          const stream = event.streams[0] ?? current[studentId] ?? new MediaStream()
-          if (!stream.getTracks().includes(event.track)) {
-            stream.addTrack(event.track)
-          }
-          return { ...current, [studentId]: stream }
+        rtcLog('TEACHER REMOTE TRACK', studentId, {
+          ...describeTrack(event.track),
+          streams: event.streams.length,
         })
+        if (!remote.getTracks().includes(event.track)) {
+          remote.addTrack(event.track)
+        }
+        const stream = new MediaStream(remote.getTracks())
+        setRemoteStreams((current) => ({ ...current, [studentId]: stream }))
       }
 
       peer.onicecandidate = (event) => {
@@ -511,6 +528,10 @@ export function TeacherLiveClassroomPage() {
       }
 
       peer.onconnectionstatechange = () => {
+        if (peer.connectionState === 'connected') {
+          window.setTimeout(() => logInboundStats(peer, `teacher<-student ${studentId}`), 4000)
+        }
+        // On failure the student re-offers with a fresh connection.
         if (peer.connectionState === 'failed' || peer.connectionState === 'closed') {
           if (peersRef.current[key] === peer) {
             closePeer(key)
@@ -520,6 +541,7 @@ export function TeacherLiveClassroomPage() {
       }
 
       await peer.setRemoteDescription(new RTCSessionDescription(message.offer))
+      if (peersRef.current[key] !== peer) return // superseded by a newer offer
 
       // Attach the teacher's current outgoing media to the transceivers
       // the student's offer created (video + audio).
@@ -545,7 +567,9 @@ export function TeacherLiveClassroomPage() {
 
       const answer = await peer.createAnswer()
       await peer.setLocalDescription(answer)
+      if (peersRef.current[key] !== peer) return
 
+      rtcLog('WEBRTC', 'teacher answer created', studentId, describeSdp(answer.sdp))
       send({ type: 'answer', to: key, answer })
     }
 
@@ -569,7 +593,8 @@ export function TeacherLiveClassroomPage() {
     }
 
     const handleAiResult = (message: any) => {
-      const studentId = message.studentId
+      const studentId = String(message.studentId)
+      message = { ...message, studentId }
 
       setConnectedStudents((current) => {
         const existing = current.find((student) => student.studentId === studentId)

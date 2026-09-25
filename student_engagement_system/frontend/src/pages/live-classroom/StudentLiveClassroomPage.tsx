@@ -26,6 +26,7 @@ import { currentStudent } from '@/mocks/data'
 import { classesApi } from '@/services/api/endpoints'
 import { API_BASE_URL, FLASK_API_BASE_URL, getIceServers } from '@/services/api/client'
 import { acquireCameraTrack, acquireLocalMedia, describeMediaError } from '@/lib/media'
+import { describeSdp, describeTrack, logInboundStats, rtcLog, watchPeerStates } from '@/lib/rtcDebug'
 import {
   openClassroomSocket,
   sendJson,
@@ -311,13 +312,25 @@ export function StudentLiveClassroomPage() {
     // camera/mic, and receive the teacher's camera/screen + microphone on
     // the same two transceivers (both sendrecv, so a device turned on later
     // is just a replaceTrack -- no renegotiation).
+    // Consecutive failed connection attempts; reset once connected.
+    let failedAttempts = 0
+
     const offerToTeacher = async () => {
       closePeer()
 
       const peer = new RTCPeerConnection({ iceServers: getIceServers() })
       peerRef.current = peer
+      watchPeerStates(peer, 'student->teacher')
 
+      // Tracks are attached BEFORE createOffer, so the offer negotiates
+      // m=video + m=audio. Both are sendrecv even with a device off, so
+      // turning it on later is a replaceTrack, not a renegotiation.
       const local = localStreamRef.current
+      rtcLog('STUDENT MEDIA', {
+        videoTracks: local.getVideoTracks().length,
+        video: describeTrack(cameraTrackRef.current),
+        audio: describeTrack(micTrackRef.current),
+      })
       videoSenderRef.current = peer.addTransceiver(cameraTrackRef.current ?? 'video', {
         direction: 'sendrecv',
         streams: [local],
@@ -329,6 +342,7 @@ export function StudentLiveClassroomPage() {
 
       const remote = new MediaStream()
       peer.ontrack = (event) => {
+        rtcLog('STUDENT REMOTE TRACK', describeTrack(event.track))
         if (!remote.getTracks().includes(event.track)) {
           remote.addTrack(event.track)
         }
@@ -342,8 +356,33 @@ export function StudentLiveClassroomPage() {
         }
       }
 
+      peer.addEventListener('connectionstatechange', () => {
+        if (peerRef.current !== peer) return
+        if (peer.connectionState === 'connected') {
+          failedAttempts = 0
+          window.setTimeout(() => logInboundStats(peer, 'student<-teacher'), 4000)
+        } else if (peer.connectionState === 'failed' && !cancelled) {
+          // ICE couldn't find a working path. Try a fresh connection a few
+          // times rather than leaving both sides on a black tile forever.
+          failedAttempts += 1
+          if (failedAttempts <= 3) {
+            rtcLog('WEBRTC', `connection failed, re-offering (attempt ${failedAttempts})`)
+            window.setTimeout(() => {
+              if (peerRef.current === peer && !cancelled) {
+                offerToTeacher().catch((error) => console.error('Re-offer failed:', error))
+              }
+            }, 1000 * failedAttempts)
+          } else {
+            console.warn(
+              '[WEBRTC] could not connect to the teacher. The networks likely need a TURN relay (VITE_TURN_URL / VITE_TURN_USERNAME / VITE_TURN_CREDENTIAL).',
+            )
+          }
+        }
+      })
+
       const offer = await peer.createOffer()
       await peer.setLocalDescription(offer)
+      rtcLog('WEBRTC', 'student offer created', describeSdp(offer.sdp))
       send({ type: 'offer', to: 'teacher', offer })
     }
 
@@ -429,6 +468,7 @@ export function StudentLiveClassroomPage() {
                 break
               }
               await peer.setRemoteDescription(new RTCSessionDescription(message.answer))
+              rtcLog('WEBRTC', 'student answer received', describeSdp(message.answer?.sdp))
               for (const candidate of pendingCandidates) {
                 try {
                   await peer.addIceCandidate(new RTCIceCandidate(candidate))

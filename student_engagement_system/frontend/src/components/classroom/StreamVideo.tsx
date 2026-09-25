@@ -23,6 +23,8 @@ export function StreamVideo({
   testId?: string
 }) {
   const ref = useRef<HTMLVideoElement | null>(null)
+  const mutedRef = useRef(muted)
+  mutedRef.current = muted
 
   useEffect(() => {
     const video = ref.current
@@ -30,15 +32,69 @@ export function StreamVideo({
     if (video.srcObject !== stream) {
       video.srcObject = stream
     }
-    if (stream) {
+    if (!stream) return
+
+    let disposed = false
+
+    const play = () => {
+      if (disposed || !video.paused) return
       video.play().catch(() => {
-        // Autoplay with sound can be blocked until the user interacts;
-        // the next user gesture (any click on the page) retries.
-        const retry = () => video.play().catch(() => {})
-        window.addEventListener('pointerdown', retry, { once: true })
+        if (disposed) return
+        // Autoplay WITH SOUND can be blocked until the user interacts.
+        // Never leave the tile black because of that: play muted now (the
+        // video shows), and restore the sound on the next user gesture.
+        video.muted = true
+        video.play().catch(() => {})
+        const restore = () => {
+          if (disposed) return
+          video.muted = mutedRef.current
+          video.play().catch(() => {})
+        }
+        window.addEventListener('pointerdown', restore, { once: true })
+        window.addEventListener('keydown', restore, { once: true })
       })
     }
+
+    // A remote track that was paused (camera turned off -> replaceTrack
+    // null, or not yet connected) fires 'unmute' when frames resume, and
+    // tracks can be added to the stream after it was attached. Make sure
+    // the element is playing again in both cases.
+    const tracks = new Set<MediaStreamTrack>()
+    const watch = (track: MediaStreamTrack) => {
+      if (tracks.has(track)) return
+      tracks.add(track)
+      track.addEventListener('unmute', play)
+    }
+    const onAddTrack = (event: MediaStreamTrackEvent) => {
+      watch(event.track)
+      play()
+    }
+    stream.getTracks().forEach(watch)
+    stream.addEventListener('addtrack', onAddTrack)
+
+    play()
+
+    return () => {
+      disposed = true
+      tracks.forEach((track) => track.removeEventListener('unmute', play))
+      stream.removeEventListener('addtrack', onAddTrack)
+    }
   }, [stream])
+
+  // Keep the element's muted state in sync (React only sets it reliably
+  // as a property, and the autoplay fallback above may have forced it).
+  useEffect(() => {
+    const video = ref.current
+    if (video && video.muted !== muted) {
+      video.muted = muted
+      if (!muted && video.srcObject) {
+        video.play().catch(() => {
+          video.muted = true
+          video.play().catch(() => {})
+        })
+      }
+    }
+  }, [muted])
 
   return (
     <video
