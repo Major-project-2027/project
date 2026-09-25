@@ -859,6 +859,13 @@ export function StudentLiveClassroomPage() {
             playDrowsinessAlertSound()
           }
 
+          // Notify the teacher on a transition INTO an alert (never per
+          // frame). The server builds the event from its own copy of this
+          // result and applies a cooldown; see AI_ALERT in monitoring.py.
+          if (activeAlert && activeAlert !== previousAlertRef.current) {
+            sendJson(wsRef.current, { type: 'AI_ALERT' })
+          }
+
           previousAlertRef.current = activeAlert
 
           if (activeAlert) {
@@ -994,6 +1001,7 @@ export function StudentLiveClassroomPage() {
               {aiAlert === 'phone_detected' && <Phone className="h-5 w-5 text-critical-400" />}
               {aiAlert === 'multiple_person' && <Users className="h-5 w-5 text-critical-400" />}
               {aiAlert === 'no_person_detected' && <UserX className="h-5 w-5 text-critical-400" />}
+              {aiAlert === 'no_face_detected' && <UserX className="h-5 w-5 text-critical-400" />}
               {aiAlert === 'looking_away' && <EyeOff className="h-5 w-5 text-critical-400" />}
               {aiAlert === 'attention_drop_predicted' && <AlertTriangle className="h-5 w-5 text-critical-400" />}
               {aiAlert === 'drowsiness' && <AlertTriangle className="h-5 w-5 text-critical-400" />}
@@ -1009,6 +1017,7 @@ export function StudentLiveClassroomPage() {
                 {aiAlert === 'phone_detected' && 'Please put away your mobile phone.'}
                 {aiAlert === 'multiple_person' && 'Multiple people detected. Please remain alone in the classroom.'}
                 {aiAlert === 'no_person_detected' && 'No person in front of camera. Please return to your seat.'}
+                {aiAlert === 'no_face_detected' && 'Your face is not visible. Please face the camera.'}
                 {aiAlert === 'looking_away' && 'Please look toward the screen.'}
                 {aiAlert === 'attention_drop_predicted' && 'Your attention appears to be dropping. Please focus on the class.'}
                 {aiAlert === 'drowsiness' && 'Signs of drowsiness were detected. Please stay attentive.'}

@@ -81,6 +81,12 @@ def get_active_alert(result):
     if result.get("person_count", 1) > 1:
         return "multiple_person"
 
+    # Someone is in frame but no face has been found for a few consecutive
+    # frames (see ai_service.apply_face_visibility) -- "student not
+    # visible", reported separately from (and ahead of) looking away.
+    if result.get("no_face_detected"):
+        return "no_face_detected"
+
     # Debounced "genuinely outside the acceptable laptop-screen viewing
     # zone" signal computed in ai_service.process_frame's LOOKING-AWAY
     # block -- requires several consecutive outside-zone frames (not a
@@ -187,6 +193,7 @@ def live_monitor(
             "phoneDetected": phone_detected,
             "personCount": person_count,
             "noPersonDetected": no_person_detected,
+            "noFaceDetected": bool(result.get("no_face_detected", False)),
             "sleeping": sleeping,
             "engagementStatus": engagement_status,
 
@@ -289,6 +296,9 @@ class _Room:
         # an approval survives the student reconnecting to this room.
         self.camera_requests: dict = {}
         self.camera_off_approved: set = set()
+        # (student user id, alert type) -> monotonic time the teacher was
+        # last notified -- AI_ALERT cooldown.
+        self.ai_alert_sent_at: dict = {}
 
 
 _rooms: dict = {}
@@ -299,6 +309,47 @@ _TEACHER_ONLY = {"wb_open", "wb_close", "wb_stroke", "wb_clear", "class_ended", 
 # short free-text note.
 _CAMERA_OFF_REASONS = {"Technical issue", "Privacy issue", "Camera problem", "Network issue", "Other"}
 _CAMERA_OFF_NOTE_MAX = 200
+
+
+# Teacher notifications for AI alerts (AI_ALERT). The student's browser
+# only signals "my latest analyzed frame produced a new alert"; the server
+# builds the event from ITS OWN latest result for that student in that
+# class (_latest_results, written by /ai/analyze-frame) -- a client can't
+# choose the alert type, student or class. Same type for the same student
+# is sent at most once per cooldown, on top of the client only signalling
+# transitions (an alert that stays active is never re-sent per frame).
+AI_ALERT_COOLDOWN_SECONDS = 20.0
+
+_AI_ALERT_MESSAGES = {
+    "phone_detected": ("Phone detected — {name} appears to be using a phone.", "critical"),
+    "drowsiness": ("{name} may be sleeping.", "critical"),
+    "looking_away": ("{name} is looking away from the screen.", "warning"),
+    "multiple_person": ("Multiple people detected in {name}'s camera.", "critical"),
+    "no_person_detected": ("{name} is not in front of the camera.", "critical"),
+    "no_face_detected": ("{name}'s face is not visible to the camera.", "warning"),
+    "attention_drop_predicted": ("{name}'s attention is dropping.", "warning"),
+}
+
+
+def _ai_alert_event(class_id, member):
+    """AI_ALERT for this student's latest server-side result, or None."""
+    latest = _latest_results.get(class_id, {}).get(member.user_id)
+    if not latest:
+        return None
+    alert_type = latest.get("active_alert")
+    if alert_type not in _AI_ALERT_MESSAGES:
+        return None
+    template, severity = _AI_ALERT_MESSAGES[alert_type]
+    return {
+        "type": "AI_ALERT",
+        "studentId": str(member.user_id),
+        "studentName": member.name,
+        "alertType": alert_type,
+        "severity": severity,
+        "message": template.format(name=member.name),
+        "timestamp": int(time.time() * 1000),
+        "engagementScore": latest.get("engagement_score"),
+    }
 
 
 async def _send_to_teachers(room, payload):
@@ -454,6 +505,21 @@ async def classroom_signaling(
                 for recipient in list(room.members.values()):
                     if recipient.role == "teacher":
                         await _send(recipient, payload)
+                continue
+
+            if kind == "AI_ALERT":
+                if member.role != "student":
+                    continue
+                event = _ai_alert_event(class_id, member)
+                if event is None:
+                    continue
+                cooldown_key = (member.user_id, event["alertType"])
+                now_mono = time.monotonic()
+                if now_mono - room.ai_alert_sent_at.get(cooldown_key, -AI_ALERT_COOLDOWN_SECONDS) < AI_ALERT_COOLDOWN_SECONDS:
+                    continue
+                room.ai_alert_sent_at[cooldown_key] = now_mono
+                # Only this room's teacher(s) -- never another class.
+                await _send_to_teachers(room, event)
                 continue
 
             if kind == "media_state":
@@ -840,6 +906,8 @@ def analyze_frame(
             "phone_detected": result.get("phone_detected", False),
             "person_count": result.get("person_count", 1),
             "no_person_detected": result.get("no_person_detected", False),
+            "face_detected": result.get("face_detected", True),
+            "no_face_detected": result.get("no_face_detected", False),
             "sleeping": result.get("sleeping", False),
             "engagement_score": result.get("engagement_score", 0),
             "engagement_status": result.get(

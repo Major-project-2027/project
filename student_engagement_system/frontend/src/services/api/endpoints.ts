@@ -604,6 +604,13 @@ export const monitoringApi = {
           false,
         ),
 
+      noFaceDetected:
+        Boolean(
+          student.noFaceDetected ??
+          student.no_face_detected ??
+          false,
+        ),
+
       sleeping:
         Boolean(
           student.sleeping ??

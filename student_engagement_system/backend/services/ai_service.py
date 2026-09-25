@@ -398,6 +398,113 @@ LOOKING_AWAY_CONFIRM_STREAK = 2
 LOOKING_AWAY_CLEAR_STREAK = 3
 
 # ============================================================
+# FACE NOT VISIBLE -> ENGAGEMENT DECAY
+# ============================================================
+# calculate_engagement() only penalizes what it can SEE (phone, gaze,
+# head pose, ...). With no face in the frame, gaze/head pose fall back to
+# their "Center"/"Looking Forward" defaults, so a student who moved out of
+# view (while YOLO still saw a body, or before the no-person streak
+# confirmed) scored a perfect 100. apply_face_visibility() replaces that
+# with a controlled, wall-clock-timed decay while the face is missing and
+# a gradual recovery once it returns -- timed with elapsed seconds, not
+# frame counts, so it behaves the same at ~0.35s/frame locally and
+# ~1.5s/frame on Render. The score while absent never exceeds what
+# calculate_engagement() itself reports (e.g. a visible phone still
+# penalizes).
+NO_FACE_DECAY_PER_SECOND = 40.0      # 100 -> 0 in ~2.5s of continuous absence
+NO_FACE_MIN_DROP_PER_FRAME = 20      # every missed frame visibly lowers the score
+NO_FACE_RECOVERY_PER_SECOND = 30.0   # back from 0 to the real score in ~3s
+NO_FACE_MIN_RISE_PER_FRAME = 10
+# Longest gap between two frames counted toward decay/recovery (a stalled
+# request shouldn't count as a long absence on its own).
+NO_FACE_MAX_ELAPSED_SECONDS = 2.0
+# Consecutive face-less frames before the "no_face_detected" alert fires
+# (the score starts dropping on the first one).
+NO_FACE_CONFIRM_FRAMES = 2
+
+
+# The shared VIDEO-mode landmarker (tracking) was measured to drop a
+# clearly visible, completely still face on every 3rd frame. Those misses
+# looked like "no face" (engagement would jitter for a student who never
+# moved) and also reset the look-away clear streak, so a looking_away
+# alert could never clear. A miss is re-checked with a single-image
+# (IMAGE-mode, no tracking) detection of the same frame -- measured stable
+# (9/9 on the same image) and still correctly empty when the face is
+# covered -- and its landmarks are used for that frame. Created lazily on
+# the first miss; only runs on frames the tracker missed.
+_single_image_landmarker = None
+
+
+def _detect_landmarks_single_image(mp_image):
+    """IMAGE-mode landmarks for a frame the tracker missed. Call under
+    inference_lock."""
+    global _single_image_landmarker
+
+    if _single_image_landmarker is None:
+        vision = mp.tasks.vision
+        _single_image_landmarker = vision.FaceLandmarker.create_from_options(
+            vision.FaceLandmarkerOptions(
+                base_options=mp.tasks.BaseOptions(model_asset_path=LANDMARKER_PATH),
+                running_mode=vision.RunningMode.IMAGE,
+                num_faces=1,
+            )
+        )
+
+    return _single_image_landmarker.detect(mp_image)
+
+
+def apply_face_visibility(state, raw_score, face_visible, no_person_confirmed, now_ts):
+    """Engagement score for this frame given whether a face was found.
+
+    Returns (score, no_face_detected). Mutates this student's `state`
+    (last_engagement_score / last_score_ts / no_face_streak /
+    recovering_engagement)."""
+
+    last_score = state.get("last_engagement_score")
+    last_ts = state.get("last_score_ts")
+    elapsed = 0.0
+    if last_ts is not None:
+        elapsed = min(max(now_ts - last_ts, 0.0), NO_FACE_MAX_ELAPSED_SECONDS)
+
+    if no_person_confirmed:
+        # Existing behavior: nobody in frame scores 0 immediately.
+        score = 0
+        state["no_face_streak"] = 0
+        state["recovering_engagement"] = True
+    elif not face_visible:
+        state["no_face_streak"] = state.get("no_face_streak", 0) + 1
+        base = last_score if last_score is not None else raw_score
+        drop = max(NO_FACE_MIN_DROP_PER_FRAME, NO_FACE_DECAY_PER_SECOND * elapsed)
+        score = max(0, min(raw_score, base - drop))
+        state["recovering_engagement"] = True
+    else:
+        state["no_face_streak"] = 0
+        if (
+            state.get("recovering_engagement")
+            and last_score is not None
+            and raw_score > last_score
+        ):
+            rise = max(NO_FACE_MIN_RISE_PER_FRAME, NO_FACE_RECOVERY_PER_SECOND * elapsed)
+            score = min(raw_score, last_score + rise)
+            if score >= raw_score:
+                state["recovering_engagement"] = False
+        else:
+            # Normal case: the real, current score -- unchanged behavior.
+            score = raw_score
+            state["recovering_engagement"] = False
+
+    score = int(round(score))
+    state["last_engagement_score"] = score
+    state["last_score_ts"] = now_ts
+
+    no_face_detected = (
+        not no_person_confirmed
+        and state.get("no_face_streak", 0) >= NO_FACE_CONFIRM_FRAMES
+    )
+    return score, no_face_detected
+
+
+# ============================================================
 # FRIEND LOOKING-AWAY / DROWSINESS OUTPUT MAPPING
 # ============================================================
 # Maps the friend's GazeHeadPosePredictor output vocabulary (see
@@ -884,6 +991,15 @@ def process_frame(frame, state):
             timestamp_ms
         )
         timing["landmarks_ms"] = round((time.perf_counter() - t) * 1000, 1)
+
+        # Tracker miss with someone in frame: re-check this frame on its
+        # own (see _detect_landmarks_single_image) before calling it "no face".
+        if not result.face_landmarks and not no_person_confirmed:
+            t = time.perf_counter()
+            single_image_result = _detect_landmarks_single_image(mp_image)
+            timing["landmarks_recheck_ms"] = round((time.perf_counter() - t) * 1000, 1)
+            if single_image_result.face_landmarks:
+                result = single_image_result
 
     # ========================================================
     # DEFAULT VALUES
@@ -1386,7 +1502,7 @@ def process_frame(frame, state):
     # ENGAGEMENT
     # ========================================================
 
-    engagement_score = calculate_engagement(
+    raw_engagement_score = calculate_engagement(
         emotion,
         blink_total,
         head_pose,
@@ -1395,6 +1511,18 @@ def process_frame(frame, state):
         person_count,
         no_person_confirmed,
         sleeping
+    )
+
+    # No face found by either landmarker (tracker misses were already
+    # re-checked) -> decay instead of the default-signals 100; gradual
+    # recovery when it returns.
+    face_visible = landmarks_available
+    engagement_score, no_face_detected = apply_face_visibility(
+        state,
+        raw_engagement_score,
+        face_visible,
+        no_person_confirmed,
+        now_ts,
     )
         # ========================================================
     # AI ALERT
@@ -1418,6 +1546,9 @@ def process_frame(frame, state):
 
     elif person_count > 1:
         active_alert = "multiple_persons"
+
+    elif no_face_detected:
+        active_alert = "no_face_detected"
 
     elif looking_away_confirmed:
         active_alert = "looking_away"
@@ -1513,9 +1644,16 @@ def process_frame(frame, state):
         # app/routers/monitoring.py's get_active_alert() uses this
         # instead of re-deriving from raw head_pose/gaze equality checks.
         "looking_away": looking_away_confirmed,
+        # Face visibility is its own signal, separate from looking away /
+        # drowsiness / phone: face_detected is this frame's raw result,
+        # no_face_detected the confirmed (NO_FACE_CONFIRM_FRAMES) state.
+        "face_detected": face_visible,
+        "no_face_detected": no_face_detected,
         "engagement_status":
             "No Person Detected"
             if no_person_confirmed
+            else "Face Not Detected"
+            if no_face_detected
             else "Engaged"
             if engagement_score >= 70
             else "Distracted"

@@ -67,6 +67,16 @@ export function VideoTile({
         {student.studentName.split(' ')[0]}
       </div>
 
+      {/* Student in frame but face not visible (backend's confirmed state) */}
+      {student.cameraOn && (student.noFaceDetected || student.activeAlert === 'no_face_detected') && (
+        <div
+          className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-critical-500/85 px-2 py-0.5 text-[11px] font-medium text-white"
+          data-testid={`face-not-detected-${student.studentId}`}
+        >
+          Face not detected
+        </div>
+      )}
+
       {/* Top-right alert */}
       {student.activeAlert && (
         <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-critical-500 text-white">

@@ -165,6 +165,9 @@ export interface StudentLiveState {
   personCount?: number
   engagementStatus?: string
   noPersonDetected?: boolean
+  // Someone is in frame but no face has been found for consecutive frames
+  // ("student not visible") -- the backend decays engagement meanwhile.
+  noFaceDetected?: boolean
   // Genuine temporal both-eyes-closed detection (>= SLEEP_THRESHOLD_SECONDS
   // continuously, see ai_service.process_frame) -- distinct from the
   // engagement-score-based `cognitiveState === 'drowsy'` heuristic that

@@ -65,6 +65,7 @@ const ALERT_LABEL: Record<string, string> = {
   phone_detected: 'Mobile phone detected',
   multiple_person: 'A second person detected',
   no_person_detected: 'No person in front of camera',
+  no_face_detected: 'Face not detected — student not visible',
   face_auth_failed: 'Face authentication failed',
   voice_disturbance: 'Background voice disturbance',
   camera_off: 'Camera turned off',
@@ -130,6 +131,12 @@ function convertAIResultToStudent(
     data.sleeping ?? existing?.sleeping ?? false,
   )
 
+  // Backend's confirmed "face not visible" state (its engagement score is
+  // already decayed for it -- nothing is recomputed here).
+  const noFaceDetected = Boolean(
+    data.no_face_detected ?? existing?.noFaceDetected ?? false,
+  )
+
   // Use the backend's own already-debounced active_alert (see
   // app/routers/monitoring.py's get_active_alert(), which requires
   // several consecutive frames genuinely outside the acceptable
@@ -144,6 +151,9 @@ function convertAIResultToStudent(
 
   if (sleeping || engagement < 40) {
     cognitiveState = 'drowsy'
+  } else if (noFaceDetected) {
+    // Not visible is never "focused" (gaze/head pose are only defaults).
+    cognitiveState = 'distracted'
   } else if (
     !['center', 'forward'].includes(
       gaze.toLowerCase(),
@@ -199,6 +209,8 @@ function convertAIResultToStudent(
     personCount,
 
     noPersonDetected,
+
+    noFaceDetected,
 
     sleeping,
 
@@ -296,7 +308,6 @@ export function TeacherLiveClassroomPage() {
   // Classroom socket / WebRTC
   // -------------------------------------------------------------------------
 
-  const alertedIds = useRef<Set<string>>(new Set())
   const signalingRef = useRef<WebSocket | null>(null)
   // key: participant key ("student:<id>")
   const peersRef = useRef<Record<string, RTCPeerConnection>>({})
@@ -364,10 +375,22 @@ export function TeacherLiveClassroomPage() {
       merged.set(studentId, { ...student, studentId })
     }
 
+    // The live per-frame result (classroom socket) wins over the 8s
+    // /live-monitor poll once it carries AI data -- otherwise the tile
+    // showed a score up to 8s stale (e.g. still 100 after the student left
+    // the camera). Before the first live result, the poll fills in.
     for (const student of connectedStudents) {
       const studentId = String(student.studentId)
       const existing = merged.get(studentId)
-      merged.set(studentId, existing ? { ...student, ...existing, studentId } : { ...student, studentId })
+      const hasLiveResult = student.history.length > 0
+      merged.set(
+        studentId,
+        existing
+          ? hasLiveResult
+            ? { ...existing, ...student, studentId }
+            : { ...student, ...existing, studentId }
+          : { ...student, studentId },
+      )
     }
 
     // Connected students always get a tile; their real camera/mic/hand
@@ -727,6 +750,18 @@ export function TeacherLiveClassroomPage() {
             case 'ai_result':
               handleAiResult(message)
               break
+            case 'AI_ALERT':
+              // A student's AI detection (built and rate-limited by the
+              // server). Shown for any student, selected or not.
+              pushAlertToast({
+                studentName: message.studentName ?? 'Student',
+                message: message.message ?? ALERT_LABEL[message.alertType] ?? 'Attention issue detected',
+                severity: message.severity === 'critical' ? 'critical' : 'warning',
+                // Once per confirmed sleeping episode (the student only
+                // signals transitions into an alert).
+                sound: message.alertType === 'drowsiness',
+              })
+              break
             case 'camera_request': {
               const request = message.request as CameraOffRequest
               setCameraRequests((current) => [...current.filter((r) => r.id !== request.id), request])
@@ -920,54 +955,6 @@ export function TeacherLiveClassroomPage() {
       setUnreadChat(0)
     }
   }
-
-  // =========================================================================
-  // ALERT TOASTS
-  // =========================================================================
-
-  useEffect(() => {
-    const currentlyActive = new Set<string>()
-
-    for (const student of students) {
-      if (!student.activeAlert) {
-        continue
-      }
-
-      const alertKey = `${student.studentId}-${student.activeAlert}`
-
-      currentlyActive.add(alertKey)
-
-      // Only show a toast when this alert is newly detected.
-      if (!alertedIds.current.has(alertKey)) {
-        alertedIds.current.add(alertKey)
-
-        pushAlertToast({
-          studentName: student.studentName,
-
-          message: ALERT_LABEL[student.activeAlert] ?? 'Attention issue detected',
-
-          severity:
-            student.activeAlert === 'phone_detected' ||
-            student.activeAlert === 'multiple_person' ||
-            student.activeAlert === 'no_person_detected' ||
-            student.activeAlert === 'drowsiness'
-              ? 'critical'
-              : 'warning',
-
-          // Sound plays once here specifically for a newly-confirmed
-          // sleeping episode -- exactly once per continuous episode.
-          sound: student.activeAlert === 'drowsiness',
-        })
-      }
-    }
-
-    // Remove cleared alerts so the same alert can trigger again later.
-    for (const key of alertedIds.current) {
-      if (!currentlyActive.has(key)) {
-        alertedIds.current.delete(key)
-      }
-    }
-  }, [students])
 
   const timer = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
 
