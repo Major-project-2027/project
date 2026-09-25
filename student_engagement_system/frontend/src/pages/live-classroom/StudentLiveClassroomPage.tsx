@@ -19,6 +19,7 @@ import { ChatPanel } from '@/components/classroom/ChatPanel'
 import { ClassroomControls, type ClassroomPanel } from '@/components/classroom/ClassroomControls'
 import { StageTile } from '@/components/classroom/StreamVideo'
 import { Whiteboard } from '@/components/classroom/Whiteboard'
+import { CameraOffRequestModal } from '@/components/classroom/CameraRequests'
 import { ConfidenceRing } from '@/components/monitoring/ConfidenceRing'
 import { Badge } from '@/components/ui/Badge'
 
@@ -33,6 +34,7 @@ import {
   WS_CLOSE_FORBIDDEN,
   WS_CLOSE_REPLACED,
   WS_CLOSE_UNAUTHENTICATED,
+  type CameraRequestStatus,
   type ClassChatMessage,
   type RoomParticipant,
   type WelcomeMessage,
@@ -178,15 +180,32 @@ export function StudentLiveClassroomPage() {
   const [clearToken, setClearToken] = useState(0)
   const [whiteboardOpen, setWhiteboardOpen] = useState(false)
 
+  // Camera-off approval: the camera stays on until the teacher approves.
+  const [cameraRequest, setCameraRequest] = useState<'idle' | 'pending' | 'approved' | 'rejected'>('idle')
+  const [showCameraRequestModal, setShowCameraRequestModal] = useState(false)
+  const cameraOffApprovedRef = useRef(false)
+
+  // "Approved" / "rejected" are shown briefly, then the banner clears.
+  useEffect(() => {
+    if (cameraRequest !== 'approved' && cameraRequest !== 'rejected') return
+    const timeout = window.setTimeout(() => setCameraRequest('idle'), 6000)
+    return () => window.clearTimeout(timeout)
+  }, [cameraRequest])
+
   const teacher = participants.find((p) => p.role === 'teacher') ?? null
 
   const send = (payload: unknown) => sendJson(wsRef.current, payload)
+
+  // Read through a ref: socket handlers are created once at mount and
+  // would otherwise report that render's (stale) hand state.
+  const handRaisedRef = useRef(handRaised)
+  handRaisedRef.current = handRaised
 
   const mediaState = (overrides: Partial<{ camera: boolean; mic: boolean; hand: boolean }> = {}) => ({
     type: 'media_state',
     camera: Boolean(cameraTrackRef.current),
     mic: Boolean(micTrackRef.current?.enabled),
-    hand: handRaised,
+    hand: handRaisedRef.current,
     ...overrides,
   })
 
@@ -201,6 +220,8 @@ export function StudentLiveClassroomPage() {
   // ---------------------------------------------------------------------------
 
   const previousAlertRef = useRef<string | null>(null)
+  // Last alert logged as shown (latency diagnostics only).
+  const lastShownAlertRef = useRef<string | null>(null)
   const soundPlayingRef = useRef(false)
   const audioCtxRef = useRef<AudioContext | null>(null)
 
@@ -435,6 +456,19 @@ export function StudentLiveClassroomPage() {
               setClearToken((t) => t + 1)
               setWhiteboardOpen(welcome.whiteboard.open)
               setChat(welcome.chat)
+              // Reconnecting with an approval already granted: keep the
+              // camera off (the server accepts it), rather than reporting
+              // it on and then off again.
+              cameraOffApprovedRef.current = Boolean(welcome.cameraOffApproved)
+              if (welcome.cameraOffApproved && cameraTrackRef.current) {
+                const track = cameraTrackRef.current
+                cameraTrackRef.current = null
+                track.stop()
+                localStreamRef.current.removeTrack(track)
+                if (videoRef.current) videoRef.current.srcObject = null
+                setCameraOn(false)
+              }
+              setCameraRequest(welcome.cameraRequestPending ? 'pending' : 'idle')
               send(mediaState())
               if (welcome.participants.some((p) => p.role === 'teacher')) {
                 await offerToTeacher()
@@ -512,6 +546,9 @@ export function StudentLiveClassroomPage() {
             case 'class_ended':
               markClassEnded()
               break
+            case 'camera_request_status':
+              handleCameraRequestStatus(message.status as CameraRequestStatus)
+              break
             case 'error':
               if (message.code === 401 || message.code === 403 || message.code === 409) {
                 setAccessMessage(message.message ?? 'You are not authorized to join this class.')
@@ -579,21 +616,22 @@ export function StudentLiveClassroomPage() {
     }
   }
 
-  const toggleCamera = async () => {
-    if (cameraTrackRef.current) {
-      // Really stop the camera; the teacher sees a placeholder. While it's
-      // off there are no frames to analyze, so AI monitoring pauses.
-      const track = cameraTrackRef.current
-      cameraTrackRef.current = null
-      track.stop()
-      localStreamRef.current.removeTrack(track)
-      await videoSenderRef.current?.replaceTrack(null)
-      if (videoRef.current) videoRef.current.srcObject = null
-      setCameraOn(false)
-      send(mediaState({ camera: false }))
-      return
-    }
+  // Really stop the camera; the teacher sees a placeholder. While it's off
+  // there are no frames to analyze, so AI monitoring pauses. Only reached
+  // once the teacher has approved (the server refuses it otherwise).
+  const turnCameraOff = async () => {
+    const track = cameraTrackRef.current
+    if (!track) return
+    cameraTrackRef.current = null
+    track.stop()
+    localStreamRef.current.removeTrack(track)
+    await videoSenderRef.current?.replaceTrack(null)
+    if (videoRef.current) videoRef.current.srcObject = null
+    setCameraOn(false)
+    send(mediaState({ camera: false }))
+  }
 
+  const turnCameraOn = async () => {
     try {
       const track = await acquireCameraTrack()
       cameraTrackRef.current = track
@@ -602,9 +640,65 @@ export function StudentLiveClassroomPage() {
       if (videoRef.current) videoRef.current.srcObject = new MediaStream([track])
       setCameraOn(true)
       setMediaNotice(null)
+      // Turning it back on ends the approval (the server does the same).
+      cameraOffApprovedRef.current = false
+      setCameraRequest('idle')
       send(mediaState({ camera: true }))
     } catch (error) {
       setMediaNotice(describeMediaError(error, 'camera'))
+    }
+  }
+
+  const toggleCamera = async () => {
+    if (!cameraTrackRef.current) {
+      await turnCameraOn()
+      return
+    }
+    if (cameraOffApprovedRef.current) {
+      await turnCameraOff()
+      return
+    }
+    // The camera must stay on: ask the teacher instead. A request that is
+    // already pending just keeps its status banner.
+    if (cameraRequest !== 'pending') {
+      setShowCameraRequestModal(true)
+    }
+  }
+
+  const submitCameraRequest = (reason: string, note: string) => {
+    setShowCameraRequestModal(false)
+    send({ type: 'camera_off_request', reason, note })
+  }
+
+  const cancelCameraRequest = () => {
+    send({ type: 'camera_off_cancel' })
+  }
+
+  // Server -> student status of the camera-off request.
+  const handleCameraRequestStatus = (status: CameraRequestStatus) => {
+    switch (status) {
+      case 'pending':
+        setCameraRequest('pending')
+        break
+      case 'approved':
+        cameraOffApprovedRef.current = true
+        setCameraRequest('approved')
+        turnCameraOff().catch((error) => console.error('Unable to turn the camera off:', error))
+        break
+      case 'rejected':
+        setCameraRequest('rejected')
+        break
+      case 'cancelled':
+        setCameraRequest('idle')
+        break
+      case 'not_approved':
+        setCameraRequest('idle')
+        setMediaNotice('Your camera must stay on during class. Ask your teacher to turn it off.')
+        break
+      case 'invalid':
+        setCameraRequest('idle')
+        setMediaNotice('That camera-off request could not be sent. Please try again.')
+        break
     }
   }
 
@@ -627,18 +721,28 @@ export function StudentLiveClassroomPage() {
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
-    const interval = setInterval(async () => {
-      if (classEndedRef.current || aiStoppedRef.current || accessRef.current !== 'allowed') {
-        return
-      }
+    // One frame at a time, always the NEWEST one: a frame is captured only
+    // when the previous result is back (never queued), and the next one
+    // goes out right away -- no waiting for a fixed interval tick. On
+    // Render's free tier one frame takes ~1-8s, and overlapping requests
+    // piled up server-side (results for frames sent long before, and a
+    // backlog of concurrent inferences risking OOM restarts).
+    // MIN_FRAME_INTERVAL_MS only caps the rate when the backend is fast.
+    const MIN_FRAME_INTERVAL_MS = 350
+    const IDLE_RETRY_MS = 250
 
-      // Never overlap requests: on Render's free tier one frame takes
-      // ~1-8s, so posting every 600ms regardless piled requests up
-      // server-side -- results arrived for frames sent long before (e.g.
-      // still "100" after a phone appeared) and the backlog of concurrent
-      // inferences risked OOM restarts. Skip this tick instead; the next
-      // frame goes out as soon as the previous result is back.
-      if (aiRequestInFlightRef.current) {
+    let stopped = false
+    let timer: number | undefined
+
+    const schedule = (delay: number) => {
+      if (!stopped) {
+        timer = window.setTimeout(analyzeNextFrame, delay)
+      }
+    }
+
+    const analyzeNextFrame = async () => {
+      if (classEndedRef.current || aiStoppedRef.current || accessRef.current !== 'allowed') {
+        schedule(IDLE_RETRY_MS * 2)
         return
       }
 
@@ -646,8 +750,13 @@ export function StudentLiveClassroomPage() {
 
       // Camera/video is not ready yet (or the camera is off).
       if (!video || !video.srcObject || video.readyState < 2) {
+        schedule(IDLE_RETRY_MS)
         return
       }
+
+      const capturedAt = Date.now()
+      const captureStart = performance.now()
+      let requestStart = captureStart
 
       aiRequestInFlightRef.current = true
 
@@ -682,6 +791,8 @@ export function StudentLiveClassroomPage() {
 
         const token = sessionStorage.getItem('access_token') ?? ''
 
+        requestStart = performance.now()
+
         const response = await fetch(`${API_BASE_URL}/ai/analyze-frame`, {
           method: 'POST',
           headers: {
@@ -697,6 +808,15 @@ export function StudentLiveClassroomPage() {
         })
 
         const result = await response.json()
+        const requestEnd = performance.now()
+
+        // Temporary latency diagnostics (one line per analyzed frame).
+        console.info('[AI TIMING]', {
+          capture_encode_ms: Math.round(requestStart - captureStart),
+          round_trip_ms: Math.round(requestEnd - requestStart),
+          server: result.timing ?? null,
+          alert: result.data?.active_alert ?? null,
+        })
 
         if (response.status === 401 || response.status === 403) {
           // Not allowed (or logged out): stop, don't retry every tick.
@@ -717,7 +837,10 @@ export function StudentLiveClassroomPage() {
         if (result.success) {
           // Send the real AI result to the teacher through the classroom
           // socket (the server stamps this student's identity on it).
-          sendJson(wsRef.current, { type: 'ai_result', data: result.data })
+          sendJson(wsRef.current, {
+            type: 'ai_result',
+            data: { ...result.data, client_timing: { captured_at: capturedAt } },
+          })
 
           // Update student's own engagement indicator.
           if (typeof result.data?.engagement_score === 'number') {
@@ -739,6 +862,13 @@ export function StudentLiveClassroomPage() {
           previousAlertRef.current = activeAlert
 
           if (activeAlert) {
+            if (lastShownAlertRef.current !== activeAlert) {
+              console.info('[AI TIMING] alert shown', {
+                alert: activeAlert,
+                capture_to_display_ms: Math.round(performance.now() - captureStart),
+              })
+            }
+            lastShownAlertRef.current = activeAlert
             setAiAlert((previousAlert) => {
               if (previousAlert !== activeAlert) {
                 setShowAiAlert(true)
@@ -747,6 +877,7 @@ export function StudentLiveClassroomPage() {
               return activeAlert
             })
           } else {
+            lastShownAlertRef.current = null
             setAiAlert(null)
             setShowAiAlert(false)
           }
@@ -757,18 +888,17 @@ export function StudentLiveClassroomPage() {
         console.error('Unable to send frame to AI:', error)
       } finally {
         aiRequestInFlightRef.current = false
+        // Next frame as soon as this one is done (the result is already
+        // shown), rate-capped only when the backend answers very fast.
+        schedule(Math.max(0, MIN_FRAME_INTERVAL_MS - (Date.now() - capturedAt)))
       }
-    }, 600)
-    // 600ms (~1.6 fps) instead of the previous 2000ms. A blink only lasts
-    // ~100-400ms, so sampling every 2s almost never caught one -- this is
-    // the main reason the blink counter appeared stuck at 0. The backend
-    // still gates its heavier YOLO/face-recognition inference to run only
-    // every 2nd-6th received frame (see PROCESS_EVERY_YOLO/_FACE in
-    // ai_service.py) so this does not multiply the expensive work by the
-    // same factor, only the cheap MediaPipe landmark pass blink relies on.
+    }
+
+    schedule(0)
 
     return () => {
-      clearInterval(interval)
+      stopped = true
+      window.clearTimeout(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -929,6 +1059,45 @@ export function StudentLiveClassroomPage() {
             <X className="h-4 w-4" />
           </button>
         </div>
+      )}
+
+      {/* Camera-off request status */}
+
+      {cameraRequest !== 'idle' && (
+        <div
+          className={`flex items-center justify-between gap-3 px-4 py-2 text-sm ${
+            cameraRequest === 'rejected'
+              ? 'bg-critical-500/15 text-critical-400'
+              : cameraRequest === 'approved'
+                ? 'bg-engaged-500/15 text-engaged-400'
+                : 'bg-focus-500/15 text-white/80'
+          }`}
+          role="status"
+          data-testid="camera-request-status"
+        >
+          <span className="flex items-center gap-2">
+            {cameraRequest === 'pending' && <Loader2 className="h-4 w-4 shrink-0 animate-spin" />}
+            {cameraRequest === 'pending' && 'Camera-off request sent. Waiting for teacher approval.'}
+            {cameraRequest === 'approved' && 'Camera off approved.'}
+            {cameraRequest === 'rejected' && 'Camera-off request rejected. Please keep your camera on.'}
+          </span>
+          {cameraRequest === 'pending' ? (
+            <button onClick={cancelCameraRequest} className="text-xs underline underline-offset-2 hover:text-white">
+              Cancel request
+            </button>
+          ) : (
+            <button onClick={() => setCameraRequest('idle')} aria-label="Dismiss">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {showCameraRequestModal && (
+        <CameraOffRequestModal
+          onSubmit={submitCameraRequest}
+          onClose={() => setShowCameraRequestModal(false)}
+        />
       )}
 
       {/* ============================================================

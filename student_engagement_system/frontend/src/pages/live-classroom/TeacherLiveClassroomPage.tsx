@@ -9,6 +9,7 @@ import { ChatPanel } from '@/components/classroom/ChatPanel'
 import { ClassroomControls, type ClassroomPanel } from '@/components/classroom/ClassroomControls'
 import { StageTile } from '@/components/classroom/StreamVideo'
 import { Whiteboard } from '@/components/classroom/Whiteboard'
+import { CameraRequestsPanel } from '@/components/classroom/CameraRequests'
 import { AIMonitoringPanel } from '@/components/monitoring/AIMonitoringPanel'
 import { ConfidenceRing } from '@/components/monitoring/ConfidenceRing'
 import {
@@ -29,6 +30,7 @@ import {
   WS_CLOSE_FORBIDDEN,
   WS_CLOSE_REPLACED,
   WS_CLOSE_UNAUTHENTICATED,
+  type CameraOffRequest,
   type ClassChatMessage,
   type RoomParticipant,
   type WelcomeMessage,
@@ -316,6 +318,9 @@ export function TeacherLiveClassroomPage() {
   const [clearToken, setClearToken] = useState(0)
   const [whiteboardOpen, setWhiteboardOpen] = useState(false)
 
+  // Pending student camera-off requests (the server holds the truth).
+  const [cameraRequests, setCameraRequests] = useState<CameraOffRequest[]>([])
+
   // -------------------------------------------------------------------------
   // Students received through WebRTC / AI results
   // -------------------------------------------------------------------------
@@ -596,6 +601,18 @@ export function TeacherLiveClassroomPage() {
       const studentId = String(message.studentId)
       message = { ...message, studentId }
 
+      // Temporary latency diagnostics: student frame capture -> shown here.
+      // (Accurate when both run on the same machine; otherwise includes
+      // the two clocks' offset.)
+      const capturedAt = Number(message.data?.client_timing?.captured_at)
+      if (capturedAt) {
+        console.info('[AI TIMING] teacher display', {
+          studentId,
+          alert: message.data?.active_alert ?? null,
+          capture_to_teacher_ms: Date.now() - capturedAt,
+        })
+      }
+
       setConnectedStudents((current) => {
         const existing = current.find((student) => student.studentId === studentId)
         const updatedStudent = convertAIResultToStudent(message, existing) as StudentLiveState
@@ -670,6 +687,7 @@ export function TeacherLiveClassroomPage() {
               setClearToken((t) => t + 1)
               setWhiteboardOpen(welcome.whiteboard.open)
               setChat(welcome.chat)
+              setCameraRequests(welcome.cameraRequests ?? [])
               send({
                 type: 'media_state',
                 camera: Boolean(cameraTrackRef.current),
@@ -708,6 +726,26 @@ export function TeacherLiveClassroomPage() {
               break
             case 'ai_result':
               handleAiResult(message)
+              break
+            case 'camera_request': {
+              const request = message.request as CameraOffRequest
+              setCameraRequests((current) => [...current.filter((r) => r.id !== request.id), request])
+              pushAlertToast({
+                studentName: request.studentName,
+                message: `Camera-off request: ${request.reason}`,
+                severity: 'warning',
+              })
+              break
+            }
+            case 'camera_request_removed':
+              setCameraRequests((current) => current.filter((r) => r.id !== message.id))
+              break
+            case 'camera_off_blocked':
+              pushAlertToast({
+                studentName: message.studentName ?? 'Student',
+                message: 'Tried to turn the camera off without approval',
+                severity: 'warning',
+              })
               break
             case 'chat':
               setChat((current) => [...current, message as ClassChatMessage])
@@ -759,6 +797,7 @@ export function TeacherLiveClassroomPage() {
       setConnectedStudents([])
       setRemoteStreams({})
       setParticipants([])
+      setCameraRequests([])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId])
@@ -1104,6 +1143,13 @@ export function TeacherLiveClassroomPage() {
               />
             )}
 
+            {panel === 'camera-requests' && (
+              <CameraRequestsPanel
+                requests={cameraRequests}
+                onDecide={(id, approve) => send({ type: 'camera_request_decision', id, approve })}
+              />
+            )}
+
             {panel === 'monitoring' && selected && (
               <div className="dark h-full">
                 <AIMonitoringPanel student={selected} />
@@ -1132,6 +1178,7 @@ export function TeacherLiveClassroomPage() {
         recording
         panel={panel}
         unreadChat={unreadChat}
+        cameraRequestCount={cameraRequests.length}
         onToggleMic={toggleMic}
         onToggleCamera={toggleCamera}
         onToggleScreenShare={toggleScreenShare}

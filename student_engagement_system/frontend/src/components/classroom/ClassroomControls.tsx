@@ -46,12 +46,14 @@ function PanelButton({
   icon: Icon,
   label,
   badge,
+  badgeTone = 'critical',
 }: {
   active?: boolean
   onClick: () => void
   icon: typeof Mic
   label: string
   badge?: number
+  badgeTone?: 'critical' | 'attention'
 }) {
   return (
     <button
@@ -66,7 +68,12 @@ function PanelButton({
     >
       <Icon className="h-[18px] w-[18px]" />
       {!!badge && (
-        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-critical-500 px-1 text-[10px] font-semibold text-white">
+        <span
+          className={cn(
+            'absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white',
+            badgeTone === 'attention' ? 'animate-pulse bg-attention-500' : 'bg-critical-500',
+          )}
+        >
           {badge > 9 ? '9+' : badge}
         </span>
       )}
@@ -74,7 +81,7 @@ function PanelButton({
   )
 }
 
-export type ClassroomPanel = 'none' | 'participants' | 'chat' | 'monitoring'
+export type ClassroomPanel = 'none' | 'participants' | 'chat' | 'monitoring' | 'camera-requests'
 
 /**
  * Bottom toolbar for the live classroom. Teacher-only tools (screen share,
@@ -85,7 +92,7 @@ export function ClassroomControls({
   role,
   micOn, cameraOn, handRaised, screenSharing, recording,
   micAvailable = true, cameraAvailable = true,
-  whiteboardOpen, panel, unreadChat,
+  whiteboardOpen, panel, unreadChat, cameraRequestCount,
   onToggleMic, onToggleCamera, onToggleHand, onToggleScreenShare, onToggleWhiteboard,
   onTogglePanel, onLeave,
   timer,
@@ -102,6 +109,8 @@ export function ClassroomControls({
   whiteboardOpen?: boolean
   panel: ClassroomPanel
   unreadChat?: number
+  // Teacher only: pending student camera-off requests.
+  cameraRequestCount?: number
   onToggleMic: () => void
   onToggleCamera: () => void
   onToggleHand?: () => void
@@ -164,6 +173,16 @@ export function ClassroomControls({
         <PanelButton icon={MessageSquare} active={panel === 'chat'} onClick={() => onTogglePanel('chat')} label="Chat" badge={unreadChat} />
         {teacher && (
           <PanelButton icon={Activity} active={panel === 'monitoring'} onClick={() => onTogglePanel('monitoring')} label="AI monitoring" />
+        )}
+        {teacher && (
+          <PanelButton
+            icon={VideoOff}
+            active={panel === 'camera-requests'}
+            onClick={() => onTogglePanel('camera-requests')}
+            label={cameraRequestCount ? `Camera requests (${cameraRequestCount} pending)` : 'Camera requests'}
+            badge={cameraRequestCount}
+            badgeTone="attention"
+          />
         )}
 
         <div className="mx-1 h-6 w-px bg-white/10" />

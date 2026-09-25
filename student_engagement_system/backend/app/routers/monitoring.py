@@ -283,11 +283,28 @@ class _Room:
         self.members: dict = {}
         self.whiteboard = {"open": False, "strokes": []}
         self.chat: deque = deque(maxlen=self.MAX_CHAT)
+        # Camera-off approval (live-session state, memory only):
+        # student key -> pending request, and the student user ids the
+        # teacher has allowed to keep their camera off. Keyed by user id so
+        # an approval survives the student reconnecting to this room.
+        self.camera_requests: dict = {}
+        self.camera_off_approved: set = set()
 
 
 _rooms: dict = {}
 
-_TEACHER_ONLY = {"wb_open", "wb_close", "wb_stroke", "wb_clear", "class_ended"}
+_TEACHER_ONLY = {"wb_open", "wb_close", "wb_stroke", "wb_clear", "class_ended", "camera_request_decision"}
+
+# Reasons a student can pick in the camera-off request; "Other" allows a
+# short free-text note.
+_CAMERA_OFF_REASONS = {"Technical issue", "Privacy issue", "Camera problem", "Network issue", "Other"}
+_CAMERA_OFF_NOTE_MAX = 200
+
+
+async def _send_to_teachers(room, payload):
+    for recipient in list(room.members.values()):
+        if recipient.role == "teacher":
+            await _send(recipient, payload)
 _WEBRTC = {"offer", "answer", "candidate"}
 
 
@@ -364,13 +381,21 @@ async def classroom_signaling(
         except Exception:  # noqa: BLE001
             pass
 
-    await _send(member, {
+    welcome = {
         "type": "welcome",
         "self": member.public(),
         "participants": [m.public() for m in room.members.values() if m.key != member.key],
         "whiteboard": room.whiteboard,
         "chat": list(room.chat),
-    })
+    }
+    if member.role == "teacher":
+        welcome["cameraRequests"] = list(room.camera_requests.values())
+    else:
+        # A reconnecting student keeps an approval they already had, and
+        # sees a request that is still pending.
+        welcome["cameraOffApproved"] = member.user_id in room.camera_off_approved
+        welcome["cameraRequestPending"] = member.key in room.camera_requests
+    await _send(member, welcome)
     await _broadcast(room, {"type": "participant_joined", "participant": member.public()}, exclude=member.key)
 
     try:
@@ -436,8 +461,90 @@ async def classroom_signaling(
                     if isinstance(message.get(field), bool):
                         if field == "screen" and member.role != "teacher":
                             continue  # students can't screen-share
+                        if field == "camera" and member.role == "student":
+                            turning_off = member.media["camera"] and not message[field]
+                            if turning_off and member.user_id not in room.camera_off_approved:
+                                # Camera on -> off needs the teacher's
+                                # approval. Refuse the change (the camera
+                                # stays "on" in the room) and tell both sides.
+                                await _send(member, {"type": "camera_request_status", "status": "not_approved"})
+                                await _send_to_teachers(room, {
+                                    "type": "camera_off_blocked",
+                                    "studentId": str(member.user_id),
+                                    "studentName": member.name,
+                                    "ts": datetime.now(timezone.utc).isoformat(),
+                                })
+                                continue
+                            if message[field] and not member.media["camera"]:
+                                # Turning the camera back on ends an approval;
+                                # turning it off again needs a new request.
+                                room.camera_off_approved.discard(member.user_id)
                         member.media[field] = message[field]
                 await _broadcast(room, {"type": "participant_updated", "participant": member.public()})
+                continue
+
+            if kind == "camera_off_request":
+                if member.role != "student":
+                    continue
+                if member.user_id in room.camera_off_approved:
+                    await _send(member, {"type": "camera_request_status", "status": "approved"})
+                    continue
+                reason = message.get("reason")
+                if reason not in _CAMERA_OFF_REASONS:
+                    await _send(member, {"type": "camera_request_status", "status": "invalid"})
+                    continue
+                note = str(message.get("note") or "").strip()[:_CAMERA_OFF_NOTE_MAX]
+                request = {
+                    "id": uuid.uuid4().hex,
+                    "studentKey": member.key,
+                    "studentId": str(member.user_id),
+                    "studentName": member.name,
+                    "reason": reason,
+                    "note": note,
+                    "ts": datetime.now(timezone.utc).isoformat(),
+                }
+                # One pending request per student: a new one replaces it.
+                previous_request = room.camera_requests.get(member.key)
+                room.camera_requests[member.key] = request
+                if previous_request is not None:
+                    await _send_to_teachers(room, {"type": "camera_request_removed", "id": previous_request["id"]})
+                await _send_to_teachers(room, {"type": "camera_request", "request": request})
+                await _send(member, {"type": "camera_request_status", "status": "pending"})
+                continue
+
+            if kind == "camera_off_cancel":
+                if member.role != "student":
+                    continue
+                cancelled_request = room.camera_requests.pop(member.key, None)
+                if cancelled_request is not None:
+                    await _send_to_teachers(room, {"type": "camera_request_removed", "id": cancelled_request["id"]})
+                    await _send(member, {"type": "camera_request_status", "status": "cancelled"})
+                continue
+
+            if kind == "camera_request_decision":
+                # Teacher-only (see _TEACHER_ONLY). Only requests in THIS
+                # room can be decided -- another class's ids never match.
+                request_id = message.get("id")
+                decided = next(
+                    (r for r in room.camera_requests.values() if r["id"] == request_id),
+                    None,
+                )
+                if decided is None:
+                    continue
+                room.camera_requests.pop(decided["studentKey"], None)
+                await _send_to_teachers(room, {"type": "camera_request_removed", "id": decided["id"]})
+                # Pending requests are dropped when their student leaves, so
+                # the requester is connected here (possibly a newer socket).
+                student = room.members.get(decided["studentKey"])
+                if student is None:
+                    continue
+                approved = message.get("approve") is True
+                if approved:
+                    room.camera_off_approved.add(student.user_id)
+                await _send(student, {
+                    "type": "camera_request_status",
+                    "status": "approved" if approved else "rejected",
+                })
                 continue
 
             if kind == "chat":
@@ -490,6 +597,11 @@ async def classroom_signaling(
     finally:
         if room.members.get(member.key) is member:
             del room.members[member.key]
+            # A student who leaves withdraws their pending request (an
+            # already-granted approval is kept for a reconnect).
+            left_request = room.camera_requests.pop(member.key, None)
+            if left_request is not None:
+                await _send_to_teachers(room, {"type": "camera_request_removed", "id": left_request["id"]})
             await _broadcast(room, {"type": "participant_left", "key": member.key})
         if not room.members and _rooms.get(class_id) is room:
             del _rooms[class_id]
@@ -534,6 +646,11 @@ def analyze_frame(
     authorization: Optional[str] = Header(default=None),
 ):
 
+    # Temporary latency breakdown (ms), returned as a top-level "timing"
+    # field -- not part of the cached/broadcast result.
+    t_request = time.perf_counter()
+    timing = {}
+
     db = get_db()
 
     try:
@@ -562,6 +679,9 @@ def analyze_frame(
         # ----------------------------------------------------
         # REMOVE DATA URL PREFIX, DECODE TO AN OPENCV FRAME
         # ----------------------------------------------------
+
+        timing["auth_session_ms"] = round((time.perf_counter() - t_request) * 1000, 1)
+        t = time.perf_counter()
 
         encoded = request.frame
 
@@ -593,12 +713,18 @@ def analyze_frame(
         # student or session.
         # ----------------------------------------------------
 
+        timing["decode_ms"] = round((time.perf_counter() - t) * 1000, 1)
+
         state = ai_state.get_state(
             active_session.session_id,
             request.student_id,
         )
 
+        t = time.perf_counter()
         result = process_frame(frame, state)
+        timing["inference_ms"] = round((time.perf_counter() - t) * 1000, 1)
+        timing["stages"] = result.get("timing", {})
+        t = time.perf_counter()
 
         # ----------------------------------------------------
         # SAVE AI RESULT TO DATABASE
@@ -747,6 +873,9 @@ def analyze_frame(
             request.student_id
         ] = latest
 
+        timing["db_ms"] = round((time.perf_counter() - t) * 1000, 1)
+        timing["server_total_ms"] = round((time.perf_counter() - t_request) * 1000, 1)
+
         # ----------------------------------------------------
         # RETURN RESULT
         # ----------------------------------------------------
@@ -755,6 +884,7 @@ def analyze_frame(
             "success": True,
             "session_active": True,
             "data": latest,
+            "timing": timing,
         }
 
     except Exception as exc:

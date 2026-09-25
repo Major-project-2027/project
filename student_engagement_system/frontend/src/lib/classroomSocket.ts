@@ -38,12 +38,39 @@ export interface WhiteboardStroke {
   mode: 'pen' | 'erase'
 }
 
+/** A student's pending request to turn their camera off (teacher decides). */
+export interface CameraOffRequest {
+  id: string
+  studentKey: string
+  studentId: string
+  studentName: string
+  reason: string
+  note: string
+  ts: string
+}
+
+export const CAMERA_OFF_REASONS = [
+  'Technical issue',
+  'Privacy issue',
+  'Camera problem',
+  'Network issue',
+  'Other',
+] as const
+
+/** Server -> student status of their camera-off request. */
+export type CameraRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled' | 'not_approved' | 'invalid'
+
 export interface WelcomeMessage {
   type: 'welcome'
   self: RoomParticipant
   participants: RoomParticipant[]
   whiteboard: { open: boolean; strokes: WhiteboardStroke[] }
   chat: ClassChatMessage[]
+  // Teacher only: pending camera-off requests in this class.
+  cameraRequests?: CameraOffRequest[]
+  // Student only: an approval they already hold / a request still pending.
+  cameraOffApproved?: boolean
+  cameraRequestPending?: boolean
 }
 
 /** Close codes the server uses for authorization failures. */

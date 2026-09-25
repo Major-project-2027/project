@@ -46,6 +46,12 @@ inference_lock = threading.Lock()
 _init_lock = threading.Lock()
 _models_loaded = False
 
+# The shared MediaPipe landmarker (VIDEO mode) rejects a timestamp that is
+# not strictly greater than the previous one -- across ALL students, since
+# it is one instance. Two frames inside the same millisecond would
+# otherwise raise and fail that request. Only touched under inference_lock.
+_last_landmarker_ts_ms = 0
+
 
 # ============================================================
 # MODEL PATHS
@@ -297,18 +303,19 @@ CONSEC_FRAMES = 1
 # How often (in received frames, PER STUDENT) each expensive step runs.
 # Blink/head-pose/gaze come from the MediaPipe landmarker, which is cheap
 # (~10-30ms) and runs on every frame for responsiveness. YOLO (phone/person
-# detection) is heavier and runs every other frame. Face recognition +
-# emotion are the heaviest (two TensorFlow model calls) and run least often
-# -- neither needs to be instantaneous the way phone detection does.
-PROCESS_EVERY_YOLO = 2
+# detection) also runs on EVERY frame: at every-other-frame, a phone that
+# appeared on a skipped frame was only seen one full round trip later
+# (~4-5s on Render). The extra cost is paid for by running the Haar face
+# detector only on emotion frames (see process_frame) -- its boxes are
+# only ever used for the emotion crop. Face recognition + emotion are the
+# heaviest and run least often -- neither needs to be instantaneous.
+PROCESS_EVERY_YOLO = 1
 PROCESS_EVERY_FACE = 6
 
 # How many consecutive YOLO checks (person_count == 0) must happen before
 # "no person" is treated as real rather than a brief camera hiccup/frame
-# glitch. At PROCESS_EVERY_YOLO=2 and a ~600ms client send interval, YOLO
-# runs roughly every ~1.2s, so a streak of 3 is a ~3.5s grace period --
-# long enough to absorb a momentary camera stutter, short enough that an
-# actually-empty seat is flagged quickly.
+# glitch -- long enough to absorb a momentary camera stutter, short enough
+# that an actually-empty seat is flagged quickly.
 NO_PERSON_CONFIRM_STREAK = 3
 
 # ============================================================
@@ -383,7 +390,11 @@ SLEEP_DEBUG = os.environ.get("AI_SLEEP_DEBUG", "1") != "0"
 GAZE_ALERT_HORIZONTAL_THRESHOLD = 0.36
 GAZE_ALERT_VERTICAL_THRESHOLD = 0.32
 
-LOOKING_AWAY_CONFIRM_STREAK = 3
+# Confirm after 2 consecutive outside-zone frames (was 3): each frame is a
+# full network round trip (~1-2s on Render), so 3 meant a 4-6s delay. The
+# dead zone + EMA-smoothed friend head pose already reject small/natural
+# movement, and a single stray frame still never fires the alert.
+LOOKING_AWAY_CONFIRM_STREAK = 2
 LOOKING_AWAY_CLEAR_STREAK = 3
 
 # ============================================================
@@ -754,6 +765,8 @@ def process_frame(frame, state):
     result for convenience.
     """
 
+    global _last_landmarker_ts_ms
+
     # First call loads every AI framework/model (~658MB, see
     # _ensure_models_loaded()'s docstring) exactly once; every call after
     # that is a single boolean check and returns immediately.
@@ -762,10 +775,18 @@ def process_frame(frame, state):
     if frame is None:
         return None
 
+    # Temporary per-stage timing (ms), returned with the result.
+    timing = {}
+    t_start = time.perf_counter()
+
     height, width = frame.shape[:2]
 
     state["frame_counter"] += 1
     frame_counter = state["frame_counter"]
+
+    # The Haar face boxes are only consumed by the emotion step, which runs
+    # every PROCESS_EVERY_FACE frames -- skip the detector on other frames.
+    run_face_step = frame_counter % PROCESS_EVERY_FACE == 0
 
     blink_counter = state["blink_counter"]
     blink_total = state["blink_total"]
@@ -782,9 +803,11 @@ def process_frame(frame, state):
 
         if frame_counter % PROCESS_EVERY_YOLO == 0:
 
+            t = time.perf_counter()
             yolo_results, person_count, phone_detected = detect_objects(
                 frame
             )
+            timing["yolo_ms"] = round((time.perf_counter() - t) * 1000, 1)
 
             state["last_person_count"] = person_count
             state["last_phone_detected"] = phone_detected
@@ -811,16 +834,24 @@ def process_frame(frame, state):
         # OPENCV FACE DETECTION
         # ========================================================
 
-        gray = cv2.cvtColor(
-            frame,
-            cv2.COLOR_BGR2GRAY
-        )
+        faces = ()
 
-        faces = face_detector.detectMultiScale(
-            gray,
-            scaleFactor=1.3,
-            minNeighbors=5
-        )
+        if run_face_step:
+
+            t = time.perf_counter()
+
+            gray = cv2.cvtColor(
+                frame,
+                cv2.COLOR_BGR2GRAY
+            )
+
+            faces = face_detector.detectMultiScale(
+                gray,
+                scaleFactor=1.3,
+                minNeighbors=5
+            )
+
+            timing["haar_ms"] = round((time.perf_counter() - t) * 1000, 1)
 
         # ========================================================
         # MEDIAPIPE -- runs on EVERY frame. This is what blink / head
@@ -841,14 +872,18 @@ def process_frame(frame, state):
             data=rgb
         )
 
-        timestamp_ms = int(
-            time.time() * 1000
+        timestamp_ms = max(
+            int(time.time() * 1000),
+            _last_landmarker_ts_ms + 1
         )
+        _last_landmarker_ts_ms = timestamp_ms
 
+        t = time.perf_counter()
         result = landmarker.detect_for_video(
             mp_image,
             timestamp_ms
         )
+        timing["landmarks_ms"] = round((time.perf_counter() - t) * 1000, 1)
 
     # ========================================================
     # DEFAULT VALUES
@@ -1024,10 +1059,12 @@ def process_frame(frame, state):
 
         if friend_gaze_predictor is not None:
             try:
+                t = time.perf_counter()
                 with inference_lock:
                     friend_gaze_result = friend_gaze_predictor.predict_frame(
                         frame, timestamp=now_ts
                     ).to_dict()
+                timing["gaze_headpose_ms"] = round((time.perf_counter() - t) * 1000, 1)
             except Exception as exc:  # noqa: BLE001 -- must degrade, never crash.
                 friend_gaze_result = None
                 if SLEEP_DEBUG:
@@ -1153,7 +1190,7 @@ def process_frame(frame, state):
     # MEDIAPIPE FACE FALLBACK
     # ========================================================
 
-    if len(faces) == 0 and result.face_landmarks:
+    if run_face_step and len(faces) == 0 and result.face_landmarks:
 
         landmarks = result.face_landmarks[0]
 
@@ -1455,7 +1492,10 @@ def process_frame(frame, state):
     state["blink_counter"] = blink_counter
     state["blink_total"] = blink_total
 
+    timing["process_frame_ms"] = round((time.perf_counter() - t_start) * 1000, 1)
+
     return {
+        "timing": timing,
         "frame": frame,
         "name": name,
         "emotion": emotion,
